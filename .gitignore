@@ -1,0 +1,6 @@
+/target
+Cargo.lock
+.idea
+*.mp4
+*.json
+*.exe
