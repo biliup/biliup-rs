@@ -207,12 +207,55 @@ impl Client {
         Ok(res)
     }
 
+    pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo>  {
+        let mut form = json!({
+            "appkey": "4409e2ce8ffd12b8",
+            "local_id": "0",
+            "auth_code": value["data"]["auth_code"],
+            "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+        });
+        let urlencoded = serde_urlencoded::to_string(&form)?;
+        let sign = Client::sign(&urlencoded, "59b43e04ad6965f34319062b478f83dd");
+        form["sign"] = Value::from(sign);
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let res: ResponseData = self.client.post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll").form(&form)
+                .send().await?.json().await?;
+            match res {
+                ResponseData{code: 0, data: ResponseValue::Login(info), ..}=> {
+                    let file = std::fs::File::create("cookies.json")?;
+                    serde_json::to_writer_pretty(&file, &info)?;
+                    println!("登录成功，数据保存在{:?}", file);
+                    return Ok(info);
+                }
+                ResponseData{code: 86039, .. } => {
+                    // 二维码尚未确认;
+                    // form["ts"] = Value::from(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
+                }
+                _ => {bail!("{:#?}", res)}
+            }
+        }
+    }
+
+    pub async fn get_qrcode(&self) -> Result<Value> {
+        let mut form = json!({
+            "appkey": "4409e2ce8ffd12b8",
+            "local_id": "0",
+            "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+        });
+        let urlencoded = serde_urlencoded::to_string(&form)?;
+        let sign = Client::sign(&urlencoded, "59b43e04ad6965f34319062b478f83dd");
+        form["sign"] = Value::from(sign);
+        Ok(self.client.post("http://passport.bilibili.com/x/passport-tv-login/qrcode/auth_code")
+            .form(&form).send().await?.json().await?)
+    }
+
     pub async fn get_key(&self) -> Result<(String, String)> {
         let payload = json!({
             "appkey": APP_KEY,
             "sign": Client::sign(&format!("appkey={}", APP_KEY), APPSEC),
         });
-        let response: serde_json::Value = self
+        let response: Value = self
             .client
             .get("https://passport.bilibili.com/x/passport-login/web/key")
             .json(&payload)
@@ -281,11 +324,11 @@ pub enum ResponseValue {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LoginInfo {
     cookie_info: serde_json::Value,
-    message: String,
+    // message: String,
     sso: Vec<String>,
-    status: u8,
+    // status: u8,
     pub token_info: TokenInfo,
-    url: String,
+    // url: String,
 }
 
 impl From<ResponseValue> for LoginInfo {

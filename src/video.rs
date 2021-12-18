@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use anyhow::{bail, Result};
 use async_std::fs::File;
 
@@ -15,8 +16,10 @@ use crate::client::{Client, LoginInfo};
 
 use async_stream::try_stream;
 
-use crate::upos::Upos;
+// use crate::uploader::upos::Upos;
 use typed_builder::TypedBuilder;
+use crate::uploader::{Uploader, UploadStatus};
+use crate::uploader::upos::{Bucket, Upos};
 
 #[derive(Serialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
@@ -68,12 +71,14 @@ impl Video {
 pub struct BiliBili {
     client: reqwest::Client,
     login_info: LoginInfo,
+    line: Line,
 }
 impl BiliBili {
-    pub fn new((login_info, login): (LoginInfo, Client)) -> BiliBili {
+    pub async fn new((login_info, login): (LoginInfo, Client)) -> BiliBili {
         BiliBili {
             client: login.client,
             login_info,
+            line: Probe::probe().await.unwrap_or_default(),
         }
     }
 
@@ -87,21 +92,14 @@ impl BiliBili {
             .await?)
     }
 
-    pub async fn upload_file(
-        &self,
-        filepath: impl std::convert::AsRef<async_std::path::Path>,
-        callback: impl FnMut(Instant, u64, usize) -> bool,
-    ) -> Result<Video> {
-        let file = File::open(&filepath).await?;
-        let line = Probe::probe().await?;
-        let file_name = filepath
-            .as_ref()
-            .file_name()
+    pub async fn pre_upload(&self, filepath: &PathBuf, file: &File) -> Result<Bucket> {
+        // let line = Probe::probe().await?;
+        let file_name = filepath.file_name()
             .ok_or("No filename")
             .unwrap()
             .to_str();
         let params = json!({
-            "r": line.os,
+            "r": self.line.os,
             "profile": "ugcupos/bup",
             "ssl": 0,
             "version": "2.8.12",
@@ -109,19 +107,46 @@ impl BiliBili {
             "name": file_name,
             "size": file.metadata().await?.len(),
         });
-        println!("{}", params);
-        let res: serde_json::Value = self
-            .client
+        println!("pre_upload: {}", params);
+        Ok(self.client
             .get(format!(
                 "https://member.bilibili.com/preupload?{}",
-                line.query
+                self.line.query
             ))
             .query(&params)
             .send()
             .await?
             .json()
-            .await?;
-        Upos::upload(file, filepath.as_ref(), res, callback).await
+            .await?)
+    }
+
+    pub async fn upload_file(&self, filepath: &PathBuf) -> Result<Video> {
+        let file = File::open(&filepath).await?;
+        let res = self.pre_upload(filepath, &file).await?;
+        match &self.line.os {
+            // unknown @ _ => panic!("{}", unknown)
+            Uploader::Upos => {Upos::form(res).await?.upload(file, filepath).await}
+            Uploader::Kodo => { panic!("kodo")}
+            Uploader::Bos => {panic!("gcs")}
+            Uploader::Gcs => {panic!("bos")}
+            Uploader::Cos => {panic!("cos")}
+        }
+        // Ok(crate::Upload::new(line.os.into(), file, filepath, res))
+        // Upos::upload(file, filepath.as_ref(), res, callback).await
+    }
+
+    pub async fn upload_file_stream<'a>(&mut self, file: File, filepath: &'a PathBuf) -> Result<impl Stream<Item=Result<UploadStatus>> + 'a> {
+        let res = self.pre_upload(filepath, &file).await?;
+        match &self.line.os {
+            // unknown @ _ => panic!("{}", unknown)
+            Uploader::Upos => { Upos::form(res).await?.upload_stream(file, filepath).await }
+            Uploader::Kodo => { panic!("kodo")}
+            Uploader::Bos => {panic!("gcs")}
+            Uploader::Gcs => {panic!("bos")}
+            Uploader::Cos => {panic!("cos")}
+        }
+        // Ok(crate::Upload::new(line.os.into(), file, filepath, res))
+        // Upos::upload(file, filepath.as_ref(), res, callback).await
     }
 
     pub async fn submit(&self, studio: Studio) -> Result<serde_json::Value> {
@@ -156,7 +181,7 @@ pub struct Probe {
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Line {
-    os: String,
+    os: Uploader,
     probe_url: String,
     query: String,
     #[serde(skip)]
@@ -201,7 +226,7 @@ impl Probe {
 impl Default for Line {
     fn default() -> Self {
         Line {
-            os: "upos".to_string(),
+            os: Uploader::Upos,
             probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".to_string(),
             query: "upcdn=bda2&probe_version=20200810".to_string(),
             cost: u128::MAX,

@@ -36,3 +36,6 @@ reqwest-retry = "0.1.1"
 serde_urlencoded = "0.7"
 dialoguer = "0.9.0"
 clap = { version = "3.0.0-rc.3", features = ["derive"] }
+indicatif = "0.16.2"
+qrcode = "0.12.0"
+image = "0.23.14"
