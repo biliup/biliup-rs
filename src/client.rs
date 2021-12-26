@@ -153,25 +153,39 @@ impl Client {
         Ok(result)
     }
 
-    pub async fn login_by_sms(&self, code: u32, mut payload: serde_json::Value) -> Result<LoginInfo> {
+    pub async fn login_by_sms(
+        &self,
+        code: u32,
+        mut payload: serde_json::Value,
+    ) -> Result<LoginInfo> {
         payload["code"] = Value::from(code);
         let urlencoded = serde_urlencoded::to_string(&payload)?;
         let sign = Client::sign(&urlencoded, APPSEC);
         payload["sign"] = Value::from(sign);
-        let res: ResponseData = self.client.post("https://passport.bilibili.com/x/passport-login/login/sms")
-            .form(&payload).send().await?.json().await?;
+        let res: ResponseData = self
+            .client
+            .post("https://passport.bilibili.com/x/passport-login/login/sms")
+            .form(&payload)
+            .send()
+            .await?
+            .json()
+            .await?;
         match res.data {
             ResponseValue::Login(info) => {
                 let file = std::fs::File::create("cookies.json")?;
                 serde_json::to_writer_pretty(&file, &info)?;
                 println!("登录成功，数据保存在{:?}", file);
                 Ok(info)
-            },
-            ResponseValue::Value(_) => bail!("{}", res)
+            }
+            ResponseValue::Value(_) => bail!("{}", res),
         }
     }
 
-    pub async fn send_sms(&self, phone_number: u64, country_code: u32)-> Result<serde_json::Value> {
+    pub async fn send_sms(
+        &self,
+        phone_number: u64,
+        country_code: u32,
+    ) -> Result<serde_json::Value> {
         let mut payload = json!({
             "actionKey": "appkey",
             "appkey": APP_KEY,
@@ -191,23 +205,29 @@ impl Client {
         let urlencoded = format!("{}&sign={}", urlencoded, sign);
         // let mut form = payload.clone();
         // form["sign"] = Value::from(sign);
-        let res: ResponseData = self.client.post("https://passport.bilibili.com/x/passport-login/sms/send")
-            .header("content-type","application/x-www-form-urlencoded")
+        let res: ResponseData = self
+            .client
+            .post("https://passport.bilibili.com/x/passport-login/sms/send")
+            .header("content-type", "application/x-www-form-urlencoded")
             .body(urlencoded)
-            .send().await?
-            .json().await?;
+            .send()
+            .await?
+            .json()
+            .await?;
         // println!("{}", res);
         let res = match res.data {
             ResponseValue::Value(mut data) if !data["captcha_key"].as_str().unwrap().is_empty() => {
                 payload["captcha_key"] = data["captcha_key"].take();
                 payload
             }
-            _ => {bail!("{}", res)}
+            _ => {
+                bail!("{}", res)
+            }
         };
         Ok(res)
     }
 
-    pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo>  {
+    pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo> {
         let mut form = json!({
             "appkey": "4409e2ce8ffd12b8",
             "local_id": "0",
@@ -219,20 +239,32 @@ impl Client {
         form["sign"] = Value::from(sign);
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let res: ResponseData = self.client.post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll").form(&form)
-                .send().await?.json().await?;
+            let res: ResponseData = self
+                .client
+                .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll")
+                .form(&form)
+                .send()
+                .await?
+                .json()
+                .await?;
             match res {
-                ResponseData{code: 0, data: ResponseValue::Login(info), ..}=> {
+                ResponseData {
+                    code: 0,
+                    data: ResponseValue::Login(info),
+                    ..
+                } => {
                     let file = std::fs::File::create("cookies.json")?;
                     serde_json::to_writer_pretty(&file, &info)?;
                     println!("登录成功，数据保存在{:?}", file);
                     return Ok(info);
                 }
-                ResponseData{code: 86039, .. } => {
+                ResponseData { code: 86039, .. } => {
                     // 二维码尚未确认;
                     // form["ts"] = Value::from(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
                 }
-                _ => {bail!("{:#?}", res)}
+                _ => {
+                    bail!("{:#?}", res)
+                }
             }
         }
     }
@@ -246,8 +278,14 @@ impl Client {
         let urlencoded = serde_urlencoded::to_string(&form)?;
         let sign = Client::sign(&urlencoded, "59b43e04ad6965f34319062b478f83dd");
         form["sign"] = Value::from(sign);
-        Ok(self.client.post("http://passport.bilibili.com/x/passport-tv-login/qrcode/auth_code")
-            .form(&form).send().await?.json().await?)
+        Ok(self
+            .client
+            .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/auth_code")
+            .form(&form)
+            .send()
+            .await?
+            .json()
+            .await?)
     }
 
     pub async fn get_key(&self) -> Result<(String, String)> {

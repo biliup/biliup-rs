@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use anyhow::{bail, Result};
 use async_std::fs::File;
+use std::path::PathBuf;
 
 use bytes::{BufMut, Bytes, BytesMut};
 
@@ -17,9 +17,9 @@ use crate::client::{Client, LoginInfo};
 use async_stream::try_stream;
 
 // use crate::uploader::upos::Upos;
-use typed_builder::TypedBuilder;
-use crate::uploader::{Uploader, UploadStatus};
 use crate::uploader::upos::{Bucket, Upos};
+use crate::uploader::{UploadStatus, Uploader};
+use typed_builder::TypedBuilder;
 
 #[derive(Serialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
@@ -94,10 +94,7 @@ impl BiliBili {
 
     pub async fn pre_upload(&self, filepath: &PathBuf, file: &File) -> Result<Bucket> {
         // let line = Probe::probe().await?;
-        let file_name = filepath.file_name()
-            .ok_or("No filename")
-            .unwrap()
-            .to_str();
+        let file_name = filepath.file_name().ok_or("No filename").unwrap().to_str();
         let params = json!({
             "r": self.line.os,
             "profile": "ugcupos/bup",
@@ -108,7 +105,8 @@ impl BiliBili {
             "size": file.metadata().await?.len(),
         });
         println!("pre_upload: {}", params);
-        Ok(self.client
+        Ok(self
+            .client
             .get(format!(
                 "https://member.bilibili.com/preupload?{}",
                 self.line.query
@@ -123,28 +121,18 @@ impl BiliBili {
     pub async fn upload_file(&self, filepath: &PathBuf) -> Result<Video> {
         let file = File::open(&filepath).await?;
         let res = self.pre_upload(filepath, &file).await?;
-        match &self.line.os {
-            // unknown @ _ => panic!("{}", unknown)
-            Uploader::Upos => {Upos::form(res).await?.upload(file, filepath).await}
-            Uploader::Kodo => { panic!("kodo")}
-            Uploader::Bos => {panic!("gcs")}
-            Uploader::Gcs => {panic!("bos")}
-            Uploader::Cos => {panic!("cos")}
-        }
+        self.line.os.upload(res, file, filepath).await
         // Ok(crate::Upload::new(line.os.into(), file, filepath, res))
         // Upos::upload(file, filepath.as_ref(), res, callback).await
     }
 
-    pub async fn upload_file_stream<'a>(&mut self, file: File, filepath: &'a PathBuf) -> Result<impl Stream<Item=Result<UploadStatus>> + 'a> {
+    pub async fn upload_file_stream<'a>(
+        &mut self,
+        file: File,
+        filepath: &'a PathBuf,
+    ) -> Result<impl Stream<Item = Result<UploadStatus>> + 'a> {
         let res = self.pre_upload(filepath, &file).await?;
-        match &self.line.os {
-            // unknown @ _ => panic!("{}", unknown)
-            Uploader::Upos => { Upos::form(res).await?.upload_stream(file, filepath).await }
-            Uploader::Kodo => { panic!("kodo")}
-            Uploader::Bos => {panic!("gcs")}
-            Uploader::Gcs => {panic!("bos")}
-            Uploader::Cos => {panic!("cos")}
-        }
+        self.line.os.upload_stream(res, file, filepath).await
         // Ok(crate::Upload::new(line.os.into(), file, filepath, res))
         // Upos::upload(file, filepath.as_ref(), res, callback).await
     }

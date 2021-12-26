@@ -1,7 +1,10 @@
+use crate::uploader::UploadStatus;
 use crate::video::read_chunk;
 use crate::video::Video;
 use anyhow::{bail, Error, Result};
 use async_std::fs::File;
+use async_stream::try_stream;
+use futures::Stream;
 use futures_util::{StreamExt, TryStreamExt};
 use reqwest::header;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -10,18 +13,15 @@ use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ffi::OsStr;
-use std::time::{Duration, Instant};
 use std::path::{Path, PathBuf};
-use async_stream::try_stream;
-use futures::Stream;
-use crate::uploader::UploadStatus;
+use std::time::{Duration, Instant};
 
 pub struct Upos {
     client: ClientWithMiddleware,
     bucket: Bucket,
     url: String,
     upload_id: String,
-    result: Option<Video>
+    result: Option<Video>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -61,7 +61,11 @@ impl Upos {
             // Retry failed requests.
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build();
-        let url = format!("https:{}/{}", bucket.endpoint, bucket.upos_uri.replace("upos://", "")); // 视频上传路径
+        let url = format!(
+            "https:{}/{}",
+            bucket.endpoint,
+            bucket.upos_uri.replace("upos://", "")
+        ); // 视频上传路径
         println!("{}", url);
         let mut upload_id: serde_json::Value = client
             .post(format!("{}?uploads&output=json", url))
@@ -81,14 +85,14 @@ impl Upos {
             bucket,
             url,
             upload_id,
-            result: None
+            result: None,
         })
     }
     pub async fn upload_stream(
         mut self,
         file: File,
-        path: &PathBuf
-    ) -> Result<impl Stream<Item=Result<UploadStatus>> + '_> {
+        path: &PathBuf,
+    ) -> Result<impl Stream<Item = Result<UploadStatus>> + '_> {
         // let mut upload_id: serde_json::Value = self.client
         //     .post(format!("{}?uploads&output=json", self.url))
         //     .send()
@@ -113,16 +117,14 @@ impl Upos {
         };
         Ok(async_stream)
     }
-    
-    pub async fn upload(
-        &self,
-        file: File,
-        path: &PathBuf
-    ) -> Result<Video> {
 
-        let parts: Vec<_> = self.put_video(file).await?
+    pub async fn upload(&self, file: File, path: &PathBuf) -> Result<Video> {
+        let parts: Vec<_> = self
+            .put_video(file)
+            .await?
             .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
-            .try_collect().await?;
+            .try_collect()
+            .await?;
         // .for_each_concurrent()
         // .try_collect().await?;
         // let mut parts = Vec::with_capacity(chunks_num);
@@ -155,7 +157,9 @@ impl Upos {
     pub async fn put_video(
         &self,
         file: File,
-    ) -> Result<impl Stream<Item=Result<(serde_json::Value, usize), reqwest_middleware::Error>> + '_> {
+    ) -> Result<
+        impl Stream<Item = Result<(serde_json::Value, usize), reqwest_middleware::Error>> + '_,
+    > {
         // let file= &mut upload.file;
 
         let total_size = file.metadata().await?.len();
@@ -163,7 +167,7 @@ impl Upos {
         // let parts_cell = &RefCell::new(parts);
         let chunk_size = self.bucket.chunk_size;
         let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
-        // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
+                                                                                  // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.client;
         let url = &self.url;
         let upload_id = &*self.upload_id;
@@ -207,7 +211,8 @@ impl Upos {
             "profile": "ugcupos/bup"
         });
         // let res: serde_json::Value = self.client.post(url).query(&value).json(&json!({"parts": *parts_cell.borrow()}))
-        let res: serde_json::Value = self.client
+        let res: serde_json::Value = self
+            .client
             .post(&self.url)
             .query(&value)
             .json(&json!({ "parts": parts }))

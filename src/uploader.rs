@@ -1,47 +1,19 @@
-use async_std::fs::File;
-use std::time::{Duration, Instant};
+use crate::uploader::upos::{Bucket, Upos};
 use crate::video::Video;
 use anyhow::Result;
-use crate::uploader::upos::Bucket;
+use async_std::fs::File;
+use futures::Stream;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
+
 pub mod upos;
 
 pub enum UploadStatus {
     Processing(usize),
-    Completed(Video)
+    Completed(Video),
 }
 
-// pub struct Upload {
-//     pub uploader: Uploader,
-//     pub file: File,
-//     pub path: async_std::path::PathBuf,
-//     pub ret: Bucket,
-// }
-//
-// impl Upload {
-//     pub fn new(
-//         uploader: Uploader,
-//         file: File,
-//         path: async_std::path::PathBuf,
-//         ret: Bucket,
-//     ) -> Self {
-//         Upload {
-//             uploader,
-//             file,
-//             path,
-//             ret,
-//         }
-//     }
-//
-//     pub async fn upload(&mut self) ->Result<Video> {
-//         Ok(self.uploader.upload(&mut self).await?)
-//     }
-//
-//     pub async fn total_size(&self) -> Result<u64> {
-//         Ok(self.file.metadata().await?.len())
-//     }
-// }
-//
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Uploader {
@@ -49,33 +21,53 @@ pub enum Uploader {
     Kodo,
     Bos,
     Gcs,
-    Cos
+    Cos,
 }
 
-// impl Uploader {
-//     pub async fn upload(
-//         self,
-//         upload: &mut Upload,
-//     ) -> Result<Video> {
-//         match self {
-//             Uploader::Upos => {upos::Upos::new(bucket).upload(upload)}
-//             Uploader::Kodo => {panic!()}
-//             Uploader::Bos => {panic!()}
-//             Uploader::Gcs => {panic!()}
-//             Uploader::Cos => {panic!()}
-//         }
-//     }
-// }
-//
-// impl From<String> for Uploader {
-//     fn from(os: String) -> Self {
-//         match &os[..] {
-//             "upos" => Self::Upos(),
-//             "kodo" => Self::Kodo,
-//             "gcs" => Self::Gcs,
-//             "bos" => Self::Bos,
-//             "cos" => Self::Cos,
-//             unknown @ _ => panic!("{}", unknown)
-//         }
-//     }
-// }
+impl Uploader {
+    pub async fn upload(&self, bucket: Bucket, file: File, filepath: &PathBuf) -> Result<Video> {
+        match self {
+            Uploader::Upos => Upos::form(bucket).await?.upload(file, filepath).await,
+            Uploader::Kodo => {
+                panic!()
+            }
+            Uploader::Bos => {
+                panic!()
+            }
+            Uploader::Gcs => {
+                panic!()
+            }
+            Uploader::Cos => {
+                panic!()
+            }
+        }
+    }
+
+    pub async fn upload_stream<'a>(
+        &self,
+        bucket: Bucket,
+        file: File,
+        filepath: &'a PathBuf,
+    ) -> Result<impl Stream<Item = Result<UploadStatus>> + 'a> {
+        match self {
+            Uploader::Upos => {
+                Upos::form(bucket)
+                    .await?
+                    .upload_stream(file, filepath)
+                    .await
+            }
+            Uploader::Kodo => {
+                panic!()
+            }
+            Uploader::Bos => {
+                panic!()
+            }
+            Uploader::Gcs => {
+                panic!()
+            }
+            Uploader::Cos => {
+                panic!()
+            }
+        }
+    }
+}

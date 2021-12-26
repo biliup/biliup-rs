@@ -1,15 +1,14 @@
 mod cli;
 
+use anyhow::Result;
+use biliup::client::Client;
+use biliup::video::{BiliBili, Studio};
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::{Input, Select};
+use serde_json::json;
 use std::ffi::OsStr;
 use std::future::Future;
-use serde_json::json;
-use biliup::client::Client;
-use dialoguer::{Input, Select};
-use anyhow::Result;
-use dialoguer::theme::ColorfulTheme;
 use std::path::PathBuf;
-use biliup::video::{BiliBili, Studio};
-
 
 #[tokio::main]
 async fn main() -> Result<()> {
