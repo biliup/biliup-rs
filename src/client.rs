@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Result};
 use async_std::fs::File;
 use base64::encode;
 use cookie::Cookie;
-use futures_util::AsyncWriteExt;
+// use futures_util::AsyncWriteExt;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header;
@@ -59,7 +59,7 @@ impl Client {
         }
     }
 
-    pub async fn login(mut self, username: &str, password: &str) -> Result<(Self, LoginInfo)> {
+    pub async fn login(&self, username: &str, password: &str) -> Result<LoginInfo> {
         let result = match std::fs::File::open("cookies.json") {
             Ok(file) => match self.login_by_cookies(file).await {
                 r @ Ok(_) => r,
@@ -70,7 +70,7 @@ impl Client {
             },
             Err(_) => Ok(self.login_by_password(username, password).await?),
         }?;
-        Ok((self, result))
+        Ok(result)
     }
 
     pub async fn login_by_cookies(&self, file: std::fs::File) -> Result<LoginInfo> {

@@ -1,13 +1,13 @@
 use anyhow::Result;
 use async_std::fs::File;
 use biliup::client::{Client, LoginInfo};
-use biliup::uploader::UploadStatus;
-use biliup::video::{BiliBili, Studio};
+use biliup::line::{Line, Probe};
+use biliup::video::{Studio, Video};
+use biliup::{line, load_config};
 use clap::{IntoApp, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
-use futures_util::TryStreamExt;
 use image::Luma;
 use indicatif::{ProgressBar, ProgressStyle};
 use qrcode::render::unicode;
@@ -73,8 +73,40 @@ pub async fn parse() -> Result<()> {
         Commands::Login => {
             login(client).await?;
         }
-        Commands::Upload { video_path, config } if video_path.len() > 0 => {
-            upload(client, video_path, config).await?;
+        Commands::Upload {
+            video_path,
+            config: None,
+        } if video_path.len() > 0 => {
+            let login_info = client
+                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .await?;
+            let studio: Studio = Studio::builder()
+                .title(
+                    video_path[0]
+                        .file_stem()
+                        .and_then(OsStr::to_str)
+                        .map(|s| s.to_string())
+                        .unwrap(),
+                )
+                .videos(upload(video_path, &client).await?)
+                .build();
+            studio.submit(&login_info).await?;
+        }
+        Commands::Upload {
+            video_path,
+            config: Some(config),
+        } => {
+            let login_info = client
+                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .await?;
+            for (prefix_filename, mut studio) in load_config(config)?.streamers {
+                let mut paths = Vec::new();
+                for entry in glob::glob(&format!("./{prefix_filename}*"))?.filter_map(Result::ok) {
+                    paths.push(entry);
+                }
+                studio.videos = upload(&paths, &client).await?;
+                studio.submit(&login_info).await?;
+            }
         }
         _ => {
             println!("参数不正确请参阅帮助");
@@ -101,72 +133,37 @@ async fn login(client: Client) -> Result<()> {
     Ok(())
 }
 
-async fn upload(client: Client, video_path: &[PathBuf], config: &Option<PathBuf>) -> Result<()> {
-    let mut bilibili = BiliBili::new((
-        client
-            .login_by_cookies(std::fs::File::open("cookies.json")?)
-            .await?,
-        client,
-    ))
-    .await;
+pub async fn upload(video_path: &[PathBuf], client: &Client) -> Result<Vec<Video>> {
     let mut videos = Vec::new();
-
+    let line = Probe::probe().await.unwrap_or_default();
+    // let line = line::kodo();
     for video_path in video_path {
-        // let mut uploader = bilibili
-        //     .upload_file(video, |instant, total, size| true)
-        //     .await?;
-        let mut uploaded = 0;
-        // bilibili.up
-        let file = File::open(&video_path).await?;
-        let total_size = file.metadata().await?.len();
+        println!("{line:?}");
+        let uploader = line.to_uploader(video_path).await?;
+        //Progress bar
+        let total_size = uploader.total_size;
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})"));
-        let mut uploader = bilibili.upload_file_stream(file, video_path).await?;
-        tokio::pin!(uploader);
         pb.enable_steady_tick(1000);
+        let mut uploaded = 0;
+
         let instant = Instant::now();
-        while let Some(progress) = uploader.try_next().await? {
-            match progress {
-                UploadStatus::Processing(size) => {
-                    // println!("{}", size);
-                    uploaded += size;
-                    pb.set_position(uploaded as u64);
-                }
-                UploadStatus::Completed(video) => {
-                    videos.push(video);
-                    pb.finish_and_clear();
-                    println!(
-                        "Upload completed: {:.2} MB/s.",
-                        total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
-                    );
-                }
-            }
-        }
-
-        // upload.callback = Some(|instant, size| {
-        //
-        //     true
-        // });
-        // let ret_video_info = uploader.upload().await?;
-        // videos.push(uploader);
+        let video = uploader
+            .upload(&client, |len| {
+                uploaded += len;
+                pb.set_position(uploaded as u64);
+                true
+            })
+            .await?;
+        pb.finish_and_clear();
+        println!(
+            "Upload completed: {:.2} MB/s.",
+            total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
+        );
+        videos.push(video);
     }
-
-    let _result = bilibili
-        .submit(
-            Studio::builder()
-                .title(
-                    video_path[0]
-                        .file_stem()
-                        .and_then(OsStr::to_str)
-                        .map(|s| s.to_string())
-                        .unwrap(),
-                )
-                .videos(videos)
-                .build(),
-        )
-        .await?;
-    Ok(())
+    Ok(videos)
 }
 
 pub async fn login_by_password(client: Client) -> Result<LoginInfo> {

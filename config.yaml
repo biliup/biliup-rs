@@ -1,0 +1,21 @@
+user:
+  account:
+    username: "1"
+    password: "1"
+streamers:
+  测试:
+    copyright: 1
+    source: ""
+    tid: 171
+    cover: ""
+    title: 未命名
+    desc_format_id: 0
+    desc: ""
+    dynamic: ""
+    subtitle:
+      open: 0
+      lan: ""
+    tag: "biliup"
+    videos: []
+    dtime: ~
+    open_subtitle: false

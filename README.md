@@ -31,13 +31,15 @@ b站在上传前会通过probe来返回几条线路，并发包测试从中选�
 弥补两者各自的不足。既可以多p上传，又提供了质量（速度和稳定性）较高的线路，且提供了web端不具备的手动切换线路功能。
 
 
-## Windows
-### 演示
+## USEAGE
+查看完整用法命令行输入`biliup -h`
+### Windows演示
 登录：
 ```shell
 .\biliup.exe login
 ```
 ![login](.github/resource/login.gif)
+
 上传：
 ```shell
 .\biliup.exe upload
