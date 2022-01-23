@@ -2,10 +2,10 @@
 B站命令行投稿工具, 支持**短信登录**，**账号密码登录**，**扫码登录**，
 登录后返回的cookie和token保存在cookie.json中，可用于其他项目。
 
-本项目使用Rust（可以作为lib被调用），理论上可以作为库提供给Python（通过[PyO3](https://github.com/PyO3/pyo3)
-）和Node.js（通过[napi-rs](https://github.com/napi-rs/napi-rs) ）等进行调用……
+本项目使用Rust, 可以作为lib被调用，理论上可以通过 [PyO3](https://github.com/PyO3/pyo3) 作为库提供给Python
+和 [napi-rs](https://github.com/napi-rs/napi-rs) 给Node.js等进行调用……
 
-[下载地址](https://github.com/ForgQi/biliup-rs/releases/tag/v0.0.1)
+[下载地址](https://github.com/ForgQi/biliup-rs/releases)
 ___ 
 不想看这部分的话可以直接跳到后面的使用演示部分。
 
