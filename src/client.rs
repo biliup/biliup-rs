@@ -30,7 +30,7 @@ const APPSEC: &str = "2653583c8873dea268ab9386918b1d65";
 
 #[derive(Debug)]
 pub struct Client {
-    pub(crate) client: reqwest::Client,
+    pub client: reqwest::Client,
     cookie_store: Arc<CookieStoreMutex>,
 }
 
@@ -216,7 +216,12 @@ impl Client {
             .await?;
         // println!("{}", res);
         let res = match res.data {
-            ResponseValue::Value(mut data) if !data["captcha_key"].as_str().unwrap().is_empty() => {
+            ResponseValue::Value(mut data)
+                if !data["captcha_key"]
+                    .as_str()
+                    .ok_or(anyhow!("send sms error"))?
+                    .is_empty() =>
+            {
                 payload["captcha_key"] = data["captcha_key"].take();
                 payload
             }

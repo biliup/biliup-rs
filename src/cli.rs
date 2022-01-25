@@ -42,6 +42,10 @@ enum Commands {
         /// Sets a custom config file
         #[clap(short, long, parse(from_os_str), value_name = "FILE")]
         config: Option<PathBuf>,
+
+        /// 选择上传线路，支持kodo, bda2, qn, ws
+        #[clap(short, long)]
+        line: Option<String>,
     },
 }
 
@@ -76,6 +80,7 @@ pub async fn parse() -> Result<()> {
         Commands::Upload {
             video_path,
             config: None,
+            line,
         } if video_path.len() > 0 => {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
@@ -88,13 +93,14 @@ pub async fn parse() -> Result<()> {
                         .map(|s| s.to_string())
                         .unwrap(),
                 )
-                .videos(upload(video_path, &client).await?)
+                .videos(upload(video_path, &client, line.as_deref()).await?)
                 .build();
             studio.submit(&login_info).await?;
         }
         Commands::Upload {
             video_path,
             config: Some(config),
+            ..
         } => {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
@@ -104,7 +110,7 @@ pub async fn parse() -> Result<()> {
                 for entry in glob::glob(&format!("./{prefix_filename}*"))?.filter_map(Result::ok) {
                     paths.push(entry);
                 }
-                studio.videos = upload(&paths, &client).await?;
+                studio.videos = upload(&paths, &client, None).await?;
                 studio.submit(&login_info).await?;
             }
         }
@@ -133,9 +139,20 @@ async fn login(client: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn upload(video_path: &[PathBuf], client: &Client) -> Result<Vec<Video>> {
+pub async fn upload(
+    video_path: &[PathBuf],
+    client: &Client,
+    line: Option<&str>,
+) -> Result<Vec<Video>> {
     let mut videos = Vec::new();
-    let line = Probe::probe().await.unwrap_or_default();
+    let line = match line {
+        Some("kodo") => line::kodo(),
+        Some("bda2") => line::bda2(),
+        Some("ws") => line::ws(),
+        Some("qn") => line::qn(),
+        None => Probe::probe().await.unwrap_or_default(),
+        _ => panic!("不正确的线路"),
+    };
     // let line = line::kodo();
     for video_path in video_path {
         println!("{line:?}");
