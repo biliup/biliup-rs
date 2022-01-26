@@ -17,7 +17,6 @@ panic = 'abort'
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.11", features = ["json", "stream"] }
 reqwest_cookie_store = "0.2.0"
 cookie_store = "0.15.0"
 tokio = { version = "1", features = ["full"] }
@@ -50,3 +49,9 @@ qrcode = "0.12.0"
 image = "0.23.14"
 glob = "0.3.0"
 serde_yaml = "0.8"
+
+[target.'cfg(all(target_arch="aarch64", target_vendor="unknown", target_os="linux", target_env="gnu"))'.dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+
+[target.'cfg(not(all(target_arch="aarch64", target_vendor="unknown", target_os="linux", target_env="gnu")))'.dependencies]
+reqwest = { version = "0.11", features = ["json"] }
