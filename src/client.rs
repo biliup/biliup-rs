@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Result};
-use async_std::fs::File;
 use base64::encode;
 use cookie::Cookie;
 // use futures_util::AsyncWriteExt;
@@ -13,7 +12,7 @@ use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use url::{form_urlencoded, Url};
+use url::Url;
 
 // const APP_KEY: &str = "ae57252b0c09105d";
 // const APPSEC: &str = "c75875c596a69eb55bd119e74b07cfe3";
@@ -57,20 +56,6 @@ impl Client {
                 .unwrap(),
             cookie_store,
         }
-    }
-
-    pub async fn login(&self, username: &str, password: &str) -> Result<LoginInfo> {
-        let result = match std::fs::File::open("cookies.json") {
-            Ok(file) => match self.login_by_cookies(file).await {
-                r @ Ok(_) => r,
-                Err(e) => {
-                    println!("{:?}", e);
-                    self.login_by_password(username, password).await
-                }
-            },
-            Err(_) => Ok(self.login_by_password(username, password).await?),
-        }?;
-        Ok(result)
     }
 
     pub async fn login_by_cookies(&self, file: std::fs::File) -> Result<LoginInfo> {
@@ -138,19 +123,13 @@ impl Client {
             .json()
             .await?;
         println!("通过密码登录");
-        let result: LoginInfo = match &response.data {
-            ResponseValue::Login(LoginInfo { cookie_info, .. }) if !cookie_info.is_null() => {
-                let login_info = response.data;
-                let file = std::fs::File::create("cookies.json")?;
-                serde_json::to_writer_pretty(&file, &login_info)?;
-                // self.login_info = Some(response.clone().data.into());
-                println!("登录成功，数据保存在{:?}", file);
-                Ok(login_info.into())
+        match response.data {
+            ResponseValue::Login(info) if !info.cookie_info.is_null() => {
+                self.set_cookie(&info.cookie_info);
+                Ok(info)
             }
             _ => Err(anyhow!("{}", response)),
-        }?;
-        self.set_cookie(&result.cookie_info);
-        Ok(result)
+        }
     }
 
     pub async fn login_by_sms(
@@ -171,12 +150,7 @@ impl Client {
             .json()
             .await?;
         match res.data {
-            ResponseValue::Login(info) => {
-                let file = std::fs::File::create("cookies.json")?;
-                serde_json::to_writer_pretty(&file, &info)?;
-                println!("登录成功，数据保存在{:?}", file);
-                Ok(info)
-            }
+            ResponseValue::Login(info) => Ok(info),
             ResponseValue::Value(_) => bail!("{}", res),
         }
     }
@@ -258,9 +232,6 @@ impl Client {
                     data: ResponseValue::Login(info),
                     ..
                 } => {
-                    let file = std::fs::File::create("cookies.json")?;
-                    serde_json::to_writer_pretty(&file, &info)?;
-                    println!("登录成功，数据保存在{:?}", file);
                     return Ok(info);
                 }
                 ResponseData { code: 86039, .. } => {

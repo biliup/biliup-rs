@@ -1,8 +1,7 @@
 use crate::read_chunk;
 use crate::video::Video;
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Result};
 use async_std::fs::File;
-use async_stream::try_stream;
 use futures::Stream;
 use futures::StreamExt;
 use futures::TryStreamExt;
@@ -15,15 +14,14 @@ use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::path::Path;
+use std::time::Duration;
 
 pub struct Upos {
     client: ClientWithMiddleware,
     bucket: Bucket,
     url: String,
     upload_id: String,
-    result: Option<Video>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -68,7 +66,7 @@ impl Upos {
             bucket.endpoint,
             bucket.upos_uri.replace("upos://", "")
         ); // 视频上传路径
-        let mut upload_id: serde_json::Value = client
+        let upload_id: serde_json::Value = client
             .post(format!("{url}?uploads&output=json"))
             .send()
             .await?
@@ -86,7 +84,6 @@ impl Upos {
             bucket,
             url,
             upload_id,
-            result: None,
         })
     }
 
@@ -140,7 +137,7 @@ impl Upos {
         // let res = self.get_ret_video_info(&parts, path).await?;
     }
 
-    pub async fn upload(&self, file: File, path: &PathBuf) -> Result<Video> {
+    pub async fn upload(&self, file: File, path: &Path) -> Result<Video> {
         let parts: Vec<_> = self
             .upload_stream(file)
             .await?
@@ -179,7 +176,7 @@ impl Upos {
     pub(crate) async fn get_ret_video_info(
         &self,
         parts: &[Value],
-        path: &PathBuf,
+        path: &Path,
     ) -> Result<Video> {
         // println!("{:?}", parts_cell.borrow());
         let value = json!({

@@ -1,4 +1,3 @@
-use crate::uploader::upos::Bucket;
 use crate::video::{Studio, Video};
 use anyhow::Result;
 use async_std::fs::File;
@@ -7,8 +6,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use futures::{AsyncReadExt, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
-use time::Instant;
+use std::path::{Path, PathBuf};
 
 pub mod client;
 pub mod error;
@@ -16,14 +14,7 @@ pub mod line;
 pub mod video;
 
 pub mod uploader {
-    use crate::uploader::upos::{Bucket, Upos};
-    use crate::video::Video;
-    use anyhow::Result;
-    use async_std::fs::File;
-    use futures::Stream;
     use serde::{Deserialize, Serialize};
-    use std::path::PathBuf;
-    use std::time::{Duration, Instant};
     pub mod kodo;
     pub mod upos;
 
@@ -55,7 +46,7 @@ pub struct Config {
     pub streamers: HashMap<String, Studio>,
 }
 
-pub fn load_config(config: &PathBuf) -> Result<Config> {
+pub fn load_config(config: &Path) -> Result<Config> {
     let file = std::fs::File::open(config)?;
     let config: Config = serde_yaml::from_reader(file)?;
     // println!("body = {:?}", client);

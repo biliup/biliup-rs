@@ -1,5 +1,4 @@
 use crate::client::{Client, LoginInfo};
-use crate::line::{Line, Probe};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

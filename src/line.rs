@@ -9,18 +9,18 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-pub struct Parcel<'a, 'b> {
-    line: &'b Line,
-    filepath: &'a PathBuf,
+pub struct Parcel<'a> {
+    line: &'a Line,
+    filepath: PathBuf,
     params: serde_json::Value,
     pub total_size: u64,
 }
 
-impl<'a, 'b> Parcel<'a, 'b> {
-    async fn new(line: &'b Line, filepath: &'a PathBuf) -> Result<Parcel<'a, 'b>> {
+impl<'a> Parcel<'a> {
+    async fn new(line: &'a Line, filepath: &Path) -> Result<Parcel<'a>> {
         let file = File::open(&filepath).await?;
         let total_size = file.metadata().await?.len();
         let file_name = filepath.file_name().ok_or("No filename").unwrap().to_str();
@@ -41,7 +41,7 @@ impl<'a, 'b> Parcel<'a, 'b> {
         println!("pre_upload: {}", params);
         Ok(Self {
             line,
-            filepath,
+            filepath: filepath.into(),
             params,
             total_size,
         })
@@ -59,7 +59,7 @@ impl<'a, 'b> Parcel<'a, 'b> {
             .await?
             .json()
             .await
-            .with_context(|| format!("Failed to pre_upload from"))?)
+            .with_context(|| "Failed to pre_upload from".to_string())?)
     }
 
     pub async fn upload(
@@ -67,7 +67,7 @@ impl<'a, 'b> Parcel<'a, 'b> {
         client: &Client,
         mut process: impl FnMut(usize) -> bool,
     ) -> Result<Video> {
-        let file = File::open(self.filepath).await?;
+        let file = File::open(&self.filepath).await?;
         // let total_size = file.metadata().await?.len();
         // let file_name = filepath.file_name().ok_or("No filename")?.to_str();
         match self.line.os {
@@ -75,7 +75,7 @@ impl<'a, 'b> Parcel<'a, 'b> {
                 let bucket = self.pre_upload(client).await?;
                 let upos = Upos::from(bucket).await?;
                 let mut parts = Vec::new();
-                let mut stream = upos.upload_stream(file).await?;
+                let stream = upos.upload_stream(file).await?;
                 tokio::pin!(stream);
                 while let Some((part, size)) = stream.try_next().await? {
                     parts.push(part);
@@ -83,13 +83,13 @@ impl<'a, 'b> Parcel<'a, 'b> {
                         bail!("移除视频");
                     }
                 }
-                upos.get_ret_video_info(&parts, self.filepath).await
+                upos.get_ret_video_info(&parts, &self.filepath).await
             }
             Uploader::Kodo => {
                 let bucket = self.pre_upload(client).await?;
                 Kodo::from(bucket)
                     .await?
-                    .upload_stream(file, self.filepath, process)
+                    .upload_stream(file, &self.filepath, process)
                     .await
             }
             Uploader::Bos => {
@@ -158,7 +158,7 @@ pub struct Line {
 }
 
 impl Line {
-    pub async fn to_uploader<'a, 'b>(&'b self, filepath: &'a PathBuf) -> Result<Parcel<'a, 'b>> {
+    pub async fn to_uploader(&self, filepath: &Path) -> Result<Parcel<'_>> {
         Parcel::new(self, filepath).await
     }
 }

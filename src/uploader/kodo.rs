@@ -1,24 +1,20 @@
 use crate::read_chunk;
 use crate::Video;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 use async_std::fs::File;
-use async_stream::try_stream;
 use base64::URL_SAFE;
-use futures::stream::IntoStream;
-use futures::{Stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt};
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map};
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::path::PathBuf;
-use std::pin::Pin;
+use std::path::Path;
 use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub struct Kodo {
     client: ClientWithMiddleware,
@@ -55,19 +51,17 @@ impl Kodo {
     pub async fn upload_stream(
         self,
         file: File,
-        path: &PathBuf,
+        path: &Path,
         mut process: impl FnMut(usize) -> bool,
     ) -> Result<Video> {
         let total_size = file.metadata().await?.len();
         let chunk_size = 4194304;
         let mut parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
-        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
-                                                                                  // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.client;
         let url = &self.url;
 
-        let mut stream = read_chunk(file, chunk_size)
+        let stream = read_chunk(file, chunk_size)
             // let mut chunks = read_chunk(file, chunk_size)
             .enumerate()
             .map(|(i, chunk)| async move {
@@ -75,7 +69,7 @@ impl Kodo {
                 let len = chunk.len();
                 // println!("{}", len);
                 let url = format!("{url}/{len}");
-                let mut ctx: serde_json::Value =
+                let ctx: serde_json::Value =
                     client.post(url).body(chunk).send().await?.json().await?;
                 Ok::<_, reqwest_middleware::Error>((
                     Ctx {

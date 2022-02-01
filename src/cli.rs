@@ -1,7 +1,6 @@
-use anyhow::Result;
-use async_std::fs::File;
+use anyhow::{anyhow, Result};
 use biliup::client::{Client, LoginInfo};
-use biliup::line::{Line, Probe};
+use biliup::line::Probe;
 use biliup::video::{Studio, Video};
 use biliup::{line, load_config};
 use clap::{IntoApp, Parser, Subcommand};
@@ -35,7 +34,7 @@ enum Commands {
     Upload {
         // Optional name to operate on
         // name: Option<String>,
-        /// 需要上传的视频路径
+        /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
         #[clap(parse(from_os_str))]
         video_path: Vec<PathBuf>,
 
@@ -81,7 +80,7 @@ pub async fn parse() -> Result<()> {
             video_path,
             config: None,
             line,
-        } if video_path.len() > 0 => {
+        } if !video_path.is_empty() => {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
@@ -98,17 +97,21 @@ pub async fn parse() -> Result<()> {
             studio.submit(&login_info).await?;
         }
         Commands::Upload {
-            video_path,
+            video_path: _ ,
             config: Some(config),
             ..
         } => {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            for (prefix_filename, mut studio) in load_config(config)?.streamers {
+            for (filename_patterns, mut studio) in load_config(config)?.streamers {
                 let mut paths = Vec::new();
-                for entry in glob::glob(&format!("./{prefix_filename}*"))?.filter_map(Result::ok) {
+                for entry in glob::glob(&format!("./{filename_patterns}"))?.filter_map(Result::ok) {
                     paths.push(entry);
+                }
+                if paths.is_empty() {
+                    println!("未搜索到匹配的视频文件：{filename_patterns}");
+                    continue
                 }
                 studio.videos = upload(&paths, &client, None).await?;
                 studio.submit(&login_info).await?;
@@ -129,13 +132,18 @@ async fn login(client: Client) -> Result<()> {
         .item("账号密码")
         .item("短信登录")
         .item("扫码登录")
+        .item("浏览器登录")
         .interact()?;
-    match selection {
+    let info = match selection {
         0 => login_by_password(client).await?,
         1 => login_by_sms(client).await?,
         2 => login_by_qrcode(client).await?,
+        3 => login_by_browser(client).await?,
         _ => panic!(),
     };
+    let file = std::fs::File::create("cookies.json")?;
+    serde_json::to_writer_pretty(&file, &info)?;
+    println!("登录成功，数据保存在{:?}", file);
     Ok(())
 }
 
@@ -167,7 +175,7 @@ pub async fn upload(
 
         let instant = Instant::now();
         let video = uploader
-            .upload(&client, |len| {
+            .upload(client, |len| {
                 uploaded += len;
                 pb.set_position(uploaded as u64);
                 true
@@ -190,8 +198,7 @@ pub async fn login_by_password(client: Client) -> Result<LoginInfo> {
     let password: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入密码")
         .interact()?;
-    let res = client.login_by_password(&username, &password).await?;
-    Ok(res)
+    client.login_by_password(&username, &password).await
 }
 
 pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
@@ -207,8 +214,7 @@ pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
         .with_prompt("请输入验证码")
         .interact_text()?;
     // println!("{}", payload);
-    let ret = client.login_by_sms(input, res).await?;
-    Ok(ret)
+    client.login_by_sms(input, res).await
 }
 
 pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
@@ -225,5 +231,15 @@ pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
     println!("在Windows下建议使用Windows Terminal(支持utf8，可完整显示二维码)\n否则可能无法正常显示，此时请打开./qrcode.png扫码");
     // Save the image.
     image.save("qrcode.png").unwrap();
+    client.login_by_qrcode(value).await
+}
+
+pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
+    let value = client.get_qrcode().await?;
+    println!(
+        "{}",
+        value["data"]["url"].as_str().ok_or(anyhow!("{}", value))?
+    );
+    println!("请复制此链接至浏览器中完成登录");
     client.login_by_qrcode(value).await
 }
