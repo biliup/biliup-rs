@@ -42,7 +42,8 @@ pub struct Account {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub user: User,
+    pub user: Option<User>,
+    pub line: Option<String>,
     pub streamers: HashMap<String, Studio>,
 }
 

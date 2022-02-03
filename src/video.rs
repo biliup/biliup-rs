@@ -1,9 +1,11 @@
-use crate::client::{Client, LoginInfo};
-use anyhow::{bail, Context, Result};
+use std::path::Path;
+use crate::client::{Client, LoginInfo, ResponseData, ResponseValue};
+use anyhow::{anyhow, bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::time::Duration;
 use typed_builder::TypedBuilder;
+use crate::error::CustomError;
 
 #[derive(Serialize, Deserialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
@@ -30,8 +32,12 @@ pub struct Studio {
 }
 
 impl Studio {
-    pub async fn submit(&self, login_info: &LoginInfo) -> Result<serde_json::Value> {
-        // studio.videos =
+    pub async fn submit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
+        if self.tag.is_empty() {
+            self.tag = "biliup".into();
+        } else {
+            self.tag +=  ",biliup";
+        };
         let ret: serde_json::Value = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
@@ -78,15 +84,15 @@ impl Video {
     }
 }
 
-pub struct BiliBili {
-    client: reqwest::Client,
-    login_info: LoginInfo,
+pub struct BiliBili<'a, 'b> {
+    client: &'a reqwest::Client,
+    login_info: &'b LoginInfo,
 }
 
-impl BiliBili {
-    pub async fn new(login_info: LoginInfo, login: Client) -> BiliBili {
+impl BiliBili<'_, '_>{
+    pub fn new<'a, 'b>(login_info: &'b LoginInfo, login: &'a Client) -> BiliBili<'a, 'b> {
         BiliBili {
-            client: login.client,
+            client: &login.client,
             login_info,
         }
     }
@@ -99,5 +105,23 @@ impl BiliBili {
             .await?
             .json()
             .await?)
+    }
+
+    pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
+        let csrf = self.login_info.cookie_info.get("cookies")
+            .and_then(|c| c.as_array()).ok_or(CustomError::Custom("cover_up cookie error".into()))?
+            .iter()
+            .filter_map(|c| c.as_object())
+            .find(|c| c["name"] == "bili_jct").ok_or(CustomError::Custom("cover_up jct error".into()))?;
+        let response: ResponseData = self.client.post("https://member.bilibili.com/x/vu/web/cover/up")
+            .form(&json!({
+                "cover":  format!("data:image/jpeg;base64,{}", base64::encode(input)),
+                "csrf": csrf["value"]
+            })).send().await?.json().await?;
+        match &response {
+            ResponseData { code: _ , data: ResponseValue::Value(value), .. } if value.is_null() => bail!("{response}"),
+            ResponseData { code: _ , data: ResponseValue::Value(value), .. } => Ok(value["url"].as_str().ok_or(anyhow!("cover_up error"))?.into()),
+            _ => { unreachable!()}
+        }
     }
 }

@@ -1,7 +1,5 @@
-user:
-  account:
-    username: your usrname
-    password: your password
+line: kodo
+
 streamers:
   视频patterns1*:
     copyright: 1
@@ -15,7 +13,7 @@ streamers:
     subtitle:
       open: 0
       lan: ""
-    tag: "biliup"
+    tag: ""
     videos: []
     dtime: ~
     open_subtitle: false
@@ -23,7 +21,7 @@ streamers:
     copyright: 1
     source: 转载来源
     tid: 171 # 投稿分区
-    cover: "" # 视频封面
+    cover: /cover/up.jpg # 视频封面
     title: 标题
     desc_format_id: 0
     desc: 简介
@@ -31,7 +29,7 @@ streamers:
     subtitle:
       open: 0
       lan: ""
-    tag: "biliup"
+    tag: ""
     videos: []
     dtime: ~
     open_subtitle: false

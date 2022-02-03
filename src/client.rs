@@ -337,9 +337,9 @@ pub enum ResponseValue {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LoginInfo {
-    cookie_info: serde_json::Value,
+    pub cookie_info: serde_json::Value,
     // message: String,
-    sso: Vec<String>,
+    pub sso: Vec<String>,
     // status: u8,
     pub token_info: TokenInfo,
     // url: String,

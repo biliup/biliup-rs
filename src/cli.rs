@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use biliup::client::{Client, LoginInfo};
 use biliup::line::Probe;
-use biliup::video::{Studio, Video};
+use biliup::video::{BiliBili, Studio, Video};
 use biliup::{line, load_config};
 use clap::{IntoApp, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
@@ -12,7 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use qrcode::render::unicode;
 use qrcode::QrCode;
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 #[derive(Parser)]
@@ -84,7 +84,7 @@ pub async fn parse() -> Result<()> {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            let studio: Studio = Studio::builder()
+            let mut studio: Studio = Studio::builder()
                 .title(
                     video_path[0]
                         .file_stem()
@@ -104,7 +104,8 @@ pub async fn parse() -> Result<()> {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            for (filename_patterns, mut studio) in load_config(config)?.streamers {
+            let config = load_config(config)?;
+            for (filename_patterns, mut studio) in config.streamers {
                 let mut paths = Vec::new();
                 for entry in glob::glob(&format!("./{filename_patterns}"))?.filter_map(Result::ok) {
                     paths.push(entry);
@@ -113,7 +114,12 @@ pub async fn parse() -> Result<()> {
                     println!("未搜索到匹配的视频文件：{filename_patterns}");
                     continue
                 }
-                studio.videos = upload(&paths, &client, None).await?;
+                if !studio.cover.is_empty() {
+                    let url = BiliBili::new(&login_info, &client).cover_up( &std::fs::read(Path::new(&studio.cover)).with_context(||format!("cover: {}", studio.cover))?).await?;
+                    println!("{url}");
+                    studio.cover = url;
+                }
+                studio.videos = upload(&paths, &client, config.line.as_deref()).await?;
                 studio.submit(&login_info).await?;
             }
         }
