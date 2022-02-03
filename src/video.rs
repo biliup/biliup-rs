@@ -25,6 +25,7 @@ pub struct Studio {
     pub subtitle: Subtitle,
     #[builder(default="biliup".into())]
     pub tag: String,
+    #[serde(skip_deserializing)]
     #[builder(!default)]
     pub videos: Vec<Video>,
     pub dtime: Option<i32>,

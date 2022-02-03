@@ -14,7 +14,6 @@ streamers:
       open: 0
       lan: ""
     tag: ""
-    videos: []
     dtime: ~
     open_subtitle: false
   视频patterns2*:
@@ -30,6 +29,5 @@ streamers:
       open: 0
       lan: ""
     tag: ""
-    videos: []
     dtime: ~
     open_subtitle: false
