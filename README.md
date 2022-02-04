@@ -16,20 +16,30 @@ B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，
 * 快速投稿，输入 `biliup upload test1.mp4 test2.mp4` 即可快速多p投稿；
 * 通过配置文件投稿，配置文件详见 [config.yaml](examples/config.yaml) ，支持按照 Unix shell style patterns 来批量匹配视频文件，如 `/media/**/*.mp4` 匹配 media 及其子目录中的所有 mp4 文件且可以自由调整视频标题、简介、标签等：
 
-  ```shell
-  $ biliup help upload
-  
-    USAGE:
-    biliup.exe upload [OPTIONS] [VIDEO_PATH]...
-    
-    ARGS:
-        <VIDEO_PATH>...        需要上传的视频路径,若指定配置文件投稿不需要此参数
+```shell
+$ biliup help upload
 
-    OPTIONS:
-        -c, --config <FILE>    指定配置文件
-        -h, --help             Print help information
-        -l, --line <LINE>      选择上传线路，支持 kodo, bda2, qn, ws
-   ```
+USAGE:
+    biliup.exe upload [OPTIONS] [VIDEO_PATH]...
+
+ARGS:
+    <VIDEO_PATH>...    需要上传的视频路径,若指定配置文件投稿不需要此参数
+
+OPTIONS:
+    -c, --config <FILE>            Sets a custom config file
+        --copyright <COPYRIGHT>    是否转载 [default: 1]
+        --cover <COVER>            视频封面 
+        --desc <DESC>              视频简介 
+        --dtime <DTIME>            延时发布时间，距离提交大于4小时，格式为10位时间戳
+        --dynamic <DYNAMIC>        空间动态 
+    -h, --help                     Print help information
+    -l, --line <LINE>              选择上传线路，支持kodo, bda2, qn, ws
+        --limit <LIMIT>            单视频文件最大并发数 [default: 3]
+        --source <SOURCE>          是转载来源 
+        --tag <TAG>                视频标签 
+        --tid <TID>                投稿分区 [default: 171]
+        --title <TITLE>            视频标题 
+```
  
 * 查看完整用法命令行输入 `biliup -h`
 
@@ -71,6 +81,6 @@ B 站在上传前会通过 probe 来返回几条线路，并发包测试从中�
 
 ## TIPS
 
-用户等级大于 3 ，且粉丝数 > 1000 ，Web 端投稿不限制分 P 数量。B 站 Web 端将替换为[合集](https://www.bilibili.com/read/cv14762048)。
+用户等级大于 3 ，且粉丝数 > 1000 ，Web 端投稿不限制分 P 数量。B 站 Web 端将替换为[合集](https://www.bilibili.com/read/cv14762048) 。
 
 对于不满足条件的账号，多 P 投稿只能依靠 B 站的投稿客户端，但是投稿客户端使用的线路与 Web 端不同，质量低于 Web 端的线路，在国外机器会放大这一差距。所以本项目使用 client 的提交接口配合 Web 端的上传线路，弥补两者各自的不足。既可以多 P 上传，又提供了质量（速度和稳定性）较高的线路，且提供了 Web 端不具备的手动切换线路功能。
