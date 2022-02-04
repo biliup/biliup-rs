@@ -6,7 +6,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use futures::{AsyncReadExt, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub mod client;
 pub mod error;
@@ -44,7 +44,13 @@ pub struct Account {
 pub struct Config {
     pub user: Option<User>,
     pub line: Option<String>,
+    #[serde(default = "default_limit")]
+    pub limit: usize,
     pub streamers: HashMap<String, Studio>,
+}
+
+fn default_limit() -> usize {
+    3
 }
 
 pub fn load_config(config: &Path) -> Result<Config> {

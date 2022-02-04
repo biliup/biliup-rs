@@ -52,6 +52,7 @@ impl Kodo {
         self,
         file: File,
         path: &Path,
+        limit: usize,
         mut process: impl FnMut(usize) -> bool,
     ) -> Result<Video> {
         let total_size = file.metadata().await?.len();
@@ -79,7 +80,7 @@ impl Kodo {
                     len,
                 ))
             })
-            .buffer_unordered(3);
+            .buffer_unordered(limit);
         tokio::pin!(stream);
         while let Some((part, size)) = stream.try_next().await? {
             parts.push(part);

@@ -90,6 +90,7 @@ impl Upos {
     pub async fn upload_stream(
         &self,
         file: File,
+        limit: usize,
     ) -> Result<impl Stream<Item = Result<(Value, usize)>> + '_> {
         // let mut parts = Vec::new();
 
@@ -127,7 +128,7 @@ impl Upos {
                     len,
                 ))
             })
-            .buffer_unordered(3);
+            .buffer_unordered(limit);
         Ok(stream)
         // tokio::pin!(stream);
         // while let Some((part, size)) = stream.try_next().await? {
@@ -139,7 +140,7 @@ impl Upos {
 
     pub async fn upload(&self, file: File, path: &Path) -> Result<Video> {
         let parts: Vec<_> = self
-            .upload_stream(file)
+            .upload_stream(file, 3)
             .await?
             .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
             .try_collect()
@@ -173,11 +174,7 @@ impl Upos {
         self.get_ret_video_info(&parts, path).await
     }
 
-    pub(crate) async fn get_ret_video_info(
-        &self,
-        parts: &[Value],
-        path: &Path,
-    ) -> Result<Video> {
+    pub(crate) async fn get_ret_video_info(&self, parts: &[Value], path: &Path) -> Result<Video> {
         // println!("{:?}", parts_cell.borrow());
         let value = json!({
             "name": path.file_name().and_then(OsStr::to_str),

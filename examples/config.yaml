@@ -1,5 +1,5 @@
 line: kodo
-
+limit: 3
 streamers:
   视频patterns1*:
     copyright: 1

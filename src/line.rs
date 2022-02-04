@@ -65,6 +65,7 @@ impl<'a> Parcel<'a> {
     pub async fn upload(
         &self,
         client: &Client,
+        limit: usize,
         mut process: impl FnMut(usize) -> bool,
     ) -> Result<Video> {
         let file = File::open(&self.filepath).await?;
@@ -75,7 +76,7 @@ impl<'a> Parcel<'a> {
                 let bucket = self.pre_upload(client).await?;
                 let upos = Upos::from(bucket).await?;
                 let mut parts = Vec::new();
-                let stream = upos.upload_stream(file).await?;
+                let stream = upos.upload_stream(file, limit).await?;
                 tokio::pin!(stream);
                 while let Some((part, size)) = stream.try_next().await? {
                     parts.push(part);
@@ -89,7 +90,7 @@ impl<'a> Parcel<'a> {
                 let bucket = self.pre_upload(client).await?;
                 Kodo::from(bucket)
                     .await?
-                    .upload_stream(file, &self.filepath, process)
+                    .upload_stream(file, &self.filepath, limit, process)
                     .await
             }
             Uploader::Bos => {

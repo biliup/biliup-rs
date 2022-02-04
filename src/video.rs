@@ -1,34 +1,61 @@
-use std::path::Path;
 use crate::client::{Client, LoginInfo, ResponseData, ResponseValue};
-use anyhow::{anyhow, bail, Context, Result};
+use crate::error::CustomError;
+use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::Duration;
 use typed_builder::TypedBuilder;
-use crate::error::CustomError;
 
 #[derive(Serialize, Deserialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
+#[derive(clap::Args)]
 pub struct Studio {
+    /// 是否转载
+    #[clap(long, default_value = "1")]
     #[builder(default = 1)]
     pub copyright: i8,
+
+    /// 是转载来源
+    #[clap(long, default_value_t)]
     pub source: String,
+
+    /// 投稿分区
+    #[clap(long, default_value = "171")]
     #[builder(default = 171)]
     pub tid: i16,
+
+    /// 视频封面
+    #[clap(long, default_value_t)]
+    #[clap(long)]
     pub cover: String,
+
+    /// 视频标题
+    #[clap(long, default_value_t)]
     #[builder(!default, setter(into))]
     pub title: String,
+    #[clap(skip)]
     pub desc_format_id: i8,
+    /// 视频简介
+    #[clap(long, default_value_t)]
     pub desc: String,
+    /// 空间动态
+    #[clap(long, default_value_t)]
     pub dynamic: String,
+    #[clap(skip)]
     #[builder(default, setter(skip))]
     pub subtitle: Subtitle,
-    #[builder(default="biliup".into())]
+    /// 视频标签
+    #[clap(long, default_value_t)]
     pub tag: String,
-    #[serde(skip_deserializing)]
+    #[serde(default)]
     #[builder(!default)]
+    #[clap(skip)]
     pub videos: Vec<Video>,
+
+    /// 延时发布时间，距离提交大于4小时，格式为10位时间戳
+    #[clap(long)]
     pub dtime: Option<i32>,
+    #[clap(skip)]
     pub open_subtitle: bool,
 }
 
@@ -37,7 +64,7 @@ impl Studio {
         if self.tag.is_empty() {
             self.tag = "biliup".into();
         } else {
-            self.tag +=  ",biliup";
+            self.tag += ",biliup";
         };
         let ret: serde_json::Value = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
@@ -90,7 +117,7 @@ pub struct BiliBili<'a, 'b> {
     login_info: &'b LoginInfo,
 }
 
-impl BiliBili<'_, '_>{
+impl BiliBili<'_, '_> {
     pub fn new<'a, 'b>(login_info: &'b LoginInfo, login: &'a Client) -> BiliBili<'a, 'b> {
         BiliBili {
             client: &login.client,
@@ -109,20 +136,44 @@ impl BiliBili<'_, '_>{
     }
 
     pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
-        let csrf = self.login_info.cookie_info.get("cookies")
-            .and_then(|c| c.as_array()).ok_or(CustomError::Custom("cover_up cookie error".into()))?
+        let csrf = self
+            .login_info
+            .cookie_info
+            .get("cookies")
+            .and_then(|c| c.as_array())
+            .ok_or(CustomError::Custom("cover_up cookie error".into()))?
             .iter()
             .filter_map(|c| c.as_object())
-            .find(|c| c["name"] == "bili_jct").ok_or(CustomError::Custom("cover_up jct error".into()))?;
-        let response: ResponseData = self.client.post("https://member.bilibili.com/x/vu/web/cover/up")
+            .find(|c| c["name"] == "bili_jct")
+            .ok_or(CustomError::Custom("cover_up jct error".into()))?;
+        let response: ResponseData = self
+            .client
+            .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
                 "cover":  format!("data:image/jpeg;base64,{}", base64::encode(input)),
                 "csrf": csrf["value"]
-            })).send().await?.json().await?;
+            }))
+            .send()
+            .await?
+            .json()
+            .await?;
         match &response {
-            ResponseData { code: _ , data: ResponseValue::Value(value), .. } if value.is_null() => bail!("{response}"),
-            ResponseData { code: _ , data: ResponseValue::Value(value), .. } => Ok(value["url"].as_str().ok_or(anyhow!("cover_up error"))?.into()),
-            _ => { unreachable!()}
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } if value.is_null() => bail!("{response}"),
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } => Ok(value["url"]
+                .as_str()
+                .ok_or(anyhow!("cover_up error"))?
+                .into()),
+            _ => {
+                unreachable!()
+            }
         }
     }
 }

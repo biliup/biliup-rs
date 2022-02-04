@@ -45,6 +45,13 @@ enum Commands {
         /// 选择上传线路，支持kodo, bda2, qn, ws
         #[clap(short, long)]
         line: Option<String>,
+
+        /// 单视频文件最大并发数
+        #[clap(long, default_value = "3")]
+        limit: usize,
+
+        #[clap(flatten)]
+        studio: Studio,
     },
 }
 
@@ -72,7 +79,7 @@ pub async fn parse() -> Result<()> {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level app
     let client: Client = Default::default();
-    match &cli.command {
+    match cli.command {
         Commands::Login => {
             login(client).await?;
         }
@@ -80,31 +87,34 @@ pub async fn parse() -> Result<()> {
             video_path,
             config: None,
             line,
+            limit,
+            mut studio,
         } if !video_path.is_empty() => {
+            println!("number of concurrent futures: {limit}");
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            let mut studio: Studio = Studio::builder()
-                .title(
-                    video_path[0]
-                        .file_stem()
-                        .and_then(OsStr::to_str)
-                        .map(|s| s.to_string())
-                        .unwrap(),
-                )
-                .videos(upload(video_path, &client, line.as_deref()).await?)
-                .build();
+            if studio.title.is_empty() {
+                studio.title = video_path[0]
+                    .file_stem()
+                    .and_then(OsStr::to_str)
+                    .map(|s| s.to_string())
+                    .unwrap();
+            }
+            cover_up(&mut studio, &login_info, &client).await?;
+            studio.videos = upload(&video_path, &client, line.as_deref(), limit).await?;
             studio.submit(&login_info).await?;
         }
         Commands::Upload {
-            video_path: _ ,
+            video_path: _,
             config: Some(config),
             ..
         } => {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            let config = load_config(config)?;
+            let config = load_config(&config)?;
+            println!("number of concurrent futures: {}", config.limit);
             for (filename_patterns, mut studio) in config.streamers {
                 let mut paths = Vec::new();
                 for entry in glob::glob(&format!("./{filename_patterns}"))?.filter_map(Result::ok) {
@@ -112,14 +122,11 @@ pub async fn parse() -> Result<()> {
                 }
                 if paths.is_empty() {
                     println!("未搜索到匹配的视频文件：{filename_patterns}");
-                    continue
+                    continue;
                 }
-                if !studio.cover.is_empty() {
-                    let url = BiliBili::new(&login_info, &client).cover_up( &std::fs::read(Path::new(&studio.cover)).with_context(||format!("cover: {}", studio.cover))?).await?;
-                    println!("{url}");
-                    studio.cover = url;
-                }
-                studio.videos = upload(&paths, &client, config.line.as_deref()).await?;
+                cover_up(&mut studio, &login_info, &client).await?;
+                studio.videos =
+                    upload(&paths, &client, config.line.as_deref(), config.limit).await?;
                 studio.submit(&login_info).await?;
             }
         }
@@ -153,10 +160,25 @@ async fn login(client: Client) -> Result<()> {
     Ok(())
 }
 
+async fn cover_up(studio: &mut Studio, login_info: &LoginInfo, client: &Client) -> Result<()> {
+    if !studio.cover.is_empty() {
+        let url = BiliBili::new(login_info, client)
+            .cover_up(
+                &std::fs::read(Path::new(&studio.cover))
+                    .with_context(|| format!("cover: {}", studio.cover))?,
+            )
+            .await?;
+        println!("{url}");
+        studio.cover = url;
+    }
+    Ok(())
+}
+
 pub async fn upload(
     video_path: &[PathBuf],
     client: &Client,
     line: Option<&str>,
+    limit: usize,
 ) -> Result<Vec<Video>> {
     let mut videos = Vec::new();
     let line = match line {
@@ -164,8 +186,8 @@ pub async fn upload(
         Some("bda2") => line::bda2(),
         Some("ws") => line::ws(),
         Some("qn") => line::qn(),
+        Some(name) => panic!("不正确的线路{name}"),
         None => Probe::probe().await.unwrap_or_default(),
-        _ => panic!("不正确的线路"),
     };
     // let line = line::kodo();
     for video_path in video_path {
@@ -181,7 +203,7 @@ pub async fn upload(
 
         let instant = Instant::now();
         let video = uploader
-            .upload(client, |len| {
+            .upload(client, limit, |len| {
                 uploaded += len;
                 pb.set_position(uploaded as u64);
                 true
