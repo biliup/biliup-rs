@@ -29,19 +29,27 @@ ARGS:
     <VIDEO_PATH>...    需要上传的视频路径,若指定配置文件投稿不需要此参数
 
 OPTIONS:
-    -c, --config <FILE>            Sets a custom config file
-        --copyright <COPYRIGHT>    是否转载 [default: 1]
-        --cover <COVER>            视频封面 
-        --desc <DESC>              视频简介 
-        --dtime <DTIME>            延时发布时间，距离提交大于4小时，格式为10位时间戳
-        --dynamic <DYNAMIC>        空间动态 
-    -h, --help                     Print help information
-    -l, --line <LINE>              选择上传线路，支持kodo, bda2, qn, ws
-        --limit <LIMIT>            单视频文件最大并发数 [default: 3]
-        --source <SOURCE>          是转载来源 
-        --tag <TAG>                视频标签 
-        --tid <TID>                投稿分区 [default: 171]
-        --title <TITLE>            视频标题 
+    -c, --config <FILE>                Sets a custom config file
+        --copyright <COPYRIGHT>        是否转载, 1-自制 2-转载 [default: 1]
+        --cover <COVER>                视频封面 [default: ]
+        --desc <DESC>                  视频简介 [default: ]
+        --dolby <DOLBY>                [default: 0]
+        --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
+        --dynamic <DYNAMIC>            空间动态 [default: ]
+    -h, --help                         Print help information
+        --interactive <INTERACTIVE>    [default: 0]
+    -l, --line <LINE>                  选择上传线路，支持kodo, bda2, qn, ws
+        --limit <LIMIT>                单视频文件最大并发数 [default: 3]
+        --mission-id <MISSION_ID>
+        --no-reprint <NO_REPRINT>      0-允许转载，1-禁止转载
+        --open-elec <OPEN_ELEC>
+        --source <SOURCE>              转载来源 [default: ]
+        --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
+        --tid <TID>                    投稿分区 [default: 171]
+        --title <TITLE>                视频标题 [default: ]
+        --up-close-danmu
+        --up-close-reply
+        --up-selection-reply
 ```
  
 * 查看完整用法命令行输入 `biliup -h`

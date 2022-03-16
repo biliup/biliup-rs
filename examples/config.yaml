@@ -1,7 +1,7 @@
 line: kodo
 limit: 3
 streamers:
-  视频patterns1*:
+  ./*/*视频patterns1*:
     copyright: 1
     source: 转载来源
     tid: 171 # 投稿分区

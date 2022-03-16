@@ -10,12 +10,12 @@ use typed_builder::TypedBuilder;
 #[builder(field_defaults(default))]
 #[derive(clap::Args)]
 pub struct Studio {
-    /// 是否转载
+    /// 是否转载, 1-自制 2-转载
     #[clap(long, default_value = "1")]
     #[builder(default = 1)]
     pub copyright: i8,
 
-    /// 是转载来源
+    /// 转载来源
     #[clap(long, default_value_t)]
     pub source: String,
 
@@ -44,7 +44,7 @@ pub struct Studio {
     #[clap(skip)]
     #[builder(default, setter(skip))]
     pub subtitle: Subtitle,
-    /// 视频标签
+    /// 视频标签，逗号分隔多个tag
     #[clap(long, default_value_t)]
     pub tag: String,
     #[serde(default)]
@@ -57,6 +57,39 @@ pub struct Studio {
     pub dtime: Option<i32>,
     #[clap(skip)]
     pub open_subtitle: bool,
+
+    #[clap(long, default_value = "0")]
+    #[serde(default)]
+    pub interactive: u8,
+
+    #[clap(long)]
+    pub mission_id: Option<usize>,
+
+    // #[clap(long, default_value = "0")]
+    // pub act_reserve_create: u8,
+
+    #[clap(long, default_value = "0")]
+    #[serde(default)]
+    pub dolby: u8,
+
+    /// 0-允许转载，1-禁止转载
+    #[clap(long)]
+    pub no_reprint: Option<u8>,
+
+    #[clap(long)]
+    #[serde(default)]
+    pub up_selection_reply: bool,
+
+    #[clap(long)]
+    #[serde(default)]
+    pub up_close_reply: bool,
+
+    #[clap(long)]
+    #[serde(default)]
+    pub up_close_danmu: bool,
+
+    #[clap(long)]
+    pub open_elec: Option<u8>
 }
 
 impl Studio {
