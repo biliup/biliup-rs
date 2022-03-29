@@ -33,7 +33,7 @@ OPTIONS:
         --copyright <COPYRIGHT>        是否转载, 1-自制 2-转载 [default: 1]
         --cover <COVER>                视频封面 [default: ]
         --desc <DESC>                  视频简介 [default: ]
-        --dolby <DOLBY>                [default: 0]
+        --dolby <DOLBY>                是否开启杜比音效, 0-关闭 1-开启 [default: 0]
         --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
         --dynamic <DYNAMIC>            空间动态 [default: ]
     -h, --help                         Print help information
