@@ -9,6 +9,7 @@ streamers:
     title: 标题
     desc_format_id: 0
     desc: 简介
+    dolby: 1 # 杜比音效
     dynamic: ""
     subtitle:
       open: 0
@@ -24,6 +25,7 @@ streamers:
     title: 标题
     desc_format_id: 0
     desc: 简介
+    dolby: 1
     dynamic: ""
     subtitle:
       open: 0
