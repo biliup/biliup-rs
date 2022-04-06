@@ -77,6 +77,10 @@ pub struct Studio {
     #[clap(long)]
     pub no_reprint: Option<u8>,
 
+    /// aid 要追加视频的 avid
+    #[clap(long)]
+    pub aid: Option<u64>,
+
     #[clap(long)]
     #[serde(default)]
     pub up_selection_reply: bool,
@@ -208,6 +212,67 @@ impl BiliBili<'_, '_> {
             _ => {
                 unreachable!()
             }
+        }
+    }
+
+    /// 查询视频的 json 信息
+    pub async fn video_data(&self, aid: u64) -> Result<serde_json::Value> {
+        let res: ResponseData = self
+            .client
+            .get(format!("http://member.bilibili.com/x/vupre/web/archive/view?aid={}", aid))
+            .send()
+            .await?
+            .json()
+            .await?;
+        let json: serde_json::Value = match res {
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } if value.is_null() => bail!("video query failed..."),
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } => value,
+            _ => {
+                unreachable!()
+            }
+        };
+        Ok(json)
+    }
+
+    pub async fn edit(&mut self, studio: &Studio) -> Result<serde_json::Value> {
+        let csrf = self
+            .login_info
+            .cookie_info
+            .get("cookies")
+            .and_then(|c| c.as_array())
+            .ok_or(CustomError::Custom("video_edit cookie error".into()))?
+            .iter()
+            .filter_map(|c| c.as_object())
+            .find(|c| c["name"] == "bili_jct")
+            .ok_or(CustomError::Custom("video_edit jct error".into()))?;
+        let csrf_str = csrf["value"].as_str().unwrap().to_string();
+        let url = format!(
+            "http://member.bilibili.com/x/vu/web/edit?csrf={}",
+            csrf_str
+        );
+        println!("{}", url);
+        let ret: serde_json::Value = self
+            .client
+            .post(url)
+            .json(studio)
+            .send()
+            .await?
+            .json()
+            .await?;
+        println!("{}", ret);
+        if ret["code"] == 0 {
+            println!("稿件修改成功");
+            Ok(ret)
+        } else {
+            bail!("{}", ret)
         }
     }
 }

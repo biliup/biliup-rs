@@ -53,6 +53,28 @@ enum Commands {
         #[clap(flatten)]
         studio: Studio,
     },
+    /// 追加视频
+    Append {
+        // Optional name to operate on
+        // name: Option<String>,
+        /// 是否要对某稿件追加视频，avid为稿件 av 号
+        #[clap(short, long)]
+        avid: u64,
+        /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
+        #[clap(parse(from_os_str))]
+        video_path: Vec<PathBuf>,
+
+        /// 选择上传线路，支持kodo, bda2, qn, ws
+        #[clap(short, long)]
+        line: Option<String>,
+
+        /// 单视频文件最大并发数
+        #[clap(long, default_value = "3")]
+        limit: usize,
+
+        #[clap(flatten)]
+        studio: Studio,
+    }
 }
 
 pub async fn parse() -> Result<()> {
@@ -129,7 +151,52 @@ pub async fn parse() -> Result<()> {
                     upload(&paths, &client, config.line.as_deref(), config.limit).await?;
                 studio.submit(&login_info).await?;
             }
-        }
+        },
+        Commands::Append {
+            video_path,
+            avid,
+            line,
+            limit,
+            mut studio,
+        } if !video_path.is_empty() => {
+            println!("number of concurrent futures: {limit}");
+            let login_info = client
+                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .await?;
+            if studio.title.is_empty() {
+                studio.title = video_path[0]
+                    .file_stem()
+                    .and_then(OsStr::to_str)
+                    .map(|s| s.to_string())
+                    .unwrap();
+            }
+            studio.aid = Option::from(avid);
+            let mut bili_client = BiliBili::new(&login_info, &client);
+            let video_data = bili_client.video_data(studio.aid.unwrap()).await?;
+            let videos = video_data["videos"]
+                .as_array()
+                .unwrap();
+            let mut videos: Vec<Video> = videos.into_iter().map(|v| Video {
+                desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
+                filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
+                title: v["title"].as_str().map(|t| t.to_string())
+            }).collect();
+            let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
+            videos.append(&mut uploaded_videos);
+            studio.videos = videos;
+            studio.copyright = video_data["archive"]["copyright"].as_i64().unwrap() as i8;
+            studio.tid = video_data["archive"]["tid"].as_i64().unwrap() as i16;
+            studio.cover = video_data["archive"]["cover"].as_str().unwrap().to_string();
+            studio.title = video_data["archive"]["title"].as_str().unwrap().to_string();
+            studio.desc_format_id = video_data["archive"]["desc_format_id"].as_i64().unwrap() as i8;
+            studio.desc = video_data["archive"]["desc"].as_str().unwrap().to_string();
+            studio.dynamic = video_data["archive"]["dynamic"].as_str().unwrap().to_string();
+            studio.tag = video_data["archive"]["tag"].as_str().unwrap().to_string();
+            studio.interactive = video_data["archive"]["interactive"].as_i64().unwrap() as u8;
+            studio.mission_id = Option::from(video_data["archive"]["mission_id"].as_u64().unwrap() as usize);
+            studio.no_reprint = Option::from(video_data["archive"]["no_reprint"].as_i64().unwrap() as u8);
+            bili_client.edit(&studio).await?;
+        },
         _ => {
             println!("参数不正确请参阅帮助");
             Cli::into_app().print_help()?
