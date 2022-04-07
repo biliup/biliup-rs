@@ -219,7 +219,7 @@ impl BiliBili<'_, '_> {
     pub async fn video_data(&self, aid: u64) -> Result<serde_json::Value> {
         let res: ResponseData = self
             .client
-            .get(format!("http://member.bilibili.com/x/vupre/web/archive/view?aid={}", aid))
+            .get(format!("https://member.bilibili.com/x/vupre/web/archive/view?aid={}", aid))
             .send()
             .await?
             .json()
@@ -255,7 +255,7 @@ impl BiliBili<'_, '_> {
             .ok_or(CustomError::Custom("video_edit jct error".into()))?;
         let csrf_str = csrf["value"].as_str().unwrap().to_string();
         let url = format!(
-            "http://member.bilibili.com/x/vu/web/edit?csrf={}",
+            "https://member.bilibili.com/x/vu/web/edit?csrf={}",
             csrf_str
         );
         println!("{}", url);
