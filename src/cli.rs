@@ -171,8 +171,9 @@ pub async fn parse() -> Result<()> {
                     .unwrap();
             }
             studio.aid = Option::from(avid);
-            /// 上传视频
             let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
+            let mut bili_client = BiliBili::new(&login_info, &client);
+            let video_data = bili_client.video_data(studio.aid.unwrap()).await?;
             studio.copyright = video_data["archive"]["copyright"].as_i64().unwrap() as i8;
             studio.tid = video_data["archive"]["tid"].as_i64().unwrap() as i16;
             studio.cover = video_data["archive"]["cover"].as_str().unwrap().to_string();
@@ -184,8 +185,6 @@ pub async fn parse() -> Result<()> {
             studio.interactive = video_data["archive"]["interactive"].as_i64().unwrap() as u8;
             studio.mission_id = Option::from(video_data["archive"]["mission_id"].as_u64().unwrap() as usize);
             studio.no_reprint = Option::from(video_data["archive"]["no_reprint"].as_i64().unwrap() as u8);
-            let mut bili_client = BiliBili::new(&login_info, &client);
-            let video_data = bili_client.video_data(studio.aid.unwrap()).await?;
             let videos = video_data["videos"]
                 .as_array()
                 .unwrap();

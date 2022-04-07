@@ -78,7 +78,7 @@ pub struct Studio {
     pub no_reprint: Option<u8>,
 
     /// aid 要追加视频的 avid
-    #[clap(long)]
+    #[clap(skip)]
     pub aid: Option<u64>,
 
     #[clap(long)]
@@ -93,6 +93,7 @@ pub struct Studio {
     #[serde(default)]
     pub up_close_danmu: bool,
 
+    /// 是否开启充电, 0-关闭 1-开启
     #[clap(long)]
     pub open_elec: Option<u8>
 }
