@@ -172,6 +172,7 @@ pub async fn parse() -> Result<()> {
             }
             studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
+            // 更改为 通过 studio 发送请求
             studio.video_data(&login_info).await?;
             studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
