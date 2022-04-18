@@ -126,6 +126,81 @@ impl Studio {
             bail!("{}", ret)
         }
     }
+
+    /// 查询视频的 json 信息
+    pub async fn video_data(&mut self, login_info: &LoginInfo) -> Result<()> {
+        let aid: u64 = match self.aid {
+            Some(value) if value > 0 => value,
+            _ => {
+                bail!("请检查要追加的 avid")
+            }
+        };
+        let res: ResponseData = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .timeout(Duration::new(60, 0))
+            .build()?
+            .get(format!("http://member.bilibili.com/x/client/archive/view?access_key={}&aid={}", login_info.token_info.access_token , aid))
+            .send()
+            .await?
+            .json()
+            .await?;
+        let json: serde_json::Value = match res {
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } if value.is_null() => bail!("video query failed..."),
+            ResponseData {
+                code: _,
+                data: ResponseValue::Value(value),
+                ..
+            } => value,
+            _ => {
+                unreachable!()
+            }
+        };
+        self.copyright = json["archive"]["copyright"].as_i64().unwrap() as i8;
+        self.tid = json["archive"]["tid"].as_i64().unwrap() as i16;
+        self.cover = json["archive"]["cover"].as_str().unwrap().to_string();
+        self.title = json["archive"]["title"].as_str().unwrap().to_string();
+        self.desc_format_id = json["archive"]["desc_format_id"].as_i64().unwrap() as i8;
+        self.desc = json["archive"]["desc"].as_str().unwrap().to_string();
+        self.dynamic = json["archive"]["dynamic"].as_str().unwrap().to_string();
+        self.tag = json["archive"]["tag"].as_str().unwrap().to_string();
+        self.interactive = json["archive"]["interactive"].as_i64().unwrap() as u8;
+        self.mission_id = Option::from(json["archive"]["mission_id"].as_u64().unwrap() as usize);
+        self.no_reprint = Option::from(json["archive"]["no_reprint"].as_i64().unwrap() as u8);
+        self.videos = json["videos"].as_array()
+            .unwrap().into_iter().map(|v| Video {
+                desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
+                filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
+                title: v["title"].as_str().map(|t| t.to_string())
+            }).collect();
+        Ok(())
+    }
+
+    pub async fn edit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
+        let ret: serde_json::Value = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .timeout(Duration::new(60, 0))
+            .build()?
+            .post(format!(
+                "http://member.bilibili.com/x/vu/client/edit?access_key={}",
+                login_info.token_info.access_token
+            ))
+            .json(self)
+            .send()
+            .await?
+            .json()
+            .await?;
+        println!("{}", ret);
+        if ret["code"] == 0 {
+            println!("稿件修改成功");
+            Ok(ret)
+        } else {
+            bail!("{}", ret)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -213,67 +288,6 @@ impl BiliBili<'_, '_> {
             _ => {
                 unreachable!()
             }
-        }
-    }
-
-    /// 查询视频的 json 信息
-    pub async fn video_data(&self, aid: u64) -> Result<serde_json::Value> {
-        let res: ResponseData = self
-            .client
-            .get(format!("https://member.bilibili.com/x/vupre/web/archive/view?aid={}", aid))
-            .send()
-            .await?
-            .json()
-            .await?;
-        let json: serde_json::Value = match res {
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } if value.is_null() => bail!("video query failed..."),
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } => value,
-            _ => {
-                unreachable!()
-            }
-        };
-        Ok(json)
-    }
-
-    pub async fn edit(&mut self, studio: &Studio) -> Result<serde_json::Value> {
-        let csrf = self
-            .login_info
-            .cookie_info
-            .get("cookies")
-            .and_then(|c| c.as_array())
-            .ok_or(CustomError::Custom("video_edit cookie error".into()))?
-            .iter()
-            .filter_map(|c| c.as_object())
-            .find(|c| c["name"] == "bili_jct")
-            .ok_or(CustomError::Custom("video_edit jct error".into()))?;
-        let csrf_str = csrf["value"].as_str().unwrap().to_string();
-        let url = format!(
-            "https://member.bilibili.com/x/vu/web/edit?csrf={}",
-            csrf_str
-        );
-        println!("{}", url);
-        let ret: serde_json::Value = self
-            .client
-            .post(url)
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
-        println!("{}", ret);
-        if ret["code"] == 0 {
-            println!("稿件修改成功");
-            Ok(ret)
-        } else {
-            bail!("{}", ret)
         }
     }
 }
