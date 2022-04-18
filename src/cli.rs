@@ -172,8 +172,7 @@ pub async fn parse() -> Result<()> {
             }
             studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
-            let mut bili_client = BiliBili::new(&login_info, &client);
-            let video_data = bili_client.video_data(studio.aid.unwrap()).await?;
+            let video_data = studio.video_data(&login_info).await?;
             studio.copyright = video_data["archive"]["copyright"].as_i64().unwrap() as i8;
             studio.tid = video_data["archive"]["tid"].as_i64().unwrap() as i16;
             studio.cover = video_data["archive"]["cover"].as_str().unwrap().to_string();
@@ -195,7 +194,7 @@ pub async fn parse() -> Result<()> {
             }).collect();
             videos.append(&mut uploaded_videos);
             studio.videos = videos;
-            bili_client.edit(&studio).await?;
+            studio.edit(&login_info).await?;
         },
         _ => {
             println!("参数不正确请参阅帮助");
