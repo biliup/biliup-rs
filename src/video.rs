@@ -128,7 +128,7 @@ impl Studio {
     }
 
     /// 查询视频的 json 信息
-    pub async fn video_data(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
+    pub async fn video_data(&mut self, login_info: &LoginInfo) -> Result<()> {
         let aid: u64 = match self.aid {
             Some(value) if value > 0 => value,
             _ => {
@@ -159,7 +159,24 @@ impl Studio {
                 unreachable!()
             }
         };
-        Ok(json)
+        self.copyright = json["archive"]["copyright"].as_i64().unwrap() as i8;
+        self.tid = json["archive"]["tid"].as_i64().unwrap() as i16;
+        self.cover = json["archive"]["cover"].as_str().unwrap().to_string();
+        self.title = json["archive"]["title"].as_str().unwrap().to_string();
+        self.desc_format_id = json["archive"]["desc_format_id"].as_i64().unwrap() as i8;
+        self.desc = json["archive"]["desc"].as_str().unwrap().to_string();
+        self.dynamic = json["archive"]["dynamic"].as_str().unwrap().to_string();
+        self.tag = json["archive"]["tag"].as_str().unwrap().to_string();
+        self.interactive = json["archive"]["interactive"].as_i64().unwrap() as u8;
+        self.mission_id = Option::from(json["archive"]["mission_id"].as_u64().unwrap() as usize);
+        self.no_reprint = Option::from(json["archive"]["no_reprint"].as_i64().unwrap() as u8);
+        self.videos = json["videos"].as_array()
+            .unwrap().into_iter().map(|v| Video {
+                desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
+                filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
+                title: v["title"].as_str().map(|t| t.to_string())
+            }).collect();
+        Ok(())
     }
 
     pub async fn edit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {

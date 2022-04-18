@@ -172,28 +172,8 @@ pub async fn parse() -> Result<()> {
             }
             studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
-            let video_data = studio.video_data(&login_info).await?;
-            studio.copyright = video_data["archive"]["copyright"].as_i64().unwrap() as i8;
-            studio.tid = video_data["archive"]["tid"].as_i64().unwrap() as i16;
-            studio.cover = video_data["archive"]["cover"].as_str().unwrap().to_string();
-            studio.title = video_data["archive"]["title"].as_str().unwrap().to_string();
-            studio.desc_format_id = video_data["archive"]["desc_format_id"].as_i64().unwrap() as i8;
-            studio.desc = video_data["archive"]["desc"].as_str().unwrap().to_string();
-            studio.dynamic = video_data["archive"]["dynamic"].as_str().unwrap().to_string();
-            studio.tag = video_data["archive"]["tag"].as_str().unwrap().to_string();
-            studio.interactive = video_data["archive"]["interactive"].as_i64().unwrap() as u8;
-            studio.mission_id = Option::from(video_data["archive"]["mission_id"].as_u64().unwrap() as usize);
-            studio.no_reprint = Option::from(video_data["archive"]["no_reprint"].as_i64().unwrap() as u8);
-            let videos = video_data["videos"]
-                .as_array()
-                .unwrap();
-            let mut videos: Vec<Video> = videos.into_iter().map(|v| Video {
-                desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
-                filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
-                title: v["title"].as_str().map(|t| t.to_string())
-            }).collect();
-            videos.append(&mut uploaded_videos);
-            studio.videos = videos;
+            studio.video_data(&login_info).await?;
+            studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
         },
         _ => {
