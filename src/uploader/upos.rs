@@ -42,8 +42,8 @@ pub struct Protocol<'a> {
     chunk: usize,
     size: usize,
     part_number: usize,
-    start: usize,
-    end: usize,
+    start: u64,
+    end: u64,
 }
 
 impl Upos {
@@ -117,8 +117,8 @@ impl Upos {
                     chunk: i,
                     size: len,
                     part_number: i + 1,
-                    start: i * chunk_size,
-                    end: i * chunk_size + len,
+                    start: u64::try_from(i).unwrap() * u64::try_from(chunk_size).unwrap(),
+                    end: u64::try_from(i).unwrap() * u64::try_from(chunk_size).unwrap() + u64::try_from(len).unwrap(),
                 };
 
                 client.put(url).query(&params).body(chunk).send().await?;
