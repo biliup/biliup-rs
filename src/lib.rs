@@ -1,8 +1,10 @@
 use crate::video::{Studio, Video};
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use async_stream::try_stream;
+use bytes::Buf;
 use bytes::{BufMut, Bytes, BytesMut};
 use futures::{AsyncReadExt, Stream, TryStream};
+use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
@@ -10,8 +12,6 @@ use std::io::{BufReader, Read};
 use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use bytes::Buf;
-use reqwest::Body;
 
 pub mod client;
 pub mod error;
@@ -20,10 +20,10 @@ pub mod video;
 
 pub mod uploader {
     use serde::{Deserialize, Serialize};
-    pub mod kodo;
-    pub mod upos;
     pub mod cos;
+    pub mod kodo;
     pub mod retryable;
+    pub mod upos;
 
     #[derive(Deserialize, Serialize, Debug)]
     #[serde(rename_all = "lowercase")]
@@ -83,7 +83,7 @@ impl VideoStream {
             capacity,
             buf: BytesMut::with_capacity(capacity),
             buffer: vec![0u8; capacity],
-            file
+            file,
         }
     }
 
@@ -100,18 +100,16 @@ impl VideoStream {
     }
 }
 
-
 impl Stream for VideoStream {
     type Item = Result<(Bytes, usize)>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.read()? {
-            None => {Poll::Ready(None)}
-            Some(b) => {Poll::Ready(Some(Ok(b)))}
+            None => Poll::Ready(None),
+            Some(b) => Poll::Ready(Some(Ok(b))),
         }
     }
 }
-
 
 pub struct VideoFile {
     // capacity: usize,
@@ -129,7 +127,10 @@ impl VideoFile {
     pub fn new(filepath: &std::path::Path) -> Result<Self> {
         let file = std::fs::File::open(&filepath)?;
         let total_size = file.metadata()?.len();
-        let file_name = filepath.file_name().and_then(|file_name|file_name.to_str()).ok_or(anyhow!("No filename"))?;
+        let file_name = filepath
+            .file_name()
+            .and_then(|file_name| file_name.to_str())
+            .ok_or(anyhow!("No filename"))?;
         Ok(Self {
             // video_stream: None,
             file,
@@ -138,7 +139,7 @@ impl VideoFile {
             // buffer: Default::default(),
             total_size,
             file_name: file_name.into(),
-            filepath: filepath.into()
+            filepath: filepath.into(),
         })
     }
 
@@ -165,7 +166,6 @@ impl VideoFile {
     }
 }
 
-
 // impl Stream for VideoFile {
 //     type Item = Result<Bytes>;
 //
@@ -187,7 +187,6 @@ impl VideoFile {
 //         }
 //     }
 // }
-
 
 pub fn read_chunk(mut file: std::fs::File, len: usize) -> impl Stream<Item = Result<Bytes>> {
     let mut buffer = vec![0u8; len];
@@ -275,7 +274,7 @@ mod tests {
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
         let stream = futures::stream::iter(chunks);
         let client = reqwest::Client::new();
-        retry( || {
+        retry(|| {
             let builder = client
                 .get("http://httpbin.org/get")
                 .body(reqwest::Body::wrap_stream(stream));

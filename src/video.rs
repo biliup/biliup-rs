@@ -67,7 +67,6 @@ pub struct Studio {
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
-
     /// 是否开启杜比音效, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
     #[serde(default)]
@@ -95,7 +94,7 @@ pub struct Studio {
 
     /// 是否开启充电, 0-关闭 1-开启
     #[clap(long)]
-    pub open_elec: Option<u8>
+    pub open_elec: Option<u8>,
 }
 
 impl Studio {
@@ -139,7 +138,10 @@ impl Studio {
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
-            .get(format!("http://member.bilibili.com/x/client/archive/view?access_key={}&aid={}", login_info.token_info.access_token , aid))
+            .get(format!(
+                "http://member.bilibili.com/x/client/archive/view?access_key={}&aid={}",
+                login_info.token_info.access_token, aid
+            ))
             .send()
             .await?
             .json()
@@ -170,12 +172,16 @@ impl Studio {
         self.interactive = json["archive"]["interactive"].as_i64().unwrap() as u8;
         self.mission_id = Option::from(json["archive"]["mission_id"].as_u64().unwrap() as usize);
         self.no_reprint = Option::from(json["archive"]["no_reprint"].as_i64().unwrap() as u8);
-        self.videos = json["videos"].as_array()
-            .unwrap().into_iter().map(|v| Video {
+        self.videos = json["videos"]
+            .as_array()
+            .unwrap()
+            .into_iter()
+            .map(|v| Video {
                 desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
                 filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
-                title: v["title"].as_str().map(|t| t.to_string())
-            }).collect();
+                title: v["title"].as_str().map(|t| t.to_string()),
+            })
+            .collect();
         Ok(())
     }
 

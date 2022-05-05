@@ -5,7 +5,10 @@ use futures::StreamExt;
 use futures::TryStreamExt;
 // use async_std::stream::StreamExt;
 // use futures_util::{StreamExt, TryStreamExt};
-use reqwest::{Body, header};
+use bytes::Bytes;
+use futures::future::ok;
+use reqwest::header::CONTENT_LENGTH;
+use reqwest::{header, Body};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
@@ -14,9 +17,6 @@ use serde_json::json;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::time::Duration;
-use bytes::Bytes;
-use futures::future::ok;
-use reqwest::header::CONTENT_LENGTH;
 
 pub struct Upos {
     client: ClientWithMiddleware,
@@ -97,9 +97,9 @@ impl Upos {
         total_size: u64,
         limit: usize,
     ) -> Result<impl Stream<Item = Result<(serde_json::Value, usize)>> + 'a>
-        where
-            F: Stream<Item = Result<(B, usize)>>,
-            B: Into<Body> + Clone
+    where
+        F: Stream<Item = Result<(B, usize)>>,
+        B: Into<Body> + Clone,
     {
         // let mut parts = Vec::new();
 
@@ -130,10 +130,17 @@ impl Upos {
                     end: i as u64 * chunk_size as u64 + len as u64,
                 };
                 super::retryable::retry(|| async {
-                    let response = client.put(url).query(&params).header(CONTENT_LENGTH, len).body(chunk.clone()).send().await?;
+                    let response = client
+                        .put(url)
+                        .query(&params)
+                        .header(CONTENT_LENGTH, len)
+                        .body(chunk.clone())
+                        .send()
+                        .await?;
                     response.error_for_status();
                     Ok::<_, reqwest::Error>(())
-                }).await?;
+                })
+                .await?;
 
                 Ok::<_, anyhow::Error>((
                     json!({"partNumber": params.chunk + 1, "eTag": "etag"}),
@@ -157,36 +164,40 @@ impl Upos {
     //         .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
     //         .try_collect()
     //         .await?;
-        // .for_each_concurrent()
-        // .try_collect().await?;
-        // let mut parts = Vec::with_capacity(chunks_num);
-        // .for_each_concurrent()
-        // .try_collect().await?;
-        // let mut parts = Vec::with_capacity(chunks_num);
-        // tokio::pin!(stream);
+    // .for_each_concurrent()
+    // .try_collect().await?;
+    // let mut parts = Vec::with_capacity(chunks_num);
+    // .for_each_concurrent()
+    // .try_collect().await?;
+    // let mut parts = Vec::with_capacity(chunks_num);
+    // tokio::pin!(stream);
 
-        // .for_each_concurrent()
-        // .try_collect().await?;
-        // let mut parts = Vec::with_capacity(chunks_num);
-        // .for_each_concurrent()
-        // .try_collect().await?;
-        // let mut parts = Vec::with_capacity(chunks_num);
-        // tokio::pin!(stream);
-        // while let Some((part, size)) = stream.try_next().await? {
-        //     parts.push(part);
-        //     // (callback)(instant, total_size, size);
-        //     // if !callback(instant, total_size, size) {
-        //     //     bail!("移除视频");
-        //     // }
-        // }
-        // println!(
-        //     "{:.2} MB/s.",
-        //     total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
-        // );
+    // .for_each_concurrent()
+    // .try_collect().await?;
+    // let mut parts = Vec::with_capacity(chunks_num);
+    // .for_each_concurrent()
+    // .try_collect().await?;
+    // let mut parts = Vec::with_capacity(chunks_num);
+    // tokio::pin!(stream);
+    // while let Some((part, size)) = stream.try_next().await? {
+    //     parts.push(part);
+    //     // (callback)(instant, total_size, size);
+    //     // if !callback(instant, total_size, size) {
+    //     //     bail!("移除视频");
+    //     // }
+    // }
+    // println!(
+    //     "{:.2} MB/s.",
+    //     total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
+    // );
     //     self.get_ret_video_info(&parts, path).await
     // }
 
-    pub(crate) async fn get_ret_video_info(&self, parts: &[serde_json::Value], path: &Path) -> Result<Video> {
+    pub(crate) async fn get_ret_video_info(
+        &self,
+        parts: &[serde_json::Value],
+        path: &Path,
+    ) -> Result<Video> {
         // println!("{:?}", parts_cell.borrow());
         let value = json!({
             "name": path.file_name().and_then(OsStr::to_str),
@@ -209,10 +220,7 @@ impl Upos {
             bail!("{}", res)
         }
         Ok(Video {
-            title: path
-                .file_stem()
-                .and_then(OsStr::to_str)
-                .map(|s| s.to_string()),
+            title: None,
             filename: Path::new(&self.bucket.upos_uri)
                 .file_stem()
                 .unwrap()

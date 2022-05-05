@@ -1,9 +1,10 @@
 use crate::Video;
 use anyhow::{anyhow, bail, Result};
 use base64::URL_SAFE;
+use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
-use reqwest::{Body, header};
-use reqwest::header::{CONTENT_LENGTH, HeaderMap, HeaderName};
+use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
+use reqwest::{header, Body};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
@@ -13,7 +14,6 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
-use bytes::Bytes;
 
 pub struct Kodo {
     client: ClientWithMiddleware,
@@ -54,13 +54,12 @@ impl Kodo {
         // file: std::fs::File,
         stream: F,
         total_size: u64,
-        path: &Path,
         limit: usize,
         // mut process: impl FnMut(usize) -> bool,
     ) -> Result<Video>
     where
         F: Stream<Item = Result<(B, usize)>>,
-        B: Into<Body>  + Clone
+        B: Into<Body> + Clone,
     {
         // let total_size = file.metadata()?.len();
         let chunk_size = 4194304;
@@ -79,11 +78,17 @@ impl Kodo {
                 // println!("{}", len);
                 let ctx: serde_json::Value = super::retryable::retry(|| async {
                     let url = format!("{url}/{len}");
-                    let response = client.post(url).header(CONTENT_LENGTH, len).body(chunk.clone()).send().await?;
+                    let response = client
+                        .post(url)
+                        .header(CONTENT_LENGTH, len)
+                        .body(chunk.clone())
+                        .send()
+                        .await?;
                     response.error_for_status_ref()?;
                     let res = response.json().await?;
                     Ok::<_, reqwest::Error>(res)
-                }).await?;
+                })
+                .await?;
 
                 Ok::<_, reqwest_middleware::Error>((
                     Ctx {
@@ -132,10 +137,7 @@ impl Kodo {
                 bail!("{result}")
             }
             _ => Video {
-                title: path
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string()),
+                title: None,
                 filename: self.bucket.bili_filename,
                 desc: "".into(),
             },
