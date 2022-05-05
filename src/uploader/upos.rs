@@ -1,24 +1,26 @@
-use crate::read_chunk;
 use crate::video::Video;
 use anyhow::{bail, Result};
-use async_std::fs::File;
 use futures::Stream;
 use futures::StreamExt;
 use futures::TryStreamExt;
 // use async_std::stream::StreamExt;
 // use futures_util::{StreamExt, TryStreamExt};
-use reqwest::header;
+use reqwest::{Body, header};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::time::Duration;
+use bytes::Bytes;
+use futures::future::ok;
+use reqwest::header::CONTENT_LENGTH;
 
 pub struct Upos {
     client: ClientWithMiddleware,
+    raw_client: reqwest::Client,
     bucket: Bucket,
     url: String,
     upload_id: String,
@@ -26,7 +28,7 @@ pub struct Upos {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Bucket {
-    chunk_size: usize,
+    pub chunk_size: usize,
     auth: String,
     endpoint: String,
     biz_id: usize,
@@ -42,22 +44,22 @@ pub struct Protocol<'a> {
     chunk: usize,
     size: usize,
     part_number: usize,
-    start: usize,
-    end: usize,
+    start: u64,
+    end: u64,
 }
 
 impl Upos {
     pub async fn from(bucket: Bucket) -> Result<Self> {
         let mut headers = header::HeaderMap::new();
         headers.insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
-        let client = reqwest::Client::builder()
+        let raw_client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .default_headers(headers)
             .timeout(Duration::new(300, 0))
             .build()
             .unwrap();
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
-        let client = ClientBuilder::new(client)
+        let client = ClientBuilder::new(raw_client.clone())
             // Retry failed requests.
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build();
@@ -81,34 +83,41 @@ impl Upos {
         // let upos_uri = ret["upos_uri"].as_str().unwrap();
         Ok(Upos {
             client,
+            raw_client,
             bucket,
             url,
             upload_id,
         })
     }
 
-    pub async fn upload_stream(
-        &self,
-        file: File,
+    pub async fn upload_stream<'a, F: 'a, B>(
+        &'a self,
+        // file: std::fs::File,
+        stream: F,
+        total_size: u64,
         limit: usize,
-    ) -> Result<impl Stream<Item = Result<(Value, usize)>> + '_> {
+    ) -> Result<impl Stream<Item = Result<(serde_json::Value, usize)>> + 'a>
+        where
+            F: Stream<Item = Result<(B, usize)>>,
+            B: Into<Body> + Clone
+    {
         // let mut parts = Vec::new();
 
-        let total_size = file.metadata().await?.len();
+        // let total_size = file.metadata()?.len();
         // let parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
         let chunk_size = self.bucket.chunk_size;
         let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
                                                                                   // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
-        let client = &self.client;
+        let client = &self.raw_client;
         let url = &self.url;
         let upload_id = &*self.upload_id;
-        let stream = read_chunk(file, chunk_size)
+        let stream = stream
             // let mut chunks = read_chunk(file, chunk_size)
             .enumerate()
             .map(move |(i, chunk)| async move {
-                let chunk = chunk?;
-                let len = chunk.len();
+                let (chunk, len) = chunk?;
+                // let len = chunk.len();
                 // println!("{}", len);
                 let params = Protocol {
                     upload_id,
@@ -117,11 +126,14 @@ impl Upos {
                     chunk: i,
                     size: len,
                     part_number: i + 1,
-                    start: i * chunk_size,
-                    end: i * chunk_size + len,
+                    start: i as u64 * chunk_size as u64,
+                    end: i as u64 * chunk_size as u64 + len as u64,
                 };
-
-                client.put(url).query(&params).body(chunk).send().await?;
+                super::retryable::retry(|| async {
+                    let response = client.put(url).query(&params).header(CONTENT_LENGTH, len).body(chunk.clone()).send().await?;
+                    response.error_for_status();
+                    Ok::<_, reqwest::Error>(())
+                }).await?;
 
                 Ok::<_, anyhow::Error>((
                     json!({"partNumber": params.chunk + 1, "eTag": "etag"}),
@@ -138,13 +150,13 @@ impl Upos {
         // let res = self.get_ret_video_info(&parts, path).await?;
     }
 
-    pub async fn upload(&self, file: File, path: &Path) -> Result<Video> {
-        let parts: Vec<_> = self
-            .upload_stream(file, 3)
-            .await?
-            .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
-            .try_collect()
-            .await?;
+    // pub async fn upload(&self, file: std::fs::File, path: &Path) -> Result<Video> {
+    //     let parts: Vec<_> = self
+    //         .upload_stream(file, 3)
+    //         .await?
+    //         .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
+    //         .try_collect()
+    //         .await?;
         // .for_each_concurrent()
         // .try_collect().await?;
         // let mut parts = Vec::with_capacity(chunks_num);
@@ -171,10 +183,10 @@ impl Upos {
         //     "{:.2} MB/s.",
         //     total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
         // );
-        self.get_ret_video_info(&parts, path).await
-    }
+    //     self.get_ret_video_info(&parts, path).await
+    // }
 
-    pub(crate) async fn get_ret_video_info(&self, parts: &[Value], path: &Path) -> Result<Video> {
+    pub(crate) async fn get_ret_video_info(&self, parts: &[serde_json::Value], path: &Path) -> Result<Video> {
         // println!("{:?}", parts_cell.borrow());
         let value = json!({
             "name": path.file_name().and_then(OsStr::to_str),

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use biliup::client::{Client, LoginInfo};
 use biliup::line::Probe;
 use biliup::video::{BiliBili, Studio, Video};
-use biliup::{line, load_config};
+use biliup::{line, load_config, read_chunk, VideoFile};
 use clap::{IntoApp, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
@@ -13,7 +13,16 @@ use qrcode::render::unicode;
 use qrcode::QrCode;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::task::Poll;
+use std::time::{Duration, Instant};
+use async_stream::stream;
+use reqwest::Body;
+use futures::{Stream, StreamExt, TryStream};
+use bytes::{Buf, Bytes};
+use tokio::time::sleep;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -233,33 +242,130 @@ pub async fn upload(
         Some("bda2") => line::bda2(),
         Some("ws") => line::ws(),
         Some("qn") => line::qn(),
+        Some("cos") => line::cos(),
+        Some("cos-internal") => line::cos_internal(),
         Some(name) => panic!("不正确的线路{name}"),
         None => Probe::probe().await.unwrap_or_default(),
     };
     // let line = line::kodo();
     for video_path in video_path {
         println!("{line:?}");
-        let uploader = line.to_uploader(video_path).await?;
+        let video_file = VideoFile::new(video_path)?;
+        let total_size = video_file.total_size;
+        let file_name = video_file.file_name.clone();
+        let uploader = line.to_uploader(video_file);
         //Progress bar
-        let total_size = uploader.total_size;
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})"));
-        pb.enable_steady_tick(1000);
-        let mut uploaded = 0;
+            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?);
+        // pb.enable_steady_tick(Duration::from_secs(1));
+        // pb.tick()
+        let mut uploaded = Arc::new(AtomicU64::new(0));
 
         let instant = Instant::now();
+
+
+        let file = std::fs::File::open(&video_path)?;
+        // let mut stream = VideoFile::new(file)?;
+        // stream.set_capacity(stream.capacity);
+        // let stream = |chunk_size| {
+        //     // read_chunk(file, chunk_size).map(|chunk| {
+        //
+        //     let map = stream.map(|chunk| {
+        //         let pb = pb.clone();
+        //         let len = chunk.as_ref().unwrap().len();
+        //         // let async_stream = stream! {
+        //         //     let mut  content_bytes = chunk?.clone();
+        //         //     loop {
+        //         //         let n = content_bytes.remaining();
+        //         //         // println!("nnnnn {n}");
+        //         //         if n == 0 {
+        //         //             return;
+        //         //         } else if n < 3096 {
+        //         //             uploaded += n;
+        //         //              // println!("{uploaded}");
+        //         //             // pb.set_position(uploaded as u64);
+        //         //             // process(n);
+        //         //             yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(n));
+        //         //             pb.inc(len as u64);
+        //         //
+        //         //         } else {
+        //         //             uploaded += 4194304;
+        //         //              // println!("{uploaded}");
+        //         //             // pb.set_position(uploaded as u64);
+        //         //             yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(3096));
+        //         //             pb.inc(3096);
+        //         //
+        //         //         }
+        //         //     }
+        //         // };
+        //         // tokio::pin!(async_stream);
+        //         pb.inc(len as u64);
+        //         (chunk.unwrap(), len)
+        //     });
+        //     map
+        //     // future
+        // };
+        // let stream =  |chunk_size| {
+        //     stream(chunk_size)
+        // };
+
+
         let video = uploader
-            .upload(client, limit, |len| {
-                uploaded += len;
-                pb.set_position(uploaded as u64);
-                true
-            })
-            .await?;
+            .upload(client, limit, |vs| {
+                vs.map(|chunk| {
+                    let pb = pb.clone();
+                    let (chunk, len) = chunk?;
+                    // let async_stream = stream! {
+                    //     let mut  content_bytes = chunk.clone();
+                    //     loop {
+                    //         let n = content_bytes.remaining();
+                    //         // println!("nnnnn {n}");
+                    //         if n == 0 {
+                    //             return;
+                    //         } else if n < 3096 {
+                    //             uploaded += n;
+                    //              // println!("{uploaded}");
+                    //             // pb.set_position(uploaded as u64);
+                    //             // process(n);
+                    //             yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(n));
+                    //             pb.inc(n as u64);
+                    //
+                    //         } else {
+                    //             uploaded += 4194304;
+                    //              // println!("{uploaded}");
+                    //             // pb.set_position(uploaded as u64);
+                    //             yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(3096));
+                    //             pb.inc(3096);
+                    //
+                    //         }
+                    //     }
+                    // };
+                    // tokio::pin!(async_stream);
+                    // pb.inc(len as u64);
+
+                    Ok((Progressbar::new(chunk, Arc::clone(&uploaded), pb), len))
+                })
+                // let len = vs.capacity;
+                // vs
+                // uploaded += len;
+                // pb.set_position(uploaded as u64);
+                // true
+            });
+            // .await?;
+        let (future , abort_handle) = futures::future::abortable(video);
+        // let handle = tokio::spawn(async move {
+        //     sleep(Duration::from_secs(1)).await;
+        //     println!("abort");
+        //     println!("abort");
+        //     abort_handle.abort();
+        // });
+        let video = future.await??;
         pb.finish_and_clear();
+        let t = instant.elapsed().as_millis();
         println!(
-            "Upload completed: {:.2} MB/s.",
-            total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
+            "Upload completed: {file_name} => cost {:.2}s, {:.2} MB/s.", t as f64 / 1000.,
+            total_size as f64 / 1000. / t as f64
         );
         videos.push(video);
     }
@@ -318,3 +424,70 @@ pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
     println!("请复制此链接至浏览器中完成登录");
     client.login_by_qrcode(value).await
 }
+
+#[derive(Clone)]
+struct Progressbar {
+    bytes: Bytes,
+    pb: ProgressBar,
+    uploaded: Arc<AtomicU64>
+}
+
+impl Progressbar {
+    pub fn new(bytes: Bytes, uploaded: Arc<AtomicU64>, pb: ProgressBar) -> Self {
+        Self{
+            bytes,
+            pb,
+            uploaded
+        }
+    }
+
+    pub fn progress(&mut self) -> Result<Option<Bytes>> {
+        let pb = &self.pb;
+        // let (chunk, len) = chunk?;
+        // let mut  content_bytes = chunk.clone();
+        let content_bytes = &mut self.bytes;
+
+        let n = content_bytes.remaining();
+        // println!("nnnnn {n}");
+        let pc = 4096;
+        if n == 0 {
+            Ok(None)
+        } else if n < pc {
+            // self.uploaded.fetch_add( n as u64, Ordering::Relaxed);
+            // // println!("{uploaded}");
+            // pb.set_position(self.uploaded.load(Ordering::Relaxed) as u64);
+            // process(n);
+            pb.inc(n as u64);
+            Ok(Some(content_bytes.copy_to_bytes(n)))
+        } else {
+            // uploaded += 4194304;
+            // self.uploaded.fetch_add(pc as u64, Ordering::Relaxed) ;
+            // // self.uploaded
+            // // println!("{uploaded}");
+            // pb.set_position(self.uploaded.load(Ordering::Relaxed) as u64);
+            pb.inc(pc as u64);
+            // pb.set_position()
+            Ok(Some(content_bytes.copy_to_bytes(pc)))
+        }
+    }
+        // tokio::pin!(async_stream);
+        // pb.inc(len as u64);
+}
+
+impl Stream for Progressbar {
+    type Item = Result<Bytes>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Option<Self::Item>> {
+        match self.progress()? {
+            None => {Poll::Ready(None)}
+            Some(s) => {Poll::Ready(Some(Ok(s)))}
+        }
+    }
+}
+
+impl From<Progressbar> for Body {
+    fn from(async_stream: Progressbar) -> Self {
+        Body::wrap_stream(async_stream)
+    }
+}
+
