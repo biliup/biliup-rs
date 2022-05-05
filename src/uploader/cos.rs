@@ -1,18 +1,18 @@
 use crate::Video;
 use anyhow::{anyhow, bail, Result};
-use bytes::Bytes;
+
 use futures::{Stream, StreamExt, TryStreamExt};
-use reqwest::header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH};
+use reqwest::header::{AUTHORIZATION, CONTENT_LENGTH};
 use reqwest::{header, Body};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 use std::collections::HashMap;
-use std::io::Write;
+
 use std::path::Path;
-use std::thread::sleep;
+
 use std::time::Duration;
 
 pub struct Cos {
@@ -56,10 +56,10 @@ impl Cos {
         B: Into<Body> + Clone, // Body: From<B>
     {
         let chunk_size = 10485760;
-        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as u32; // 获取分块数量
-                                                                                // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
+        let _chunks_num = (total_size as f64 / chunk_size as f64).ceil() as u32; // 获取分块数量
+                                                                                 // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.raw_client;
-        let mut temp;
+        let temp;
         let url = if enable_internal {
             temp = self
                 .bucket
@@ -90,7 +90,7 @@ impl Cos {
                         .body(chunk.clone())
                         .send()
                         .await?;
-                    response.error_for_status_ref();
+                    response.error_for_status_ref()?;
                     Ok::<_, reqwest::Error>(response)
                 })
                 .await?;
@@ -158,8 +158,7 @@ impl Cos {
         headers.insert(
             "X-Upos-Fetch-Source",
             header::HeaderValue::from_str(
-                &self
-                    .bucket
+                self.bucket
                     .fetch_headers
                     .get("X-Upos-Fetch-Source")
                     .unwrap(),
@@ -167,13 +166,12 @@ impl Cos {
         );
         headers.insert(
             "X-Upos-Auth",
-            header::HeaderValue::from_str(&self.bucket.fetch_headers.get("X-Upos-Auth").unwrap())?,
+            header::HeaderValue::from_str(self.bucket.fetch_headers.get("X-Upos-Auth").unwrap())?,
         );
         headers.insert(
             "Fetch-Header-Authorization",
             header::HeaderValue::from_str(
-                &self
-                    .bucket
+                self.bucket
                     .fetch_headers
                     .get("Fetch-Header-Authorization")
                     .unwrap(),

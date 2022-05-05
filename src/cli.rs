@@ -1,15 +1,15 @@
 use anyhow::{anyhow, Context, Result};
-use async_stream::stream;
+
 use biliup::client::{Client, LoginInfo};
 use biliup::line::Probe;
 use biliup::video::{BiliBili, Studio, Video};
-use biliup::{line, load_config, read_chunk, VideoFile};
+use biliup::{line, load_config, VideoFile};
 use bytes::{Buf, Bytes};
-use clap::{IntoApp, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
-use futures::{Stream, StreamExt, TryStream};
+use futures::{Stream, StreamExt};
 use image::Luma;
 use indicatif::{ProgressBar, ProgressStyle};
 use qrcode::render::unicode;
@@ -18,11 +18,9 @@ use reqwest::Body;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+
 use std::task::Poll;
-use std::time::{Duration, Instant};
-use tokio::time::sleep;
+use std::time::Instant;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -188,7 +186,7 @@ pub async fn parse() -> Result<()> {
         }
         _ => {
             println!("参数不正确请参阅帮助");
-            Cli::into_app().print_help()?
+            Cli::command().print_help()?
         }
     };
     Ok(())
@@ -375,7 +373,7 @@ impl Stream for Progressbar {
 
     fn poll_next(
         mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
+        _cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         match self.progress()? {
             None => Poll::Ready(None),

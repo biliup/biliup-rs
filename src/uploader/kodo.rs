@@ -1,7 +1,7 @@
 use crate::Video;
 use anyhow::{anyhow, bail, Result};
 use base64::URL_SAFE;
-use bytes::Bytes;
+
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
 use reqwest::{header, Body};
@@ -10,8 +10,7 @@ use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::path::Path;
+
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -62,7 +61,7 @@ impl Kodo {
         B: Into<Body> + Clone,
     {
         // let total_size = file.metadata()?.len();
-        let chunk_size = 4194304;
+        let _chunk_size = 4194304;
         let mut parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
         let client = &self.raw_client;
@@ -100,7 +99,7 @@ impl Kodo {
             })
             .buffer_unordered(limit);
         tokio::pin!(stream);
-        while let Some((part, size)) = stream.try_next().await? {
+        while let Some((part, _size)) = stream.try_next().await? {
             parts.push(part);
         }
         parts.sort_by_key(|x| x.index);

@@ -175,7 +175,7 @@ impl Studio {
         self.videos = json["videos"]
             .as_array()
             .unwrap()
-            .into_iter()
+            .iter()
             .map(|v| Video {
                 desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
                 filename: v["filename"].as_str().ok_or("").unwrap().to_string(),

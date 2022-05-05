@@ -2,11 +2,7 @@ use crate::video::Video;
 use anyhow::{bail, Result};
 use futures::Stream;
 use futures::StreamExt;
-use futures::TryStreamExt;
-// use async_std::stream::StreamExt;
-// use futures_util::{StreamExt, TryStreamExt};
-use bytes::Bytes;
-use futures::future::ok;
+
 use reqwest::header::CONTENT_LENGTH;
 use reqwest::{header, Body};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -137,7 +133,7 @@ impl Upos {
                         .body(chunk.clone())
                         .send()
                         .await?;
-                    response.error_for_status();
+                    response.error_for_status()?;
                     Ok::<_, reqwest::Error>(())
                 })
                 .await?;

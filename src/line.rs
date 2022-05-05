@@ -2,23 +2,16 @@ use crate::client::Client;
 use crate::uploader::cos::Cos;
 use crate::uploader::kodo::Kodo;
 use crate::uploader::upos::Upos;
-use crate::uploader::{cos, Uploader};
-use crate::{read_chunk, Video, VideoFile, VideoStream};
-use anyhow::{bail, Context, Result};
-use async_stream::{stream, try_stream};
-use bytes::{Buf, Bytes, BytesMut};
-use futures::StreamExt;
-use futures::{Stream, TryStream, TryStreamExt};
+use crate::uploader::Uploader;
+use crate::{Video, VideoFile, VideoStream};
+use anyhow::{Context, Result};
+use futures::{Stream, TryStreamExt};
 use reqwest::Body;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
-use std::io::Read;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::Arc;
+
 use std::time::Instant;
 
 pub struct Parcel<'a> {
@@ -54,7 +47,7 @@ impl<'a> Parcel<'a> {
     }
 
     pub async fn pre_upload<T: DeserializeOwned>(&self, login: &Client) -> Result<T> {
-        Ok(login
+        login
             .client
             .get(format!(
                 "https://member.bilibili.com/preupload?{}",
@@ -65,7 +58,7 @@ impl<'a> Parcel<'a> {
             .await?
             .json()
             .await
-            .with_context(|| "Failed to pre_upload from".to_string())?)
+            .with_context(|| "Failed to pre_upload from".to_string())
     }
 
     pub async fn upload<F, S, B>(&self, client: &Client, limit: usize, progress: F) -> Result<Video>
@@ -88,7 +81,7 @@ impl<'a> Parcel<'a> {
                     )
                     .await?;
                 tokio::pin!(stream);
-                while let Some((part, size)) = stream.try_next().await? {
+                while let Some((part, _size)) = stream.try_next().await? {
                     parts.push(part);
                 }
                 upos.get_ret_video_info(&parts, &self.video_file.filepath)
@@ -137,45 +130,6 @@ impl<'a> Parcel<'a> {
                 .map(|s| s.to_string())
         };
         Ok(video)
-    }
-}
-
-pub struct ProgressBody<F>
-where
-    F: FnMut(usize) -> bool,
-{
-    content: Bytes,
-    progress: F,
-}
-
-impl<F> ProgressBody<F>
-where
-    F: FnMut(usize) -> bool,
-{
-    fn new(content: Bytes, progress: F) -> Self {
-        ProgressBody { content, progress }
-    }
-}
-
-impl<F> From<ProgressBody<F>> for Body
-where
-    F: FnMut(usize) -> bool,
-{
-    fn from(content: ProgressBody<F>) -> Self {
-        let mut content_bytes = content.content.clone();
-        let async_stream = stream! {
-            loop {
-                let n = content_bytes.remaining();
-                if n == 0 {
-                    return;
-                } else if n < 4194304 {
-                    yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(n))
-                } else {
-                    yield Ok::<_, anyhow::Error>(content_bytes.copy_to_bytes(4194304))
-                }
-            }
-        };
-        Body::wrap_stream(async_stream)
     }
 }
 

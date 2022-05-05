@@ -1,5 +1,5 @@
 use rand::distributions::uniform::{UniformFloat, UniformSampler};
-use std::cmp;
+
 use std::future::Future;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -11,7 +11,7 @@ where
 {
     let mut retries = 3;
     let mut wait = 1;
-    let mut jittered_wait_for = 1.;
+    let mut jittered_wait_for;
     loop {
         match f().await {
             Err(e) if retries > 0 => {
