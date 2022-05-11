@@ -3,6 +3,9 @@ use crate::error::CustomError;
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::fmt::{Display, Formatter};
+use std::num::ParseIntError;
+use std::str::FromStr;
 use std::time::Duration;
 use typed_builder::TypedBuilder;
 
@@ -42,6 +45,7 @@ pub struct Studio {
     #[clap(long, default_value_t)]
     pub dynamic: String,
     #[clap(skip)]
+    #[serde(default)]
     #[builder(default, setter(skip))]
     pub subtitle: Subtitle,
     /// 视频标签，逗号分隔多个tag
@@ -56,6 +60,7 @@ pub struct Studio {
     #[clap(long)]
     pub dtime: Option<i32>,
     #[clap(skip)]
+    #[serde(default)]
     pub open_subtitle: bool,
 
     #[clap(long, default_value = "0")]
@@ -99,11 +104,6 @@ pub struct Studio {
 
 impl Studio {
     pub async fn submit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
-        if self.tag.is_empty() {
-            self.tag = "biliup".into();
-        } else {
-            self.tag += ",biliup";
-        };
         let ret: serde_json::Value = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
@@ -124,65 +124,6 @@ impl Studio {
         } else {
             bail!("{}", ret)
         }
-    }
-
-    /// 查询视频的 json 信息
-    pub async fn video_data(&mut self, login_info: &LoginInfo) -> Result<()> {
-        let aid: u64 = match self.aid {
-            Some(value) if value > 0 => value,
-            _ => {
-                bail!("请检查要追加的 avid")
-            }
-        };
-        let res: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .get(format!(
-                "http://member.bilibili.com/x/client/archive/view?access_key={}&aid={}",
-                login_info.token_info.access_token, aid
-            ))
-            .send()
-            .await?
-            .json()
-            .await?;
-        let json: serde_json::Value = match res {
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } if value.is_null() => bail!("video query failed..."),
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } => value,
-            _ => {
-                unreachable!()
-            }
-        };
-        self.copyright = json["archive"]["copyright"].as_i64().unwrap() as i8;
-        self.tid = json["archive"]["tid"].as_i64().unwrap() as i16;
-        self.cover = json["archive"]["cover"].as_str().unwrap().to_string();
-        self.title = json["archive"]["title"].as_str().unwrap().to_string();
-        self.desc_format_id = json["archive"]["desc_format_id"].as_i64().unwrap() as i8;
-        self.desc = json["archive"]["desc"].as_str().unwrap().to_string();
-        self.dynamic = json["archive"]["dynamic"].as_str().unwrap().to_string();
-        self.tag = json["archive"]["tag"].as_str().unwrap().to_string();
-        self.interactive = json["archive"]["interactive"].as_i64().unwrap() as u8;
-        self.mission_id = Option::from(json["archive"]["mission_id"].as_u64().unwrap() as usize);
-        self.no_reprint = Option::from(json["archive"]["no_reprint"].as_i64().unwrap() as u8);
-        self.videos = json["videos"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| Video {
-                desc: v["desc"].as_str().ok_or("").unwrap().to_string(),
-                filename: v["filename"].as_str().ok_or("").unwrap().to_string(),
-                title: v["title"].as_str().map(|t| t.to_string()),
-            })
-            .collect();
-        Ok(())
     }
 
     pub async fn edit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
@@ -232,6 +173,42 @@ impl Video {
     }
 }
 
+#[derive(PartialEq, Debug)]
+pub enum Vid {
+    Aid(u64),
+    Bvid(String),
+}
+
+impl FromStr for Vid {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let s = s.trim();
+        match &s[..2] {
+            "BV" => Ok(Vid::Bvid(s.to_string())),
+            "av" => Ok(Vid::Aid(s[2..].parse()?)),
+            _ => Ok(Vid::Aid(s.parse()?)),
+        }
+    }
+}
+
+impl Display for Vid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Vid::Aid(aid) => write!(f, "aid={}", aid),
+            Vid::Bvid(bvid) => write!(f, "bvid={}", bvid),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Response {
+    pub code: i32,
+    pub data: Option<Value>,
+    message: String,
+    ttl: u8,
+}
+
 pub struct BiliBili<'a, 'b> {
     client: &'a reqwest::Client,
     login_info: &'b LoginInfo,
@@ -242,6 +219,34 @@ impl BiliBili<'_, '_> {
         BiliBili {
             client: &login.client,
             login_info,
+        }
+    }
+
+    /// 查询视频的 json 信息
+    pub async fn video_data(&self, vid: Vid) -> Result<Value> {
+        let res: Response = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .timeout(Duration::new(60, 0))
+            .build()?
+            .get(format!(
+                "http://member.bilibili.com/x/client/archive/view?access_key={}&{vid}",
+                self.login_info.token_info.access_token
+            ))
+            .send()
+            .await?
+            .json()
+            .await?;
+        match res {
+            res @ Response {
+                code: _,
+                data: None,
+                ..
+            } => bail!("{:?}", res),
+            Response {
+                code: _,
+                data: Some(v),
+                ..
+            } => Ok(v),
         }
     }
 

@@ -15,7 +15,7 @@ B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，
 
 ## USEAGE
 
-投稿支持两种模式：
+投稿支持**直接投稿**和对现有稿件**追加投稿**：
 * 快速投稿，输入 `biliup upload test1.mp4 test2.mp4` 即可快速多p投稿；
 * 通过配置文件投稿，配置文件详见 [config.yaml](examples/config.yaml) ，支持按照 Unix shell style patterns 来批量匹配视频文件，如 `/media/**/*.mp4` 匹配 media 及其子目录中的所有 mp4 文件且可以自由调整视频标题、简介、标签等：
 
@@ -38,11 +38,12 @@ OPTIONS:
         --dynamic <DYNAMIC>            空间动态 [default: ]
     -h, --help                         Print help information
         --interactive <INTERACTIVE>    [default: 0]
-    -l, --line <LINE>                  选择上传线路，支持kodo, bda2, qn, ws
+    -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, kodo, cos, cos-
+                                       internal]
         --limit <LIMIT>                单视频文件最大并发数 [default: 3]
         --mission-id <MISSION_ID>
         --no-reprint <NO_REPRINT>      0-允许转载，1-禁止转载
-        --open-elec <OPEN_ELEC>
+        --open-elec <OPEN_ELEC>        是否开启充电, 0-关闭 1-开启
         --source <SOURCE>              转载来源 [default: ]
         --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
         --tid <TID>                    投稿分区 [default: 171]
@@ -53,6 +54,25 @@ OPTIONS:
 ```
  
 * 查看完整用法命令行输入 `biliup -h`
+```shell
+biliup 0.1.5
+Upload video to bilibili.
+
+USAGE:
+    biliup.exe <SUBCOMMAND>
+
+OPTIONS:
+    -h, --help       Print help information
+    -V, --version    Print version information
+
+SUBCOMMANDS:
+    append    是否要对某稿件追加视频
+    help      Print this message or the help of the given subcommand(s)
+    login     登录B站并保存登录信息在执行目录下
+    show      打印视频详情
+    upload    上传视频
+
+```
 
 ### Windows 演示
 

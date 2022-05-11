@@ -2,10 +2,10 @@ use anyhow::{anyhow, Context, Result};
 
 use biliup::client::{Client, LoginInfo};
 use biliup::line::Probe;
-use biliup::video::{BiliBili, Studio, Video};
+use biliup::video::{BiliBili, Studio, Vid, Video};
 use biliup::{line, load_config, VideoFile};
 use bytes::{Buf, Bytes};
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{ArgEnum, CommandFactory, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
@@ -49,9 +49,9 @@ enum Commands {
         #[clap(short, long, parse(from_os_str), value_name = "FILE")]
         config: Option<PathBuf>,
 
-        /// 选择上传线路，支持kodo, bda2, qn, ws
-        #[clap(short, long)]
-        line: Option<String>,
+        /// 选择上传线路
+        #[clap(short, long, arg_enum)]
+        line: Option<UploadLine>,
 
         /// 单视频文件最大并发数
         #[clap(long, default_value = "3")]
@@ -60,20 +60,20 @@ enum Commands {
         #[clap(flatten)]
         studio: Studio,
     },
-    /// 追加视频
+    /// 是否要对某稿件追加视频
     Append {
         // Optional name to operate on
         // name: Option<String>,
-        /// 是否要对某稿件追加视频，avid为稿件 av 号
+        /// vid为稿件 av 或 bv 号
         #[clap(short, long)]
-        avid: u64,
+        vid: Vid,
         /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
         #[clap(parse(from_os_str))]
         video_path: Vec<PathBuf>,
 
-        /// 选择上传线路，支持kodo, bda2, qn, ws
-        #[clap(short, long)]
-        line: Option<String>,
+        /// 选择上传线路
+        #[clap(short, long, arg_enum)]
+        line: Option<UploadLine>,
 
         /// 单视频文件最大并发数
         #[clap(long, default_value = "3")]
@@ -82,6 +82,22 @@ enum Commands {
         #[clap(flatten)]
         studio: Studio,
     },
+    /// 打印视频详情
+    Show {
+        /// vid为稿件 av 或 bv 号
+        // #[clap()]
+        vid: Vid,
+    },
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+pub enum UploadLine {
+    Bda2,
+    Ws,
+    Qn,
+    Kodo,
+    Cos,
+    CosInternal,
 }
 
 pub async fn parse() -> Result<()> {
@@ -131,7 +147,7 @@ pub async fn parse() -> Result<()> {
                     .unwrap();
             }
             cover_up(&mut studio, &login_info, &client).await?;
-            studio.videos = upload(&video_path, &client, line.as_deref(), limit).await?;
+            studio.videos = upload(&video_path, &client, line, limit).await?;
             studio.submit(&login_info).await?;
         }
         Commands::Upload {
@@ -154,14 +170,23 @@ pub async fn parse() -> Result<()> {
                     continue;
                 }
                 cover_up(&mut studio, &login_info, &client).await?;
-                studio.videos =
-                    upload(&paths, &client, config.line.as_deref(), config.limit).await?;
+
+                studio.videos = upload(
+                    &paths,
+                    &client,
+                    config
+                        .line
+                        .as_ref()
+                        .and_then(|l| UploadLine::from_str(l, true).ok()),
+                    config.limit,
+                )
+                .await?;
                 studio.submit(&login_info).await?;
             }
         }
         Commands::Append {
             video_path,
-            avid,
+            vid,
             line,
             limit,
             mut studio,
@@ -170,19 +195,30 @@ pub async fn parse() -> Result<()> {
             let login_info = client
                 .login_by_cookies(std::fs::File::open("cookies.json")?)
                 .await?;
-            if studio.title.is_empty() {
-                studio.title = video_path[0]
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string())
-                    .unwrap();
-            }
-            studio.aid = Option::from(avid);
-            let mut uploaded_videos = upload(&video_path, &client, line.as_deref(), limit).await?;
-            // 更改为 通过 studio 发送请求
-            studio.video_data(&login_info).await?;
+            // studio.aid = Option::from(avid);
+            let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
+            let mut video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
+            let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
+            studio.videos = video_info["videos"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| Video {
+                    desc: v["desc"].as_str().unwrap().to_string(),
+                    filename: v["filename"].as_str().unwrap().to_string(),
+                    title: v["title"].as_str().map(|t| t.to_string()),
+                })
+                .collect();
+            // studio.video_data(&login_info).await?;
             studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
+        }
+        Commands::Show { vid } => {
+            let login_info = client
+                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .await?;
+            let video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
+            println!("{}", serde_json::to_string_pretty(&video_info)?)
         }
         _ => {
             println!("参数不正确请参阅帮助");
@@ -231,18 +267,24 @@ async fn cover_up(studio: &mut Studio, login_info: &LoginInfo, client: &Client) 
 pub async fn upload(
     video_path: &[PathBuf],
     client: &Client,
-    line: Option<&str>,
+    line: Option<UploadLine>,
     limit: usize,
 ) -> Result<Vec<Video>> {
     let mut videos = Vec::new();
     let line = match line {
-        Some("kodo") => line::kodo(),
-        Some("bda2") => line::bda2(),
-        Some("ws") => line::ws(),
-        Some("qn") => line::qn(),
-        Some("cos") => line::cos(),
-        Some("cos-internal") => line::cos_internal(),
-        Some(name) => panic!("不正确的线路{name}"),
+        // Some("kodo") => line::kodo(),
+        // Some("bda2") => line::bda2(),
+        // Some("ws") => line::ws(),
+        // Some("qn") => line::qn(),
+        // Some("cos") => line::cos(),
+        // Some("cos-internal") => line::cos_internal(),
+        // Some(name) => panic!("不正确的线路{name}"),
+        Some(UploadLine::Kodo) => line::kodo(),
+        Some(UploadLine::Bda2) => line::bda2(),
+        Some(UploadLine::Ws) => line::ws(),
+        Some(UploadLine::Qn) => line::qn(),
+        Some(UploadLine::Cos) => line::cos(),
+        Some(UploadLine::CosInternal) => line::cos_internal(),
         None => Probe::probe().await.unwrap_or_default(),
     };
     // let line = line::kodo();

@@ -141,28 +141,21 @@ impl VideoFile {
 
 #[cfg(test)]
 mod tests {
-
+    use crate::video::Vid;
     use anyhow::Result;
     use bytes::Buf;
+    use std::num::IntErrorKind::InvalidDigit;
+    use std::num::{IntErrorKind, ParseIntError};
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn it_works() -> Result<()> {
-        let mut bytes = (&b"hello world"[..]).copy_to_bytes(11);
-        let _bytesc = bytes.clone();
-        println!("{:?}", bytes);
-        // let mut bytes = Bytes::;
-
-        let bytes1 = bytes.copy_to_bytes(6);
-        // bytes =
-        // bytes1.remaining()
-        // let bytes1 = bytes.copy_to_bytes(5);
-        println!("{:?}", bytes1);
-        // let bytes2 = bytes.take(6).copy_to_bytes(6);
-        // bytes.advance(1);
-        let bytes2 = bytes.copy_to_bytes(5);
-        println!("{:?}", bytes2);
-        // assert_eq!(&bytes[..], &b"hello"[..]);
-        // assert_eq!(&bytes[..], &b"hello"[..]);
+        assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("971158452"));
+        assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("av971158452"));
+        assert_eq!(
+            Ok(Vid::Bvid("BV1ip4y1x7Gi".into())),
+            Vid::from_str("BV1ip4y1x7Gi")
+        );
         Ok(())
     }
 

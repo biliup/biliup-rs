@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use base64::encode;
 use cookie::Cookie;
 // use futures_util::AsyncWriteExt;
@@ -7,6 +7,7 @@ use rand::rngs::OsRng;
 use reqwest::header;
 use reqwest_cookie_store::CookieStoreMutex;
 use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
+use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -324,7 +325,11 @@ pub struct ResponseData {
 
 impl Display for ResponseData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(self).unwrap())
+        write!(
+            f,
+            "{}",
+            serde_json::to_string(self).map_err(|e| std::fmt::Error::custom(e))?
+        )
     }
 }
 

@@ -14,7 +14,7 @@ streamers:
     subtitle:
       open: 0
       lan: ""
-    tag: ""
+    tag: "biliup"
     dtime: ~
     open_subtitle: false
   视频patterns2*:
@@ -30,6 +30,6 @@ streamers:
     subtitle:
       open: 0
       lan: ""
-    tag: ""
+    tag: "biliup"
     dtime: ~
     open_subtitle: false
