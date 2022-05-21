@@ -37,7 +37,7 @@ pub struct Studio {
     #[builder(!default, setter(into))]
     pub title: String,
     #[clap(skip)]
-    pub desc_format_id: i8,
+    pub desc_format_id: u32,
     /// 视频简介
     #[clap(long, default_value_t)]
     pub desc: String,
@@ -68,7 +68,7 @@ pub struct Studio {
     pub interactive: u8,
 
     #[clap(long)]
-    pub mission_id: Option<usize>,
+    pub mission_id: Option<u32>,
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
