@@ -1,6 +1,7 @@
 use crate::client::{Client, LoginInfo, ResponseData, ResponseValue};
 use crate::error::CustomError;
 use anyhow::{anyhow, bail, Result};
+use reqwest::header::HeaderValue;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -271,7 +272,7 @@ impl BiliBili<'_, '_> {
             .filter_map(|c| c.as_object())
             .find(|c| c["name"] == "bili_jct")
             .ok_or(CustomError::Custom("cover_up jct error".into()))?;
-        let response: ResponseData = self
+        let response = self
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
@@ -279,26 +280,25 @@ impl BiliBili<'_, '_> {
                 "csrf": csrf["value"]
             }))
             .send()
-            .await?
-            .json()
             .await?;
-        match &response {
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } if value.is_null() => bail!("{response}"),
-            ResponseData {
-                code: _,
-                data: ResponseValue::Value(value),
-                ..
-            } => Ok(value["url"]
+        let res: Response = if !response.status().is_success() {
+            bail!("{}", response.text().await?)
+        } else {
+            response.json().await?
+        };
+
+        if let Response {
+            code,
+            data: Some(value),
+            ..
+        } = res
+        {
+            Ok(value["url"]
                 .as_str()
                 .ok_or(anyhow!("cover_up error"))?
-                .into()),
-            _ => {
-                unreachable!()
-            }
+                .into())
+        } else {
+            bail!("{:?}", res)
         }
     }
 }

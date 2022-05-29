@@ -77,7 +77,7 @@ checksum = "e6b4d9b1225d28d360ec6a231d65af1fd99a2a095154c8040689617290569c5c"
 
 [[package]]
 name = "biliup"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "base64",
@@ -88,7 +88,6 @@ dependencies = [
  "dialoguer",
  "futures",
  "glob",
- "hex-literal",
  "image",
  "indicatif",
  "md-5",
@@ -104,7 +103,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_yaml",
  "thiserror",
- "time 0.3.9",
  "tokio",
  "typed-builder",
  "url",
@@ -258,7 +256,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5f1c7727e460397e56abc4bddc1d49e07a1ad78fc98eb2e1c8f032a58a2f80d"
 dependencies = [
  "percent-encoding",
- "time 0.2.27",
+ "time",
  "version_check",
 ]
 
@@ -274,7 +272,7 @@ dependencies = [
  "publicsuffix",
  "serde",
  "serde_json",
- "time 0.2.27",
+ "time",
  "url",
 ]
 
@@ -632,12 +630,6 @@ checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
 ]
-
-[[package]]
-name = "hex-literal"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
 name = "http"
@@ -1023,15 +1015,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19e64526ebdee182341572e50e9ad03965aa510cd94427a4549448f285e957a1"
 dependencies = [
  "hermit-abi",
- "libc",
-]
-
-[[package]]
-name = "num_threads"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
-dependencies = [
  "libc",
 ]
 
@@ -1913,16 +1896,6 @@ dependencies = [
  "time-macros",
  "version_check",
  "winapi",
-]
-
-[[package]]
-name = "time"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2702e08a7a860f005826c6815dcac101b19b5eb330c27fe4a5928fec1d20ddd"
-dependencies = [
- "libc",
- "num_threads",
 ]
 
 [[package]]

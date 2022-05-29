@@ -1,6 +1,6 @@
 [package]
 name = "biliup"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "Upload video to bilibili."
 license = "MIT OR Apache-2.0"
@@ -21,23 +21,17 @@ serde = { version = "1.0", features = ["derive"] }
 reqwest_cookie_store = "0.2.0"
 cookie_store = "0.15.0"
 tokio = { version = "1", features = ["full"] }
-# serde_json is just for the example, not required in general
-#serde_json = { version = "1.0", features = ["preserve_order"] }
 serde_json = "1.0"
 anyhow = "1.0"
 rsa = "0.5.0"
 base64 = "0.13.0"
 md-5 = "0.9.1"
-hex-literal = "0.3.3"
 rand = "0.8.4"
 url = "2.2.2"
 thiserror = "1.0"
 cookie = "0.15.1"
-time = "0.3.4"
 bytes = "1.1.0"
 futures = "0.3.17"
-#tokio-util = { version = "0.6.9", features = ["io", "codec", "compat"] }
-#async-std = "1.10.0"
 typed-builder = "0.9.1"
 reqwest-middleware = "0.1.1"
 reqwest-retry = "0.1.1"
