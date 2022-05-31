@@ -11,6 +11,7 @@ use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
+use std::io::Read;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use url::Url;
@@ -60,11 +61,22 @@ impl Client {
     }
 
     pub async fn login_by_cookies(&self, file: std::fs::File) -> Result<LoginInfo> {
+        self.login_by_cookies_file(file).await
+    }
+
+    pub async fn login_by_cookies_file(&self, file: std::fs::File) -> Result<LoginInfo> {
         // Load an existing set of cookies, serialized as json
         // let mut file = std::fs::File::open("cookies.json")
         //     .map(std::io::BufReader::new)
         //     .unwrap();
-        let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(file))?;
+        let mut reader = std::io::BufReader::new(file);
+        let mut cookies = String::new();
+        reader.read_to_string(&mut cookies)?;
+        self.login_by_cookies_string(cookies).await
+    }
+
+    pub async fn login_by_cookies_string(&self, cookies: String) -> Result<LoginInfo> {
+        let login_info: LoginInfo = serde_json::from_str(cookies.as_str())?;
         self.set_cookie(&login_info.cookie_info);
         let response: ResponseData = self
             .client
