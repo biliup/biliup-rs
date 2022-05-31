@@ -78,18 +78,80 @@ impl Client {
     pub async fn login_by_cookies_string(&self, cookies: String) -> Result<LoginInfo> {
         let login_info: LoginInfo = serde_json::from_str(cookies.as_str())?;
         self.set_cookie(&login_info.cookie_info);
+        println!("通过cookie登录");
+        let response = self.validate_tokens(&login_info).await?;
+        if response.code != 0 {
+            bail!("{}", response)
+        }
+        let oauth_info: OAuthInfo = response.data.try_into()?;
+
+        if oauth_info.refresh {
+            // FIXME: renew_tokens has a problem, see L125
+            // self.renew_tokens(&login_info).await
+            Ok(login_info)
+        } else {
+            Ok(login_info)
+        }
+    }
+
+    async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData> {
+        let payload = {
+            let mut payload = json!({
+                "access_key": login_info.token_info.access_token,
+                "actionKey": "appkey",
+                "appkey": APP_KEY,
+                "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = Client::sign(&urlencoded, APPSEC);
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+
         let response: ResponseData = self
             .client
-            .get("https://api.bilibili.com/x/web-interface/nav")
+            .get("https://passport.bilibili.com/x/passport-login/oauth2/info")
+            .query(&payload)
             .send()
             .await?
             .json()
             .await?;
-        println!("通过cookie登录");
-        if response.code == 0 {
-            Ok(login_info)
-        } else {
-            bail!("{}", response)
+        println!("验证cookie");
+        Ok(response)
+    }
+
+    async fn renew_tokens(&self, login_info: &LoginInfo) -> Result<LoginInfo> {
+        // FIXME: appkey should be the same as the original source
+        let payload = {
+            let mut payload = json!({
+                "access_key": login_info.token_info.access_token,
+                "actionKey": "appkey",
+                "appkey": APP_KEY,
+                "refresh_token": login_info.token_info.refresh_token,
+                "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = Client::sign(&urlencoded, APPSEC);
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+        let response: ResponseData = self
+            .client
+            .post("https://passport.bilibili.com/x/passport-login/oauth2/refresh_token")
+            .form(&payload)
+            .send()
+            .await?
+            .json()
+            .await?;
+        println!("更新cookie");
+        match response.data {
+            ResponseValue::Login(info) if !info.cookie_info.is_null() => {
+                self.set_cookie(&info.cookie_info);
+                Ok(info)
+            }
+            _ => Err(anyhow!("{}", response)),
         }
     }
 
@@ -164,7 +226,7 @@ impl Client {
             .await?;
         match res.data {
             ResponseValue::Login(info) => Ok(info),
-            ResponseValue::Value(_) => bail!("{}", res),
+            _ => bail!("{}", res),
         }
     }
 
@@ -349,6 +411,7 @@ impl Display for ResponseData {
 #[serde(untagged)]
 pub enum ResponseValue {
     Login(LoginInfo),
+    OAuth(OAuthInfo),
     Value(serde_json::Value),
 }
 
@@ -366,7 +429,7 @@ impl From<ResponseValue> for LoginInfo {
     fn from(res: ResponseValue) -> Self {
         match res {
             ResponseValue::Login(v) => v,
-            ResponseValue::Value(_) => panic!("错误调用"),
+            _ => panic!("错误调用"),
         }
     }
 }
@@ -376,4 +439,21 @@ pub struct TokenInfo {
     expires_in: u32,
     mid: u32,
     refresh_token: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct OAuthInfo {
+    pub mid: u32,
+    pub access_token: String,
+    pub expires_in: u32,
+    pub refresh: bool,
+}
+
+impl From<ResponseValue> for OAuthInfo {
+    fn from(res: ResponseValue) -> Self {
+        match res {
+            ResponseValue::OAuth(v) => v,
+            _ => panic!("错误调用"),
+        }
+    }
 }
