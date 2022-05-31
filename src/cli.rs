@@ -31,13 +31,17 @@ struct Cli {
 
     #[clap(subcommand)]
     command: Commands,
+
+    /// 登录信息文件
+    #[clap(short, long, default_value = "cookies.json")]
+    cookie_file: PathBuf,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// 登录B站并保存登录信息在执行目录下
+    /// 登录B站并保存登录信息
     Login,
-    /// 验证并刷新在执行目录下的登录信息
+    /// 手动验证并刷新登录信息
     Renew,
     /// 上传视频
     Upload {
@@ -128,10 +132,10 @@ pub async fn parse() -> Result<()> {
     let client: Client = Default::default();
     match cli.command {
         Commands::Login => {
-            login(client).await?;
+            login(client, cli.cookie_file).await?;
         }
         Commands::Renew => {
-            renew(client).await?;
+            renew(client, cli.cookie_file).await?;
         }
         Commands::Upload {
             video_path,
@@ -142,7 +146,7 @@ pub async fn parse() -> Result<()> {
         } if !video_path.is_empty() => {
             println!("number of concurrent futures: {limit}");
             let login_info = client
-                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .login_by_cookies(fopen_rw(cli.cookie_file)?)
                 .await?;
             if studio.title.is_empty() {
                 studio.title = video_path[0]
@@ -161,7 +165,7 @@ pub async fn parse() -> Result<()> {
             ..
         } => {
             let login_info = client
-                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .login_by_cookies(fopen_rw(cli.cookie_file)?)
                 .await?;
             let config = load_config(&config)?;
             println!("number of concurrent futures: {}", config.limit);
@@ -198,7 +202,7 @@ pub async fn parse() -> Result<()> {
         } if !video_path.is_empty() => {
             println!("number of concurrent futures: {limit}");
             let login_info = client
-                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .login_by_cookies(fopen_rw(cli.cookie_file)?)
                 .await?;
             // studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
@@ -220,7 +224,7 @@ pub async fn parse() -> Result<()> {
         }
         Commands::Show { vid } => {
             let login_info = client
-                .login_by_cookies(std::fs::File::open("cookies.json")?)
+                .login_by_cookies(fopen_rw(cli.cookie_file)?)
                 .await?;
             let video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
             println!("{}", serde_json::to_string_pretty(&video_info)?)
@@ -233,7 +237,7 @@ pub async fn parse() -> Result<()> {
     Ok(())
 }
 
-async fn login(client: Client) -> Result<()> {
+async fn login(client: Client, cookie_file: PathBuf) -> Result<()> {
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("选择一种登录方式")
         .default(1)
@@ -249,17 +253,15 @@ async fn login(client: Client) -> Result<()> {
         3 => login_by_browser(client).await?,
         _ => panic!(),
     };
-    let file = std::fs::File::create("cookies.json")?;
+    let file = std::fs::File::create(cookie_file)?;
     serde_json::to_writer_pretty(&file, &info)?;
     println!("登录成功，数据保存在{:?}", file);
     Ok(())
 }
 
-async fn renew(client: Client) -> Result<()> {
-    let file = std::fs::File::open("cookies.json")?;
-    let info = client.login_by_cookies_file(file).await?;
-    let file = std::fs::File::create("cookies.json")?;
-    serde_json::to_writer_pretty(&file, &info)?;
+async fn renew(client: Client, cookie_file: PathBuf) -> Result<()> {
+    let file = fopen_rw(cookie_file)?;
+    client.login_by_cookies(file).await?;
     Ok(())
 }
 
@@ -441,4 +443,9 @@ impl From<Progressbar> for Body {
     fn from(async_stream: Progressbar) -> Self {
         Body::wrap_stream(async_stream)
     }
+}
+
+#[inline]
+fn fopen_rw<P: AsRef<Path>>(path: P) -> std::io::Result<std::fs::File> {
+    std::fs::File::options().read(true).write(true).open(path)
 }
