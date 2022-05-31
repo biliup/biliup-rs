@@ -37,6 +37,8 @@ struct Cli {
 enum Commands {
     /// 登录B站并保存登录信息在执行目录下
     Login,
+    /// 验证并刷新在执行目录下的登录信息
+    Renew,
     /// 上传视频
     Upload {
         // Optional name to operate on
@@ -127,6 +129,9 @@ pub async fn parse() -> Result<()> {
     match cli.command {
         Commands::Login => {
             login(client).await?;
+        }
+        Commands::Renew => {
+            renew(client).await?;
         }
         Commands::Upload {
             video_path,
@@ -247,6 +252,14 @@ async fn login(client: Client) -> Result<()> {
     let file = std::fs::File::create("cookies.json")?;
     serde_json::to_writer_pretty(&file, &info)?;
     println!("登录成功，数据保存在{:?}", file);
+    Ok(())
+}
+
+async fn renew(client: Client) -> Result<()> {
+    let file = std::fs::File::open("cookies.json")?;
+    let info = client.login_by_cookies_file(file).await?;
+    let file = std::fs::File::create("cookies.json")?;
+    serde_json::to_writer_pretty(&file, &info)?;
     Ok(())
 }
 
