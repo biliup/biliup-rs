@@ -18,8 +18,8 @@ use url::Url;
 
 // const APP_KEY: &str = "ae57252b0c09105d";
 // const APPSEC: &str = "c75875c596a69eb55bd119e74b07cfe3";
-const APP_KEY: &str = "783bbb7264451d82";
-const APPSEC: &str = "2653583c8873dea268ab9386918b1d65";
+// const APP_KEY: &str = "783bbb7264451d82";
+// const APPSEC: &str = "2653583c8873dea268ab9386918b1d65";
 // const APP_KEY: &str = "4409e2ce8ffd12b8";
 // const APPSEC: &str = "59b43e04ad6965f34319062b478f83dd";
 // const APP_KEY: &str = "37207f2beaebf8d7";
@@ -28,6 +28,26 @@ const APPSEC: &str = "2653583c8873dea268ab9386918b1d65";
 // const APPSEC: &str = "60698ba2f68e01ce44738920a0ffe768";
 // const APP_KEY: &str = "bb3101000e232e27";
 // const APPSEC: &str = "36efcfed79309338ced0380abd824ac1";
+pub(crate) enum AppKeyStore {
+    BiliTV,
+    Android,
+}
+
+impl AppKeyStore {
+    fn app_key(&self) -> &'static str {
+        match self {
+            AppKeyStore::BiliTV => "4409e2ce8ffd12b8",
+            AppKeyStore::Android => "783bbb7264451d82",
+        }
+    }
+
+    fn appsec(&self) -> &'static str {
+        match self {
+            AppKeyStore::BiliTV => "59b43e04ad6965f34319062b478f83dd",
+            AppKeyStore::Android => "2653583c8873dea268ab9386918b1d65",
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Client {
@@ -78,18 +98,87 @@ impl Client {
     pub async fn login_by_cookies_string(&self, cookies: String) -> Result<LoginInfo> {
         let login_info: LoginInfo = serde_json::from_str(cookies.as_str())?;
         self.set_cookie(&login_info.cookie_info);
+        println!("通过cookie登录");
+        let response = self.validate_tokens(&login_info).await?;
+        if response.code != 0 {
+            bail!("{}", response)
+        }
+        let oauth_info: OAuthInfo = response.data.try_into()?;
+
+        if oauth_info.refresh {
+            self.renew_tokens(login_info).await
+        } else {
+            println!("无需更新cookie");
+            Ok(login_info)
+        }
+    }
+
+    async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData> {
+        let payload = {
+            let mut payload = json!({
+                "access_key": login_info.token_info.access_token,
+                "actionKey": "appkey",
+                "appkey": AppKeyStore::Android.app_key(),
+                "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = Client::sign(&urlencoded, AppKeyStore::Android.appsec());
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+
         let response: ResponseData = self
             .client
-            .get("https://api.bilibili.com/x/web-interface/nav")
+            .get("https://passport.bilibili.com/x/passport-login/oauth2/info")
+            .query(&payload)
             .send()
             .await?
             .json()
             .await?;
-        println!("通过cookie登录");
-        if response.code == 0 {
-            Ok(login_info)
-        } else {
-            bail!("{}", response)
+        println!("验证cookie");
+        Ok(response)
+    }
+
+    async fn renew_tokens(&self, login_info: LoginInfo) -> Result<LoginInfo> {
+        let keypair = match login_info.platform.as_deref() {
+            Some("BiliTV") => AppKeyStore::BiliTV,
+            Some("Android") => AppKeyStore::Android,
+            Some(_) => bail!("未知平台"),
+            None => return Ok(login_info),
+        };
+        let payload = {
+            let mut payload = json!({
+                "access_key": login_info.token_info.access_token,
+                "actionKey": "appkey",
+                "appkey": keypair.app_key(),
+                "refresh_token": login_info.token_info.refresh_token,
+                "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = Client::sign(&urlencoded, keypair.appsec());
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+        let response: ResponseData = self
+            .client
+            .post("https://passport.bilibili.com/x/passport-login/oauth2/refresh_token")
+            .form(&payload)
+            .send()
+            .await?
+            .json()
+            .await?;
+        println!("更新cookie");
+        match response.data {
+            ResponseValue::Login(info) if !info.cookie_info.is_null() => {
+                self.set_cookie(&info.cookie_info);
+                Ok(LoginInfo {
+                    platform: login_info.platform,
+                    ..info
+                })
+            }
+            _ => Err(anyhow!("{}", response)),
         }
     }
 
@@ -108,7 +197,7 @@ impl Client {
         let encrypt_password = encode(enc_data);
         let mut payload = json!({
             "actionKey": "appkey",
-            "appkey": APP_KEY,
+            "appkey": AppKeyStore::Android.app_key(),
             "build": 6270200,
             "captcha": "",
             "challenge": "",
@@ -125,7 +214,7 @@ impl Client {
             "validate": "",
         });
         let urlencoded = serde_urlencoded::to_string(&payload)?;
-        let sign = Client::sign(&urlencoded, APPSEC);
+        let sign = Client::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
         let response: ResponseData = self
             .client
@@ -139,7 +228,10 @@ impl Client {
         match response.data {
             ResponseValue::Login(info) if !info.cookie_info.is_null() => {
                 self.set_cookie(&info.cookie_info);
-                Ok(info)
+                Ok(LoginInfo {
+                    platform: Some("Android".to_string()),
+                    ..info
+                })
             }
             _ => Err(anyhow!("{}", response)),
         }
@@ -152,7 +244,7 @@ impl Client {
     ) -> Result<LoginInfo> {
         payload["code"] = Value::from(code);
         let urlencoded = serde_urlencoded::to_string(&payload)?;
-        let sign = Client::sign(&urlencoded, APPSEC);
+        let sign = Client::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
         let res: ResponseData = self
             .client
@@ -163,8 +255,11 @@ impl Client {
             .json()
             .await?;
         match res.data {
-            ResponseValue::Login(info) => Ok(info),
-            ResponseValue::Value(_) => bail!("{}", res),
+            ResponseValue::Login(info) => Ok(LoginInfo {
+                platform: Some("Android".to_string()),
+                ..info
+            }),
+            _ => bail!("{}", res),
         }
     }
 
@@ -175,7 +270,7 @@ impl Client {
     ) -> Result<serde_json::Value> {
         let mut payload = json!({
             "actionKey": "appkey",
-            "appkey": APP_KEY,
+            "appkey": AppKeyStore::Android.app_key(),
             "build": 6510400,
             "channel": "bili",
             "cid": country_code,
@@ -188,7 +283,7 @@ impl Client {
         });
 
         let urlencoded = serde_urlencoded::to_string(&payload)?;
-        let sign = Client::sign(&urlencoded, APPSEC);
+        let sign = Client::sign(&urlencoded, AppKeyStore::Android.appsec());
         let urlencoded = format!("{}&sign={}", urlencoded, sign);
         // let mut form = payload.clone();
         // form["sign"] = Value::from(sign);
@@ -221,13 +316,13 @@ impl Client {
 
     pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo> {
         let mut form = json!({
-            "appkey": "4409e2ce8ffd12b8",
+            "appkey": AppKeyStore::BiliTV.app_key(),
             "local_id": "0",
             "auth_code": value["data"]["auth_code"],
             "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
         });
         let urlencoded = serde_urlencoded::to_string(&form)?;
-        let sign = Client::sign(&urlencoded, "59b43e04ad6965f34319062b478f83dd");
+        let sign = Client::sign(&urlencoded, AppKeyStore::BiliTV.appsec());
         form["sign"] = Value::from(sign);
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
@@ -245,7 +340,10 @@ impl Client {
                     data: ResponseValue::Login(info),
                     ..
                 } => {
-                    return Ok(info);
+                    return Ok(LoginInfo {
+                        platform: Some("BiliTV".to_string()),
+                        ..info
+                    });
                 }
                 ResponseData { code: 86039, .. } => {
                     // 二维码尚未确认;
@@ -260,12 +358,12 @@ impl Client {
 
     pub async fn get_qrcode(&self) -> Result<Value> {
         let mut form = json!({
-            "appkey": "4409e2ce8ffd12b8",
+            "appkey": AppKeyStore::BiliTV.app_key(),
             "local_id": "0",
             "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
         });
         let urlencoded = serde_urlencoded::to_string(&form)?;
-        let sign = Client::sign(&urlencoded, "59b43e04ad6965f34319062b478f83dd");
+        let sign = Client::sign(&urlencoded, AppKeyStore::BiliTV.appsec());
         form["sign"] = Value::from(sign);
         Ok(self
             .client
@@ -279,8 +377,8 @@ impl Client {
 
     pub async fn get_key(&self) -> Result<(String, String)> {
         let payload = json!({
-            "appkey": APP_KEY,
-            "sign": Client::sign(&format!("appkey={}", APP_KEY), APPSEC),
+            "appkey": AppKeyStore::Android.app_key(),
+            "sign": Client::sign(&format!("appkey={}", AppKeyStore::Android.app_key()), AppKeyStore::Android.appsec()),
         });
         let response: Value = self
             .client
@@ -349,6 +447,7 @@ impl Display for ResponseData {
 #[serde(untagged)]
 pub enum ResponseValue {
     Login(LoginInfo),
+    OAuth(OAuthInfo),
     Value(serde_json::Value),
 }
 
@@ -360,13 +459,14 @@ pub struct LoginInfo {
     // status: u8,
     pub token_info: TokenInfo,
     // url: String,
+    pub platform: Option<String>,
 }
 
 impl From<ResponseValue> for LoginInfo {
     fn from(res: ResponseValue) -> Self {
         match res {
             ResponseValue::Login(v) => v,
-            ResponseValue::Value(_) => panic!("错误调用"),
+            _ => panic!("错误调用"),
         }
     }
 }
@@ -376,4 +476,21 @@ pub struct TokenInfo {
     expires_in: u32,
     mid: u32,
     refresh_token: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct OAuthInfo {
+    pub mid: u32,
+    pub access_token: String,
+    pub expires_in: u32,
+    pub refresh: bool,
+}
+
+impl From<ResponseValue> for OAuthInfo {
+    fn from(res: ResponseValue) -> Self {
+        match res {
+            ResponseValue::OAuth(v) => v,
+            _ => panic!("错误调用"),
+        }
+    }
 }
