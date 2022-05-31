@@ -11,6 +11,7 @@ use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
+use std::io::Seek;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use url::Url;
@@ -79,7 +80,7 @@ impl Client {
         }
     }
 
-    pub async fn login_by_cookies(&self, file: std::fs::File) -> Result<LoginInfo> {
+    pub async fn login_by_cookies(&self, mut file: std::fs::File) -> Result<LoginInfo> {
         let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
         self.set_cookie(&login_info.cookie_info);
         println!("通过cookie登录");
@@ -91,6 +92,7 @@ impl Client {
 
         if oauth_info.refresh {
             let new_info = self.renew_tokens(login_info).await?;
+            file.rewind()?;
             serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
             Ok(new_info)
         } else {
