@@ -13,7 +13,7 @@ B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，
 
 [下载地址](https://github.com/ForgQi/biliup-rs/releases)
 
-## USEAGE
+## USAGE
 
 投稿支持**直接投稿**和对现有稿件**追加投稿**：
 * 快速投稿，输入 `biliup upload test1.mp4 test2.mp4` 即可快速多p投稿；
@@ -55,23 +55,33 @@ OPTIONS:
  
 * 查看完整用法命令行输入 `biliup -h`
 ```shell
-biliup 0.1.5
+biliup 0.1.8
 Upload video to bilibili.
 
 USAGE:
-    biliup.exe <SUBCOMMAND>
+    biliup.exe [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+    -u, --user-cookie <COOKIE_FILE>    登录信息文件 [default: cookies.json]
+    -h, --help                         Print help information
+    -V, --version                      Print version information
 
 SUBCOMMANDS:
     append    是否要对某稿件追加视频
     help      Print this message or the help of the given subcommand(s)
-    login     登录B站并保存登录信息在执行目录下
+    login     登录B站并保存登录信息
+    renew     手动验证并刷新登录信息
     show      打印视频详情
     upload    上传视频
 
+```
+
+### 多账号支持
+请在子命令**之前**通过 `-u` 或者 `--user-cookie` 参数传入 cookie 文件的路径（默认为当前目录下的 "cookies.json"）。例如：
+```shell
+$ biliup -u user1.json login
+$ biliup --user-cookie user2.json upload ...
+$ biliup renew  # ./cookies.json
 ```
 
 ### Windows 演示
