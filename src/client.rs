@@ -93,6 +93,7 @@ impl Client {
         if oauth_info.refresh {
             let new_info = self.renew_tokens(login_info).await?;
             file.rewind()?;
+            file.set_len(0)?;
             serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
             Ok(new_info)
         } else {

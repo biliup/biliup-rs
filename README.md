@@ -77,9 +77,9 @@ SUBCOMMANDS:
 ```
 
 ### 多账号支持
-请在子命令**之前**通过 `-c` 或者 `--cookie-file` 参数传入 cookie 文件的路径（默认为当前目录下的 "cookies.json"）。例如：
+请在子命令**之前**通过 `-a` 或者 `--cookie-file` 参数传入 cookie 文件的路径（默认为当前目录下的 "cookies.json"）。例如：
 ```shell
-$ biliup -c user1.json login
+$ biliup -a user1.json login
 $ biliup --cookie-file user2.json upload ...
 $ biliup renew  # ./cookies.json
 ```

@@ -33,7 +33,7 @@ struct Cli {
     command: Commands,
 
     /// 登录信息文件
-    #[clap(short, long, default_value = "cookies.json")]
+    #[clap(short = 'a', long, default_value = "cookies.json")]
     cookie_file: PathBuf,
 }
 
