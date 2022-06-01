@@ -245,12 +245,14 @@ async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
         .item("短信登录")
         .item("扫码登录")
         .item("浏览器登录")
+        .item("网页Cookie登录")
         .interact()?;
     let info = match selection {
         0 => login_by_password(client).await?,
         1 => login_by_sms(client).await?,
         2 => login_by_qrcode(client).await?,
         3 => login_by_browser(client).await?,
+        4 => login_by_web_cookies(client).await?,
         _ => panic!(),
     };
     let file = std::fs::File::create(user_cookie)?;
@@ -391,6 +393,16 @@ pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
     );
     println!("请复制此链接至浏览器中完成登录");
     client.login_by_qrcode(value).await
+}
+
+pub async fn login_by_web_cookies(client: Client) -> Result<LoginInfo> {
+    let sess_data: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("请输入SESSDATA")
+        .interact_text()?;
+    let bili_jct: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("请输入bili_jct")
+        .interact_text()?;
+    client.login_by_web_cookies(&sess_data, &bili_jct).await
 }
 
 #[derive(Clone)]
