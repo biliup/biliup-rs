@@ -251,6 +251,16 @@ impl BiliBili<'_, '_> {
         }
     }
 
+    pub async fn studio_data(&self, vid: Vid) -> Result<Studio> {
+        let mut video_info = self.video_data(vid).await?;
+
+        let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
+        let videos: Vec<Video> = serde_json::from_value(video_info["videos"].take())?;
+
+        studio.videos = videos;
+        Ok(studio)
+    }
+
     pub async fn archive_pre(&self) -> Result<Value> {
         Ok(self
             .client

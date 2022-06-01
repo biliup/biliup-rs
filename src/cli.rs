@@ -206,18 +206,7 @@ pub async fn parse() -> Result<()> {
                 .await?;
             // studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
-            let mut video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
-            let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
-            studio.videos = video_info["videos"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|v| Video {
-                    desc: v["desc"].as_str().unwrap().to_string(),
-                    filename: v["filename"].as_str().unwrap().to_string(),
-                    title: v["title"].as_str().map(|t| t.to_string()),
-                })
-                .collect();
+            let mut studio = BiliBili::new(&login_info, &client).studio_data(vid).await?;
             // studio.video_data(&login_info).await?;
             studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
