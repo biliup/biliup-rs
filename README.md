@@ -62,7 +62,7 @@ USAGE:
     biliup.exe [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
-    -c, --cookie-file <COOKIE_FILE>    登录信息文件 [default: cookies.json]
+    -u, --user-cookie <COOKIE_FILE>    登录信息文件 [default: cookies.json]
     -h, --help                         Print help information
     -V, --version                      Print version information
 
@@ -77,10 +77,10 @@ SUBCOMMANDS:
 ```
 
 ### 多账号支持
-请在子命令**之前**通过 `-a` 或者 `--cookie-file` 参数传入 cookie 文件的路径（默认为当前目录下的 "cookies.json"）。例如：
+请在子命令**之前**通过 `-u` 或者 `--user-cookie` 参数传入 cookie 文件的路径（默认为当前目录下的 "cookies.json"）。例如：
 ```shell
-$ biliup -a user1.json login
-$ biliup --cookie-file user2.json upload ...
+$ biliup -u user1.json login
+$ biliup --user-cookie user2.json upload ...
 $ biliup renew  # ./cookies.json
 ```
 
