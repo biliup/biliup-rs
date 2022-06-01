@@ -1,7 +1,6 @@
-use crate::client::{Client, LoginInfo, ResponseData, ResponseValue};
+use crate::client::{Client, LoginInfo};
 use crate::error::CustomError;
 use anyhow::{anyhow, bail, Result};
-use reqwest::header::HeaderValue;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -298,7 +297,7 @@ impl BiliBili<'_, '_> {
         };
 
         if let Response {
-            code,
+            code: _,
             data: Some(value),
             ..
         } = res

@@ -198,16 +198,14 @@ pub async fn parse() -> Result<()> {
             vid,
             line,
             limit,
-            mut studio,
+            studio: _,
         } if !video_path.is_empty() => {
             println!("number of concurrent futures: {limit}");
             let login_info = client
                 .login_by_cookies(fopen_rw(cli.user_cookie)?)
                 .await?;
-            // studio.aid = Option::from(avid);
             let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
             let mut studio = BiliBili::new(&login_info, &client).studio_data(vid).await?;
-            // studio.video_data(&login_info).await?;
             studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
         }
