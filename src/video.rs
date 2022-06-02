@@ -1,7 +1,6 @@
-use crate::client::{Client, LoginInfo, ResponseData, ResponseValue};
+use crate::client::{Client, LoginInfo};
 use crate::error::CustomError;
 use anyhow::{anyhow, bail, Result};
-use reqwest::header::HeaderValue;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -251,6 +250,16 @@ impl BiliBili<'_, '_> {
         }
     }
 
+    pub async fn studio_data(&self, vid: Vid) -> Result<Studio> {
+        let mut video_info = self.video_data(vid).await?;
+
+        let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
+        let videos: Vec<Video> = serde_json::from_value(video_info["videos"].take())?;
+
+        studio.videos = videos;
+        Ok(studio)
+    }
+
     pub async fn archive_pre(&self) -> Result<Value> {
         Ok(self
             .client
@@ -288,7 +297,7 @@ impl BiliBili<'_, '_> {
         };
 
         if let Response {
-            code,
+            code: _,
             data: Some(value),
             ..
         } = res
