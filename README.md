@@ -3,7 +3,7 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/forgqi/biliup-rs/total)
 [![Telegram](https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram)](https://t.me/+IkpIABHqy6U0ZTQ5)
 
-B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，**扫码登录**，**浏览器登录**
+B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，**扫码登录**，**浏览器登录**，**网页Cookie登录**
 ，并将登录后返回的 cookie 和 token 保存在 `cookie.json` 中，可用于其他项目。
 
 **文档地址**：<https://biliup.github.io/biliup-rs>
