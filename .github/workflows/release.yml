@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false # don't fail other jobs if one fails
       matrix:
-        build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, x86_64-macos, x86_64-windows] #, x86_64-win-gnu, win32-msvc
+        build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, x86_64-macos, x86_64-windows, aarch64-macos] #, x86_64-win-gnu, win32-msvc
         include:
         - build: x86_64-linux
           os: ubuntu-20.04
@@ -48,10 +48,11 @@ jobs:
           rust: stable
           target: x86_64-pc-windows-msvc
           cross: false
-#        - build: aarch64-macos
-#          os: macos-latest
-#          rust: stable
-#          target: aarch64-apple-darwin
+        - build: aarch64-macos
+          os: macos-latest
+          rust: stable
+          target: aarch64-apple-darwin
+          cross: false
         # - build: x86_64-win-gnu
         #   os: windows-2019
         #   rust: stable-x86_64-gnu
@@ -76,6 +77,7 @@ jobs:
           override: true
 
       - name: Run cargo test
+        if: matrix.build != 'aarch64-macos'
         uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.cross }}
