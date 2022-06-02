@@ -383,6 +383,38 @@ impl Client {
         ))
     }
 
+    pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
+        println!("获取二维码");
+        let qrcode = self.get_qrcode().await?;
+        let auth_code = qrcode["data"]["auth_code"]
+            .as_str()
+            .ok_or(anyhow!("Cannot get auth_code"))?;
+        Self::web_confirm_qrcode(auth_code, sess_data, bili_jct).await?;
+        self.login_by_qrcode(qrcode).await
+    }
+
+    async fn web_confirm_qrcode(auth_code: &str, sess_data: &str, bili_jct: &str) -> Result<()> {
+        let form = json!({
+            "auth_code": auth_code,
+            "csrf": bili_jct,
+            "scanning_type": 3,
+        });
+        let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
+        println!("自动确认二维码");
+        let res: ResponseData = reqwest::Client::new()
+            .post("https://passport.snm0516.aisee.tv/x/passport-tv-login/h5/qrcode/confirm")
+            .header("Cookie", cookies)
+            .form(&form)
+            .send()
+            .await?
+            .json()
+            .await?;
+        if res.code != 0 {
+            bail!("{:#?}", res)
+        }
+        Ok(())
+    }
+
     pub fn sign(param: &str, app_sec: &str) -> String {
         let mut hasher = Md5::new();
         // process input message
