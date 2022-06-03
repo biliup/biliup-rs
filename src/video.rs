@@ -16,7 +16,7 @@ pub struct Studio {
     /// 是否转载, 1-自制 2-转载
     #[clap(long, default_value = "1")]
     #[builder(default = 1)]
-    pub copyright: i8,
+    pub copyright: u8,
 
     /// 转载来源
     #[clap(long, default_value_t)]
@@ -25,7 +25,7 @@ pub struct Studio {
     /// 投稿分区
     #[clap(long, default_value = "171")]
     #[builder(default = 171)]
-    pub tid: i16,
+    pub tid: u16,
 
     /// 视频封面
     #[clap(long, default_value_t)]
@@ -58,7 +58,7 @@ pub struct Studio {
 
     /// 延时发布时间，距离提交大于4小时，格式为10位时间戳
     #[clap(long)]
-    pub dtime: Option<i32>,
+    pub dtime: Option<u32>,
     #[clap(skip)]
     #[serde(default)]
     pub open_subtitle: bool,
