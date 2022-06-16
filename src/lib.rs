@@ -1,12 +1,9 @@
 use crate::video::{Studio, Video};
 use anyhow::{anyhow, Result};
-
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::Bytes;
 use futures::Stream;
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
 use std::io::Read;
 use std::path::Path;
 use std::pin::Pin;
@@ -68,7 +65,6 @@ pub fn load_config(config: &Path) -> Result<Config> {
 
 pub struct VideoStream {
     pub capacity: usize,
-    buf: BytesMut,
     buffer: Vec<u8>,
     pub file: std::fs::File,
 }
@@ -80,27 +76,26 @@ impl VideoStream {
         // self.buf = BytesMut::with_capacity(capacity);
         VideoStream {
             capacity,
-            buf: BytesMut::with_capacity(capacity),
             buffer: vec![0u8; capacity],
             file,
         }
     }
 
-    pub fn read(&mut self) -> Result<Option<(Bytes, usize)>> {
+    pub fn read(&mut self) -> Result<Option<Bytes>> {
         // println!("cap {}", self.buf.capacity());
         let n = self.file.read(&mut self.buffer)?;
         // println!("cur size: {n}");
         if n == 0 {
             return Ok(None);
         }
-        self.buf.put_slice(&self.buffer[..n]);
+        // self.buf.put_slice(&self.buffer[..n]);
         // println!("cap2 {}", self.buf.capacity());
-        Ok(Some((self.buf.split().freeze(), n)))
+        Ok(Some(Bytes::copy_from_slice(&self.buffer[..n])))
     }
 }
 
 impl Stream for VideoStream {
-    type Item = Result<(Bytes, usize)>;
+    type Item = Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.read()? {

@@ -311,8 +311,8 @@ pub async fn upload(
             .upload(client, limit, |vs| {
                 vs.map(|chunk| {
                     let pb = pb.clone();
-                    let (chunk, len) = chunk?;
-
+                    let chunk = chunk?;
+                    let len = chunk.len();
                     Ok((Progressbar::new(chunk, pb), len))
                 })
             })
