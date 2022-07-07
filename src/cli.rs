@@ -157,7 +157,12 @@ pub async fn parse() -> Result<()> {
             }
             cover_up(&mut studio, &login_info, &client).await?;
             studio.videos = upload(&video_path, &client, line, limit).await?;
-            studio.submit(&login_info).await?;
+            let res=studio.submit(&login_info).await?;
+            if res["code"] == 0 {
+                println!("投稿成功");
+            } else {
+                eprintln!("投稿失败:{}",res);
+            }
         }
         Commands::Upload {
             video_path: _,
@@ -190,7 +195,12 @@ pub async fn parse() -> Result<()> {
                     config.limit,
                 )
                 .await?;
-                studio.submit(&login_info).await?;
+                let res = studio.submit(&login_info).await?;
+                if res["code"] == 0 {
+                    println!("投稿成功");
+                } else {
+                    eprintln!("投稿失败:{}",res);
+                }
             }
         }
         Commands::Append {

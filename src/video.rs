@@ -118,12 +118,7 @@ impl Studio {
             .json()
             .await?;
         println!("{}", ret);
-        if ret["code"] == 0 {
-            println!("投稿成功");
-            Ok(ret)
-        } else {
-            bail!("{}", ret)
-        }
+        Ok(ret)
     }
 
     pub async fn edit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
