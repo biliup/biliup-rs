@@ -145,9 +145,7 @@ pub async fn parse() -> Result<()> {
             mut studio,
         } if !video_path.is_empty() => {
             println!("number of concurrent futures: {limit}");
-            let login_info = client
-                .login_by_cookies(fopen_rw(cli.user_cookie)?)
-                .await?;
+            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
             if studio.title.is_empty() {
                 studio.title = video_path[0]
                     .file_stem()
@@ -164,9 +162,7 @@ pub async fn parse() -> Result<()> {
             config: Some(config),
             ..
         } => {
-            let login_info = client
-                .login_by_cookies(fopen_rw(cli.user_cookie)?)
-                .await?;
+            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
             let config = load_config(&config)?;
             println!("number of concurrent futures: {}", config.limit);
             for (filename_patterns, mut studio) in config.streamers {
@@ -201,18 +197,14 @@ pub async fn parse() -> Result<()> {
             studio: _,
         } if !video_path.is_empty() => {
             println!("number of concurrent futures: {limit}");
-            let login_info = client
-                .login_by_cookies(fopen_rw(cli.user_cookie)?)
-                .await?;
+            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
             let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
             let mut studio = BiliBili::new(&login_info, &client).studio_data(vid).await?;
             studio.videos.append(&mut uploaded_videos);
             studio.edit(&login_info).await?;
         }
         Commands::Show { vid } => {
-            let login_info = client
-                .login_by_cookies(fopen_rw(cli.user_cookie)?)
-                .await?;
+            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
             let video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
             println!("{}", serde_json::to_string_pretty(&video_info)?)
         }
@@ -336,7 +328,7 @@ pub async fn login_by_password(client: Client) -> Result<LoginInfo> {
     let password: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入密码")
         .interact()?;
-    client.login_by_password(&username, &password).await
+    Ok(client.login_by_password(&username, &password).await?)
 }
 
 pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
@@ -352,7 +344,7 @@ pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
         .with_prompt("请输入验证码")
         .interact_text()?;
     // println!("{}", payload);
-    client.login_by_sms(input, res).await
+    Ok(client.login_by_sms(input, res).await?)
 }
 
 pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
@@ -369,7 +361,7 @@ pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
     println!("在Windows下建议使用Windows Terminal(支持utf8，可完整显示二维码)\n否则可能无法正常显示，此时请打开./qrcode.png扫码");
     // Save the image.
     image.save("qrcode.png").unwrap();
-    client.login_by_qrcode(value).await
+    Ok(client.login_by_qrcode(value).await?)
 }
 
 pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
@@ -379,7 +371,7 @@ pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
         value["data"]["url"].as_str().ok_or(anyhow!("{}", value))?
     );
     println!("请复制此链接至浏览器中完成登录");
-    client.login_by_qrcode(value).await
+    Ok(client.login_by_qrcode(value).await?)
 }
 
 pub async fn login_by_web_cookies(client: Client) -> Result<LoginInfo> {
@@ -389,7 +381,7 @@ pub async fn login_by_web_cookies(client: Client) -> Result<LoginInfo> {
     let bili_jct: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入bili_jct")
         .interact_text()?;
-    client.login_by_web_cookies(&sess_data, &bili_jct).await
+    Ok(client.login_by_web_cookies(&sess_data, &bili_jct).await?)
 }
 
 #[derive(Clone)]
@@ -445,6 +437,11 @@ impl From<Progressbar> for Body {
 }
 
 #[inline]
-fn fopen_rw<P: AsRef<Path>>(path: P) -> std::io::Result<std::fs::File> {
-    std::fs::File::options().read(true).write(true).open(path)
+fn fopen_rw<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
+    let path = path.as_ref();
+    std::fs::File::options()
+        .read(true)
+        .write(true)
+        .open(path)
+        .with_context(|| String::from("open cookies file: ") + &path.to_string_lossy())
 }

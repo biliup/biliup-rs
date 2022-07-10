@@ -1,5 +1,5 @@
+use crate::error::{CustomError, Result};
 use crate::video::Video;
-use anyhow::{bail, Result};
 use futures::Stream;
 use futures::StreamExt;
 
@@ -138,10 +138,7 @@ impl Upos {
                 })
                 .await?;
 
-                Ok::<_, anyhow::Error>((
-                    json!({"partNumber": params.chunk + 1, "eTag": "etag"}),
-                    len,
-                ))
+                Ok::<_, CustomError>((json!({"partNumber": params.chunk + 1, "eTag": "etag"}), len))
             })
             .buffer_unordered(limit);
         Ok(stream)
@@ -213,7 +210,7 @@ impl Upos {
             .json()
             .await?;
         if res["OK"] != 1 {
-            bail!("{}", res)
+            return Err(CustomError::Custom(res.to_string()));
         }
         Ok(Video {
             title: None,

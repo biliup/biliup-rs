@@ -1,13 +1,15 @@
 use crate::video::{Studio, Video};
-use anyhow::{anyhow, Result};
-use bytes::Bytes;
-use futures::Stream;
+use bytes::{Bytes, BytesMut};
+use futures::{io, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{ErrorKind, Read};
+use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use tokio::net::TcpStream;
+use tracing::info;
 
 pub mod client;
 pub mod error;
@@ -56,7 +58,7 @@ fn default_limit() -> usize {
     3
 }
 
-pub fn load_config(config: &Path) -> Result<Config> {
+pub fn load_config(config: &Path) -> error::Result<Config> {
     let file = std::fs::File::open(config)?;
     let config: Config = serde_yaml::from_reader(file)?;
     // println!("body = {:?}", client);
@@ -81,21 +83,31 @@ impl VideoStream {
         }
     }
 
-    pub fn read(&mut self) -> Result<Option<Bytes>> {
-        // println!("cap {}", self.buf.capacity());
-        let n = self.file.read(&mut self.buffer)?;
-        // println!("cur size: {n}");
-        if n == 0 {
-            return Ok(None);
+    pub fn read(&mut self) -> io::Result<Option<Bytes>> {
+        let mut len = 0;
+        let mut buf = self.buffer.deref_mut();
+        while !buf.is_empty() {
+            match self.file.read(buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let tmp = buf;
+                    len += n;
+                    buf = &mut tmp[n..];
+                }
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
+                Err(e) => return Err(e),
+            }
         }
-        // self.buf.put_slice(&self.buffer[..n]);
-        // println!("cap2 {}", self.buf.capacity());
-        Ok(Some(Bytes::copy_from_slice(&self.buffer[..n])))
+        if len == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(Bytes::copy_from_slice(&self.buffer[..len])))
+        }
     }
 }
 
 impl Stream for VideoStream {
-    type Item = Result<Bytes>;
+    type Item = io::Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.read()? {
@@ -113,13 +125,16 @@ pub struct VideoFile {
 }
 
 impl VideoFile {
-    pub fn new(filepath: &std::path::Path) -> Result<Self> {
+    pub fn new(filepath: &std::path::Path) -> io::Result<Self> {
         let file = std::fs::File::open(&filepath)?;
         let total_size = file.metadata()?.len();
         let file_name = filepath
             .file_name()
             .and_then(|file_name| file_name.to_str())
-            .ok_or(anyhow!("No filename"))?;
+            .ok_or(io::Error::new(
+                ErrorKind::NotFound,
+                "the path terminates in ..",
+            ))?;
         Ok(Self {
             file,
             // capacity: 10485760,
@@ -129,7 +144,7 @@ impl VideoFile {
         })
     }
 
-    pub fn get_stream(&self, capacity: usize) -> Result<VideoStream> {
+    pub fn get_stream(&self, capacity: usize) -> io::Result<VideoStream> {
         Ok(VideoStream::with_capacity(self.file.try_clone()?, capacity))
     }
 }
@@ -137,21 +152,19 @@ impl VideoFile {
 #[cfg(test)]
 mod tests {
     use crate::video::Vid;
-    use anyhow::Result;
     use bytes::Buf;
     use std::num::IntErrorKind::InvalidDigit;
     use std::num::{IntErrorKind, ParseIntError};
     use std::str::FromStr;
 
     #[tokio::test]
-    async fn it_works() -> Result<()> {
+    async fn it_works() {
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("971158452"));
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("av971158452"));
         assert_eq!(
             Ok(Vid::Bvid("BV1ip4y1x7Gi".into())),
             Vid::from_str("BV1ip4y1x7Gi")
         );
-        Ok(())
     }
 
     #[test]

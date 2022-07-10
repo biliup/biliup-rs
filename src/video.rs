@@ -1,12 +1,12 @@
 use crate::client::{Client, LoginInfo};
-use crate::error::CustomError;
-use anyhow::{anyhow, bail, Result};
+use crate::error::{CustomError, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::time::Duration;
+use tracing::info;
 use typed_builder::TypedBuilder;
 
 #[derive(Serialize, Deserialize, Debug, TypedBuilder)]
@@ -117,12 +117,12 @@ impl Studio {
             .await?
             .json()
             .await?;
-        println!("{}", ret);
+        info!("{}", ret);
         if ret["code"] == 0 {
-            println!("投稿成功");
+            info!("投稿成功");
             Ok(ret)
         } else {
-            bail!("{}", ret)
+            return Err(CustomError::Custom(ret.to_string()));
         }
     }
 
@@ -140,12 +140,12 @@ impl Studio {
             .await?
             .json()
             .await?;
-        println!("{}", ret);
+        info!("{}", ret);
         if ret["code"] == 0 {
-            println!("稿件修改成功");
+            info!("稿件修改成功");
             Ok(ret)
         } else {
-            bail!("{}", ret)
+            return Err(CustomError::Custom(ret.to_string()));
         }
     }
 }
@@ -241,7 +241,7 @@ impl BiliBili<'_, '_> {
                 code: _,
                 data: None,
                 ..
-            } => bail!("{:?}", res),
+            } => Err(CustomError::Custom(format!("{res:?}"))),
             Response {
                 code: _,
                 data: Some(v),
@@ -291,7 +291,7 @@ impl BiliBili<'_, '_> {
             .send()
             .await?;
         let res: Response = if !response.status().is_success() {
-            bail!("{}", response.text().await?)
+            return Err(CustomError::Custom(response.text().await?));
         } else {
             response.json().await?
         };
@@ -302,12 +302,9 @@ impl BiliBili<'_, '_> {
             ..
         } = res
         {
-            Ok(value["url"]
-                .as_str()
-                .ok_or(anyhow!("cover_up error"))?
-                .into())
+            Ok(value["url"].as_str().ok_or("cover_up error")?.into())
         } else {
-            bail!("{:?}", res)
+            return Err(CustomError::Custom(format!("{res:?}")));
         }
     }
 }

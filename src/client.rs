@@ -1,7 +1,6 @@
-use anyhow::{anyhow, bail, Result};
+use crate::error::{CustomError, Result};
 use base64::encode;
 use cookie::Cookie;
-// use futures_util::AsyncWriteExt;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header;
@@ -10,10 +9,13 @@ use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
+use std::io;
 use std::io::Seek;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tracing::info;
 use url::Url;
 
 // const APP_KEY: &str = "ae57252b0c09105d";
@@ -83,12 +85,12 @@ impl Client {
     pub async fn login_by_cookies(&self, mut file: std::fs::File) -> Result<LoginInfo> {
         let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
         self.set_cookie(&login_info.cookie_info);
-        println!("通过cookie登录");
+        info!("通过cookie登录");
         let response = self.validate_tokens(&login_info).await?;
         if response.code != 0 {
-            bail!("{}", response)
+            return Err(CustomError::Custom(response.to_string()));
         }
-        let oauth_info: OAuthInfo = response.data.try_into()?;
+        let oauth_info: OAuthInfo = response.data.into();
 
         if oauth_info.refresh {
             let new_info = self.renew_tokens(login_info).await?;
@@ -97,7 +99,7 @@ impl Client {
             serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
             Ok(new_info)
         } else {
-            println!("无需更新cookie");
+            info!("无需更新cookie");
             Ok(login_info)
         }
     }
@@ -125,7 +127,7 @@ impl Client {
             .await?
             .json()
             .await?;
-        println!("验证cookie");
+        info!("验证cookie");
         Ok(response)
     }
 
@@ -133,7 +135,7 @@ impl Client {
         let keypair = match login_info.platform.as_deref() {
             Some("BiliTV") => AppKeyStore::BiliTV,
             Some("Android") => AppKeyStore::Android,
-            Some(_) => bail!("未知平台"),
+            Some(_) => return Err("未知平台".into()),
             None => return Ok(login_info),
         };
         let payload = {
@@ -158,7 +160,7 @@ impl Client {
             .await?
             .json()
             .await?;
-        println!("更新cookie");
+        info!("更新cookie");
         match response.data {
             ResponseValue::Login(info) if !info.cookie_info.is_null() => {
                 self.set_cookie(&info.cookie_info);
@@ -167,7 +169,7 @@ impl Client {
                     ..info
                 })
             }
-            _ => Err(anyhow!("{}", response)),
+            _ => Err(CustomError::Custom(response.to_string())),
         }
     }
 
@@ -213,7 +215,7 @@ impl Client {
             .await?
             .json()
             .await?;
-        println!("通过密码登录");
+        info!("通过密码登录");
         match response.data {
             ResponseValue::Login(info) if !info.cookie_info.is_null() => {
                 self.set_cookie(&info.cookie_info);
@@ -222,7 +224,7 @@ impl Client {
                     ..info
                 })
             }
-            _ => Err(anyhow!("{}", response)),
+            _ => Err(CustomError::Custom(response.to_string())),
         }
     }
 
@@ -248,7 +250,7 @@ impl Client {
                 platform: Some("Android".to_string()),
                 ..info
             }),
-            _ => bail!("{}", res),
+            _ => Err(CustomError::Custom(res.to_string())),
         }
     }
 
@@ -286,21 +288,18 @@ impl Client {
             .json()
             .await?;
         // println!("{}", res);
-        let res = match res.data {
+        match res.data {
             ResponseValue::Value(mut data)
                 if !data["captcha_key"]
                     .as_str()
-                    .ok_or(anyhow!("send sms error"))?
+                    .ok_or("send sms error")?
                     .is_empty() =>
             {
                 payload["captcha_key"] = data["captcha_key"].take();
-                payload
+                Ok(payload)
             }
-            _ => {
-                bail!("{}", res)
-            }
-        };
-        Ok(res)
+            _ => Err(CustomError::Custom(res.to_string())),
+        }
     }
 
     pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo> {
@@ -329,7 +328,7 @@ impl Client {
                     data: ResponseValue::Login(info),
                     ..
                 } => {
-                    return Ok(LoginInfo {
+                    break Ok(LoginInfo {
                         platform: Some("BiliTV".to_string()),
                         ..info
                     });
@@ -339,7 +338,7 @@ impl Client {
                     // form["ts"] = Value::from(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
                 }
                 _ => {
-                    bail!("{:#?}", res)
+                    break Err(CustomError::Custom(format!("{res:#?}")));
                 }
             }
         }
@@ -384,11 +383,11 @@ impl Client {
     }
 
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
-        println!("获取二维码");
+        info!("获取二维码");
         let qrcode = self.get_qrcode().await?;
         let auth_code = qrcode["data"]["auth_code"]
             .as_str()
-            .ok_or(anyhow!("Cannot get auth_code"))?;
+            .ok_or("Cannot get auth_code")?;
         Self::web_confirm_qrcode(auth_code, sess_data, bili_jct).await?;
         self.login_by_qrcode(qrcode).await
     }
@@ -400,7 +399,7 @@ impl Client {
             "scanning_type": 3,
         });
         let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
-        println!("自动确认二维码");
+        info!("自动确认二维码");
         let res: ResponseData = reqwest::Client::new()
             .post("https://passport.snm0516.aisee.tv/x/passport-tv-login/h5/qrcode/confirm")
             .header("Cookie", cookies)
@@ -410,7 +409,7 @@ impl Client {
             .json()
             .await?;
         if res.code != 0 {
-            bail!("{:#?}", res)
+            return Err(CustomError::Custom(format!("{res:#?}")));
         }
         Ok(())
     }

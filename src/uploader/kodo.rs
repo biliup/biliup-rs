@@ -1,7 +1,6 @@
+use crate::error::{CustomError, Result};
 use crate::Video;
-use anyhow::{anyhow, bail, Result};
 use base64::URL_SAFE;
-
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
 use reqwest::{header, Body};
@@ -85,11 +84,11 @@ impl Kodo {
                         .await?;
                     response.error_for_status_ref()?;
                     let res = response.json().await?;
-                    Ok::<_, reqwest::Error>(res)
+                    Ok::<_, CustomError>(res)
                 })
                 .await?;
 
-                Ok::<_, reqwest_middleware::Error>((
+                Ok::<_, CustomError>((
                     Ctx {
                         index: i,
                         ctx: ctx["ctx"].as_str().unwrap_or_default().into(),
@@ -132,8 +131,8 @@ impl Kodo {
             .json()
             .await?;
         Ok(match result.get("OK") {
-            Some(x) if x.as_i64().ok_or(anyhow!("kodo fetch err"))? != 1 => {
-                bail!("{result}")
+            Some(x) if x.as_i64().ok_or("kodo fetch err")? != 1 => {
+                return Err(CustomError::Custom(result.to_string()));
             }
             _ => Video {
                 title: None,
