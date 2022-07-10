@@ -368,7 +368,9 @@ pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
     let value = client.get_qrcode().await?;
     println!(
         "{}",
-        value["data"]["url"].as_str().ok_or(anyhow!("{}", value))?
+        value["data"]["url"]
+            .as_str()
+            .ok_or_else(|| anyhow!("{}", value))?
     );
     println!("请复制此链接至浏览器中完成登录");
     Ok(client.login_by_qrcode(value).await?)

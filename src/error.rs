@@ -1,5 +1,5 @@
 use reqwest::header::{InvalidHeaderName, InvalidHeaderValue};
-use serde::de::Error;
+
 use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, CustomError>;

@@ -122,7 +122,7 @@ impl Studio {
             info!("投稿成功");
             Ok(ret)
         } else {
-            return Err(CustomError::Custom(ret.to_string()));
+            Err(CustomError::Custom(ret.to_string()))
         }
     }
 
@@ -145,7 +145,7 @@ impl Studio {
             info!("稿件修改成功");
             Ok(ret)
         } else {
-            return Err(CustomError::Custom(ret.to_string()));
+            Err(CustomError::Custom(ret.to_string()))
         }
     }
 }
@@ -276,11 +276,11 @@ impl BiliBili<'_, '_> {
             .cookie_info
             .get("cookies")
             .and_then(|c| c.as_array())
-            .ok_or(CustomError::Custom("cover_up cookie error".into()))?
+            .ok_or("cover_up cookie error")?
             .iter()
             .filter_map(|c| c.as_object())
             .find(|c| c["name"] == "bili_jct")
-            .ok_or(CustomError::Custom("cover_up jct error".into()))?;
+            .ok_or("cover_up jct error")?;
         let response = self
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")

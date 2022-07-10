@@ -1,15 +1,13 @@
 use crate::video::{Studio, Video};
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use futures::{io, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{ErrorKind, Read};
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::net::TcpStream;
-use tracing::info;
 
 pub mod client;
 pub mod error;
@@ -131,10 +129,7 @@ impl VideoFile {
         let file_name = filepath
             .file_name()
             .and_then(|file_name| file_name.to_str())
-            .ok_or(io::Error::new(
-                ErrorKind::NotFound,
-                "the path terminates in ..",
-            ))?;
+            .ok_or_else(|| io::Error::new(ErrorKind::NotFound, "the path terminates in .."))?;
         Ok(Self {
             file,
             // capacity: 10485760,
@@ -152,9 +147,7 @@ impl VideoFile {
 #[cfg(test)]
 mod tests {
     use crate::video::Vid;
-    use bytes::Buf;
-    use std::num::IntErrorKind::InvalidDigit;
-    use std::num::{IntErrorKind, ParseIntError};
+
     use std::str::FromStr;
 
     #[tokio::test]

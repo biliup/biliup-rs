@@ -9,9 +9,10 @@ use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::convert::Infallible;
+
 use std::fmt::{Display, Formatter};
-use std::io;
+
+use reqwest::header::USER_AGENT;
 use std::io::Seek;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -400,9 +401,10 @@ impl Client {
         });
         let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
         info!("自动确认二维码");
-        let res: ResponseData = reqwest::Client::new()
+        let res: crate::video::Response = reqwest::Client::new()
             .post("https://passport.snm0516.aisee.tv/x/passport-tv-login/h5/qrcode/confirm")
             .header("Cookie", cookies)
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
             .form(&form)
             .send()
             .await?
@@ -458,7 +460,7 @@ impl Display for ResponseData {
         write!(
             f,
             "{}",
-            serde_json::to_string(self).map_err(|e| std::fmt::Error::custom(e))?
+            serde_json::to_string(self).map_err(std::fmt::Error::custom)?
         )
     }
 }

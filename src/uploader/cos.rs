@@ -159,7 +159,7 @@ impl Cos {
             .send()
             .await?;
         if !response.status().is_success() {
-            return Err(CustomError::Custom(response.text().await?.to_string()));
+            return Err(CustomError::Custom(response.text().await?));
         }
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -191,7 +191,7 @@ impl Cos {
             .send()
             .await?;
         if !res.status().is_success() {
-            return Err(CustomError::Custom((res.text().await?)));
+            return Err(CustomError::Custom(res.text().await?));
         }
         Ok(Video {
             title: None,
