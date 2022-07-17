@@ -70,7 +70,12 @@ impl Upos {
             .await?
             .json()
             .await?;
-        let upload_id = upload_id["upload_id"].as_str().unwrap().into();
+        let upload_id = upload_id
+            .get("upload_id")
+            .and_then(|s| s.as_str())
+            .ok_or_else(|| CustomError::Custom(upload_id.to_string()))?
+            .into();
+        // = upload_id["upload_id"].as_str().unwrap().into();
         // let ret =  &upload.ret;
         // let chunk_size = ret["chunk_size"].as_u64().unwrap() as usize;
         // let auth = ret["auth"].as_str().unwrap();

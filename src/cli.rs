@@ -16,6 +16,7 @@ use qrcode::render::unicode;
 use qrcode::QrCode;
 use reqwest::Body;
 use std::ffi::OsStr;
+use std::io::Seek;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 
@@ -241,8 +242,13 @@ async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
 }
 
 async fn renew(client: Client, user_cookie: PathBuf) -> Result<()> {
-    let file = fopen_rw(user_cookie)?;
-    client.login_by_cookies(file).await?;
+    let mut file = fopen_rw(user_cookie)?;
+    let login_info: LoginInfo = serde_json::from_reader(&file)?;
+    let new_info = client.renew_tokens(login_info).await?;
+    file.rewind()?;
+    file.set_len(0)?;
+    serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
+    println!("{new_info:?}");
     Ok(())
 }
 
@@ -349,7 +355,13 @@ pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
 
 pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
     let value = client.get_qrcode().await?;
-    let code = QrCode::new(value["data"]["url"].as_str().unwrap()).unwrap();
+    let code = QrCode::new(
+        value["data"]["url"]
+            .as_str()
+            .unwrap()
+            .replace("https", "http"),
+    )
+    .unwrap();
     let image = code
         .render::<unicode::Dense1x2>()
         .dark_color(unicode::Dense1x2::Light)

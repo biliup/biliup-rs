@@ -88,20 +88,28 @@ impl Client {
         self.set_cookie(&login_info.cookie_info);
         info!("通过cookie登录");
         let response = self.validate_tokens(&login_info).await?;
-        if response.code != 0 {
-            return Err(CustomError::Custom(response.to_string()));
-        }
-        let oauth_info: OAuthInfo = response.data.into();
-
-        if oauth_info.refresh {
-            let new_info = self.renew_tokens(login_info).await?;
-            file.rewind()?;
-            file.set_len(0)?;
-            serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
-            Ok(new_info)
-        } else {
-            info!("无需更新cookie");
-            Ok(login_info)
+        // if response.code != 0 {
+        //     return Err(CustomError::Custom(response.to_string()));
+        // }
+        match response {
+            ResponseData {
+                data: ResponseValue::OAuth(OAuthInfo { refresh: true, .. }),
+                ..
+            } => {
+                let new_info = self.renew_tokens(login_info).await?;
+                file.rewind()?;
+                file.set_len(0)?;
+                serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
+                Ok(new_info)
+            }
+            ResponseData {
+                data: ResponseValue::OAuth(OAuthInfo { refresh: false, .. }),
+                ..
+            } => {
+                info!("无需更新cookie");
+                Ok(login_info)
+            }
+            _ => Err(CustomError::Custom(response.to_string())),
         }
     }
 
@@ -132,7 +140,7 @@ impl Client {
         Ok(response)
     }
 
-    async fn renew_tokens(&self, login_info: LoginInfo) -> Result<LoginInfo> {
+    pub async fn renew_tokens(&self, login_info: LoginInfo) -> Result<LoginInfo> {
         let keypair = match login_info.platform.as_deref() {
             Some("BiliTV") => AppKeyStore::BiliTV,
             Some("Android") => AppKeyStore::Android,
@@ -176,7 +184,7 @@ impl Client {
 
     pub async fn login_by_password(&self, username: &str, password: &str) -> Result<LoginInfo> {
         // The type of `payload` is `serde_json::Value`
-        let (key_hash, pub_key) = self.get_key().await.unwrap();
+        let (key_hash, pub_key) = self.get_key().await?;
         let pub_key = RsaPublicKey::from_public_key_pem(&pub_key).unwrap();
         let padding = PaddingScheme::new_pkcs1v15_encrypt();
         let enc_data = pub_key
@@ -377,10 +385,18 @@ impl Client {
             .await?
             .json()
             .await?;
-        Ok((
-            response["data"]["hash"].as_str().unwrap().to_string(),
-            response["data"]["key"].as_str().unwrap().to_string(),
-        ))
+        let response = response
+            .get("data")
+            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+        let hash = response
+            .get("hash")
+            .and_then(Value::as_str)
+            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+        let key = response
+            .get("key")
+            .and_then(Value::as_str)
+            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+        Ok((hash.to_string(), key.to_string()))
     }
 
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
@@ -402,8 +418,9 @@ impl Client {
         let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
         info!("自动确认二维码");
         let res: crate::video::Response = reqwest::Client::new()
-            .post("https://passport.snm0516.aisee.tv/x/passport-tv-login/h5/qrcode/confirm")
+            .post("https://passport.bilibili.com/x/passport-tv-login/h5/qrcode/confirm")
             .header("Cookie", cookies)
+            // .header("native_api_from", "h5")
             .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
             .form(&form)
             .send()
@@ -484,35 +501,18 @@ pub struct LoginInfo {
     pub platform: Option<String>,
 }
 
-impl From<ResponseValue> for LoginInfo {
-    fn from(res: ResponseValue) -> Self {
-        match res {
-            ResponseValue::Login(v) => v,
-            _ => panic!("错误调用"),
-        }
-    }
-}
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TokenInfo {
     pub access_token: String,
     expires_in: u32,
-    mid: u32,
+    mid: u64,
     refresh_token: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OAuthInfo {
-    pub mid: u32,
+    pub mid: u64,
     pub access_token: String,
     pub expires_in: u32,
     pub refresh: bool,
-}
-
-impl From<ResponseValue> for OAuthInfo {
-    fn from(res: ResponseValue) -> Self {
-        match res {
-            ResponseValue::OAuth(v) => v,
-            _ => panic!("错误调用"),
-        }
-    }
 }
