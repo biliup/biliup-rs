@@ -1,5 +1,6 @@
-use crate::client::{Client, LoginInfo};
+use crate::client::{Client, LoginInfo, self};
 use crate::error::{CustomError, Result};
+use futures::executor;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -147,6 +148,24 @@ impl Studio {
         } else {
             Err(CustomError::Custom(ret.to_string()))
         }
+    }
+    pub fn check_config(&self,client:&Client)->Result<()>{
+        for tag in self.tag.split(",") {
+            if tag.len() > 10 {
+                return Err(CustomError::Custom("标签长度不能超过10".to_string()));
+            }
+            match executor::block_on(client::Client::check_tag(client,tag)){
+                Ok(f)=>{
+                    if !f{
+                        return Err(CustomError::Custom(format!("标签 {} 违规",tag)));
+                    }
+                }
+                Err(e)=>{
+                    return Err(CustomError::Custom(e.to_string()));
+                }
+            }
+        }
+        return Ok(());
     }
 }
 

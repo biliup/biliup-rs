@@ -415,7 +415,21 @@ impl Client {
         }
         Ok(())
     }
-
+    pub async fn check_tag(&self,tag: &str) -> Result<bool> {
+        if tag.len() == 0{
+            return Ok(true)
+        }
+        let res: crate::video::Response = self.client
+            .get("https://member.bilibili.com/x/vupre/web/topic/tag/check")
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
+            .query(&[("tag", tag.to_string())])
+            .send().await?
+            .json().await?;
+        if res.code != 0{
+            return Ok(false);
+        }
+        Ok(true)
+    }
     pub fn sign(param: &str, app_sec: &str) -> String {
         let mut hasher = Md5::new();
         // process input message

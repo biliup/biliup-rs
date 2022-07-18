@@ -62,6 +62,20 @@ pub fn load_config(config: &Path) -> error::Result<Config> {
     // println!("body = {:?}", client);
     Ok(config)
 }
+// pub fn check_config(config: &Config) -> error::Result<()> {
+//     for streamer in config.streamers.values() {
+//         for tag in streamer.tag.split(","){
+//             match executor::block_on(client::Client::check_tag(tag)){
+//                 Ok(_) => {},
+//                 Err(e) => {
+//                     println!("{}", e);
+//                     return Err(e);
+//                 }
+//             }
+//         }
+//     }
+//     Ok(())
+// }
 
 pub struct VideoStream {
     pub capacity: usize,
