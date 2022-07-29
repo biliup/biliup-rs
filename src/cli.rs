@@ -154,6 +154,7 @@ pub async fn parse() -> Result<()> {
                     .map(|s| s.to_string())
                     .unwrap();
             }
+            studio.check_config(&client)?;
             cover_up(&mut studio, &login_info, &client).await?;
             studio.videos = upload(&video_path, &client, line, limit).await?;
             studio.submit(&login_info).await?;
@@ -167,6 +168,7 @@ pub async fn parse() -> Result<()> {
             let config = load_config(&config)?;
             println!("number of concurrent futures: {}", config.limit);
             for (filename_patterns, mut studio) in config.streamers {
+                studio.check_config(&client)?;
                 let mut paths = Vec::new();
                 for entry in glob::glob(&filename_patterns)?.filter_map(Result::ok) {
                     paths.push(entry);
@@ -202,6 +204,7 @@ pub async fn parse() -> Result<()> {
             let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
             let mut studio = BiliBili::new(&login_info, &client).studio_data(vid).await?;
             studio.videos.append(&mut uploaded_videos);
+            studio.check_config(&client)?;
             studio.edit(&login_info).await?;
         }
         Commands::Show { vid } => {
