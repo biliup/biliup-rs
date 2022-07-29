@@ -49,7 +49,7 @@ impl<'a> Parcel<'a> {
     }
 
     pub async fn pre_upload<T: DeserializeOwned>(&self, login: &Client) -> Result<T> {
-        Ok(login
+        let response = login
             .client
             .get(format!(
                 "https://member.bilibili.com/preupload?{}",
@@ -57,10 +57,14 @@ impl<'a> Parcel<'a> {
             ))
             .query(&self.params)
             .send()
-            .await?
-            .json()
-            .await
-            .with_context(|| "Failed to pre_upload from")?)
+            .await?;
+        let full = response.bytes().await?;
+        Ok(serde_json::from_slice(&full).with_context(|| {
+            format!(
+                "Failed to pre_upload from {}",
+                String::from_utf8_lossy(&full)
+            )
+        })?)
     }
 
     pub async fn upload<F, S, B>(&self, client: &Client, limit: usize, progress: F) -> Result<Video>

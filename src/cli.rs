@@ -292,7 +292,8 @@ pub async fn upload(
     // let line = line::kodo();
     for video_path in video_path {
         println!("{line:?}");
-        let video_file = VideoFile::new(video_path)?;
+        let video_file = VideoFile::new(video_path)
+            .with_context(|| format!("file {}", video_path.to_string_lossy()))?;
         let total_size = video_file.total_size;
         let file_name = video_file.file_name.clone();
         let uploader = line.to_uploader(video_file);
