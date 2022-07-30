@@ -5,7 +5,6 @@ use crate::uploader::kodo::Kodo;
 use crate::uploader::upos::Upos;
 use crate::uploader::Uploader;
 use crate::{Video, VideoFile, VideoStream};
-use anyhow::Context;
 use futures::{Stream, TryStreamExt};
 use reqwest::Body;
 use serde::de::DeserializeOwned;
@@ -13,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 
+use crate::error::CustomError::Custom;
 use std::time::Instant;
 use tracing::info;
 
@@ -58,13 +58,13 @@ impl<'a> Parcel<'a> {
             .query(&self.params)
             .send()
             .await?;
-        let full = response.bytes().await?;
-        Ok(serde_json::from_slice(&full).with_context(|| {
-            format!(
+        if !response.status().is_success() {
+            return Err(Custom(format!(
                 "Failed to pre_upload from {}",
-                String::from_utf8_lossy(&full)
-            )
-        })?)
+                response.text().await?
+            )));
+        }
+        Ok(response.json().await?)
     }
 
     pub async fn upload<F, S, B>(&self, client: &Client, limit: usize, progress: F) -> Result<Video>

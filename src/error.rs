@@ -32,9 +32,7 @@ pub enum CustomError {
 
     #[error(transparent)]
     SerdeUrl(#[from] serde_urlencoded::ser::Error),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
+    // source and Display delegate to anyhow::Error
 }
 
 impl From<&str> for CustomError {
