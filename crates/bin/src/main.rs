@@ -1,4 +1,5 @@
 mod cli;
+use anyhow::Result;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::env;
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
@@ -10,7 +11,6 @@ use stream_gears::flv_parser::{
     CodecId, SoundFormat, TagData,
 };
 use stream_gears::flv_writer::{self, FlvTag, TagDataHeader};
-use anyhow::Result;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -28,8 +28,6 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     cli::parse().await?;
-
-
 
     // let args: Vec<String> = env::args().collect();
     // let file_name = &args[1];

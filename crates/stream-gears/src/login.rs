@@ -1,10 +1,11 @@
-
-use anyhow::{Result};
+use anyhow::Result;
+use biliup::client;
 use biliup::client::Client;
-use biliup::{client,};
 
-pub async fn login_by_cookies()->Result<client::LoginInfo>{
-    let login_info= Client::new().login_by_cookies(std::fs::File::open("cookies.json")?).await?;
+pub async fn login_by_cookies() -> Result<client::LoginInfo> {
+    let login_info = Client::new()
+        .login_by_cookies(std::fs::File::open("cookies.json")?)
+        .await?;
     Ok(login_info)
 }
 pub async fn send_sms(country_code: u32, phone: u64) -> Result<serde_json::Value> {
@@ -27,8 +28,3 @@ pub async fn login_by_qrcode(res: serde_json::Value) -> Result<bool> {
     serde_json::to_writer_pretty(&file, &info)?;
     Ok(true)
 }
-
-
-
-
-

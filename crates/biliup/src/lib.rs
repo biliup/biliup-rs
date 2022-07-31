@@ -147,11 +147,12 @@ impl VideoFile {
 #[cfg(test)]
 mod tests {
     use crate::video::Vid;
-
+    use reqwest::header::ORIGIN;
+    use reqwest::ClientBuilder;
     use std::str::FromStr;
 
-    #[tokio::test]
-    async fn it_works() {
+    #[test]
+    fn it_works() {
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("971158452"));
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("av971158452"));
         assert_eq!(
@@ -160,8 +161,19 @@ mod tests {
         );
     }
 
-    #[test]
-    fn try_clone_stream() {
+    #[tokio::test]
+    async fn try_clone_stream() {
+        let response = ClientBuilder::new()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap()
+            .get("https://passport.bilibili.com/qrcode/h5/login?origin=tv")
+            .header(ORIGIN, "tv")
+            .send()
+            .await
+            .unwrap();
+        println!("{:#?}", response.headers());
+
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
         let stream = futures::stream::iter(chunks);
         let client = reqwest::Client::new();

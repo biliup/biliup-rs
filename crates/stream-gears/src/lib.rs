@@ -2,8 +2,8 @@ pub mod downloader;
 pub mod error;
 pub mod flv_parser;
 pub mod flv_writer;
-mod uploader;
 mod login;
+mod uploader;
 
 use crate::downloader::construct_headers;
 use crate::uploader::UploadLine;
@@ -73,12 +73,10 @@ fn download(
     })
 }
 #[pyfunction]
-fn login_by_cookies()->PyResult<bool>{
-    let  rt = tokio::runtime::Runtime::new().unwrap();
-    let  result =rt.block_on(async {
-         login::login_by_cookies().await
-    });
-    match result{
+fn login_by_cookies() -> PyResult<bool> {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(async { login::login_by_cookies().await });
+    match result {
         Ok(_) => Ok(true),
         Err(err) => {
             return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -88,65 +86,53 @@ fn login_by_cookies()->PyResult<bool>{
             )));
         }
     }
-
-
 }
 #[pyfunction]
- fn send_sms(country_code:u32,phone:u64) -> PyResult<String> {
-    let  rt = tokio::runtime::Runtime::new().unwrap();
-    let  result= rt.block_on(async {
-       login::send_sms(country_code,phone).await
-    });
-    match result{
-        Ok(res)=>{
-            Ok(res.to_string())
-        }
-        Err(err)=>{
-            Err(pyo3::exceptions::PyRuntimeError::new_err(format!("{}",err)))
-        }
-    }
-}
-#[pyfunction]
- fn login_by_sms(code:u32,  ret:String) -> PyResult<bool>{
+fn send_sms(country_code: u32, phone: u64) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let  result= rt.block_on(async {
-        login::login_by_sms(code,serde_json::from_str(&ret).unwrap()).await
-    });
-    match result
-    {
-        Ok(_)=>Ok(true),
-        Err(_)=>Ok(false),
+    let result = rt.block_on(async { login::send_sms(country_code, phone).await });
+    match result {
+        Ok(res) => Ok(res.to_string()),
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}",
+            err
+        ))),
     }
 }
 #[pyfunction]
-fn get_qrcode()->PyResult<String>{
+fn login_by_sms(code: u32, ret: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let  result= rt.block_on(async {
-        login::get_qrcode().await
-    });
-    match result{
-        Ok(res)=>{
-            Ok(res.to_string())
-        }
-        Err(err)=>{
-            Err(pyo3::exceptions::PyRuntimeError::new_err(format!("{}",err)))
-        }
+    let result =
+        rt.block_on(async { login::login_by_sms(code, serde_json::from_str(&ret).unwrap()).await });
+    match result {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
     }
 }
 #[pyfunction]
-fn login_by_qrcode(ret:String) -> PyResult<bool>{
-    let  rt = tokio::runtime::Runtime::new().unwrap();
-    let result= rt.block_on(async {
-        login::login_by_qrcode(serde_json::from_str(&ret).unwrap()).await
-    });
-    match result
-    {
-        Ok(_)=>Ok(true),
-        Err(err)=>{
-            Err(pyo3::exceptions::PyRuntimeError::new_err(format!("{}",err)))
-        },
+fn get_qrcode() -> PyResult<String> {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(async { login::get_qrcode().await });
+    match result {
+        Ok(res) => Ok(res.to_string()),
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}",
+            err
+        ))),
     }
-
+}
+#[pyfunction]
+fn login_by_qrcode(ret: String) -> PyResult<bool> {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result =
+        rt.block_on(async { login::login_by_qrcode(serde_json::from_str(&ret).unwrap()).await });
+    match result {
+        Ok(_) => Ok(true),
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}",
+            err
+        ))),
+    }
 }
 
 #[pyfunction]

@@ -417,16 +417,18 @@ impl Client {
         });
         let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
         info!("自动确认二维码");
-        let res: crate::video::Response = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .post("https://passport.bilibili.com/x/passport-tv-login/h5/qrcode/confirm")
             .header("Cookie", cookies)
             // .header("native_api_from", "h5")
-            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
             .form(&form)
             .send()
-            .await?
-            .json()
             .await?;
+        if !response.status().is_success() {
+            return Err(CustomError::Custom(response.text().await?));
+        }
+        let res: crate::video::Response = response.json().await?;
         if res.code != 0 {
             return Err(CustomError::Custom(format!("{res:#?}")));
         }
