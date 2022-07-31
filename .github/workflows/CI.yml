@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+#    container: quay.io/pypa/manylinux2010_x86_64
+    steps:
+    - uses: actions/checkout@v2
+#    - name: Install rust
+#      run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+#    - name: Installing custom dependency
+#      run: yum install -y openssl openssl-devel
+    - uses: messense/maturin-action@v1
+      with:
+        manylinux: auto
+        command: build
+        container: ghcr.io/biliup/manylinux2010
+        args: --release -o dist
+#    - name: Build
+#      run: |
+#        source $HOME/.cargo/env
+#        pip3 install maturin
+#        maturin build --release --manylinux 2010 -o dist
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: dist
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: messense/maturin-action@v1
+      with:
+        command: build
+        args: --release --no-sdist -o dist
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: dist
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: messense/maturin-action@v1
+      with:
+        command: build
+        args: --release --no-sdist -o dist --universal2
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: dist
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [ macos, windows, linux ]
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: wheels
+      - name: Publish to PyPI
+        uses: messense/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing *

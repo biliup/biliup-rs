@@ -1,0 +1,53 @@
+[package]
+name = "biliup"
+version = "0.1.11"
+edition = "2021"
+description = "Upload video to bilibili."
+license = "MIT OR Apache-2.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.minimal]
+inherits = "release"
+opt-level = 's'
+panic = 'abort'
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+reqwest_cookie_store = "0.2.0"
+cookie_store = "0.15.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+serde_json = "1.0"
+anyhow = "1.0"
+rsa = "0.5.0"
+base64 = "0.13.0"
+md-5 = "0.9.1"
+rand = "0.8.4"
+url = "2.2.2"
+thiserror = "1.0"
+cookie = "0.15.1"
+bytes = "1.1.0"
+futures = "0.3.17"
+typed-builder = "0.9.1"
+reqwest-middleware = "0.1.1"
+reqwest-retry = "0.1.1"
+serde_urlencoded = "0.7"
+dialoguer = "0.9.0"
+clap = { version = "3.0.0", features = ["derive"] }
+indicatif = "0.17.0-rc"
+qrcode = "0.12.0"
+image = "0.23.14"
+glob = "0.3.0"
+serde_yaml = "0.8"
+
+[target.'cfg(any(all(target_arch="aarch64", target_vendor="unknown", target_os="linux"), target_env="musl"))'.dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }
+
+[target.'cfg(not(any(all(target_arch="aarch64", target_vendor="unknown", target_os="linux"), target_env="musl")))'.dependencies]
+reqwest = { version = "0.11", features = ["stream", "json"] }
