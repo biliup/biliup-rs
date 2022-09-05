@@ -12,12 +12,14 @@ use serde_json::{json, Value};
 
 use std::fmt::{Display, Formatter};
 
-use reqwest::header::USER_AGENT;
+use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 use std::io::Seek;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::info;
 use url::Url;
+use crate::video::BiliBili;
 
 // const APP_KEY: &str = "ae57252b0c09105d";
 // const APPSEC: &str = "c75875c596a69eb55bd119e74b07cfe3";
@@ -83,34 +85,44 @@ impl Client {
         }
     }
 
-    pub async fn login_by_cookies(&self, mut file: std::fs::File) -> Result<LoginInfo> {
+    pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
+        let client: Client = Default::default();
+        // let path = file.as_ref();
+        let mut file = std::fs::File::options()
+            .read(true)
+            .write(true)
+            .open(file)?;
         let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
-        self.set_cookie(&login_info.cookie_info);
+        client.set_cookie(&login_info.cookie_info);
         info!("通过cookie登录");
-        let response = self.validate_tokens(&login_info).await?;
+        let response = client.validate_tokens(&login_info).await?;
         // if response.code != 0 {
         //     return Err(CustomError::Custom(response.to_string()));
         // }
-        match response {
+        let login_info = match response {
             ResponseData {
                 data: ResponseValue::OAuth(OAuthInfo { refresh: true, .. }),
                 ..
             } => {
-                let new_info = self.renew_tokens(login_info).await?;
+                let new_info = client.renew_tokens(login_info).await?;
                 file.rewind()?;
                 file.set_len(0)?;
                 serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
-                Ok(new_info)
+                new_info
             }
             ResponseData {
                 data: ResponseValue::OAuth(OAuthInfo { refresh: false, .. }),
                 ..
             } => {
                 info!("无需更新cookie");
-                Ok(login_info)
+                login_info
             }
-            _ => Err(CustomError::Custom(response.to_string())),
-        }
+            _ => return Err(CustomError::Custom(response.to_string())),
+        };
+        Ok(BiliBili{
+            client: client.client,
+            login_info
+        })
     }
 
     async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData> {
@@ -399,6 +411,40 @@ impl Client {
         Ok((hash.to_string(), key.to_string()))
     }
 
+    pub async fn login_by_web_qrcode(&self, sess_data: &str, dede_user_id: &str) -> Result<LoginInfo> {
+        info!("login_by_web_qrcode");
+        let qrcode: Value = reqwest::Client::new()
+            .get("http://passport.bilibili.com/qrcode/getLoginUrl")
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
+            .send()
+            .await?
+            .json()
+            .await?;
+        let oauth_key = qrcode["data"]["oauthKey"].as_str();
+        let cookies = format!("SESSDATA={sess_data}; DedeUserID={dede_user_id}");
+        reqwest::Client::new()
+            .post("https://passport.bilibili.com/qrcode/login/confirm")
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
+            .header(COOKIE, cookies)
+            .header(REFERER, "https://passport.bilibili.com/mobile/h5-confirm.html")
+            .header(ORIGIN, "https://passport.bilibili.com")
+            .form(&[("oauthKey", oauth_key)])
+            .send()
+            .await?
+            .json()
+            .await?;
+        self.client
+            .post("http://passport.bilibili.com/qrcode/getLoginInfo")
+            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
+            .form(&[("oauthKey", oauth_key)])
+            .send()
+            .await?
+            .json()
+            .await?;
+        self.login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct")).await
+    }
+
+
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
         info!("获取二维码");
         let qrcode = self.get_qrcode().await?;
@@ -457,6 +503,16 @@ impl Client {
                 .insert_raw(&cookie, &Url::parse("https://bilibili.com/").unwrap())
                 .unwrap();
         }
+    }
+
+    fn get_cookie(&self, name: &str) -> String {
+        let mut store = self.cookie_store.lock().unwrap();
+        for item in store.iter_any() {
+            if item.name() == name {
+                return item.value().to_string();
+            }
+        }
+        panic!("{name} not exist");
     }
 }
 

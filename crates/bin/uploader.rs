@@ -1,11 +1,3 @@
-use anyhow::{anyhow, Context, Result};
-
-use biliup::client::{Client, LoginInfo};
-use biliup::line::Probe;
-use biliup::video::{BiliBili, Studio, Vid, Video};
-use biliup::{line, load_config, VideoFile};
-use bytes::{Buf, Bytes};
-use clap::{ArgEnum, CommandFactory, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
@@ -19,205 +11,20 @@ use std::ffi::OsStr;
 use std::io::Seek;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-
+use anyhow::{anyhow, Context, Result};
+use clap::ValueEnum;
+use biliup::client::{Client, LoginInfo};
+use biliup::line::Probe;
+use biliup::video::{BiliBili, Studio, Vid, Video};
+use biliup::{line, load_config, VideoFile};
+use bytes::{Buf, Bytes};
 use std::task::Poll;
 use std::time::Instant;
+use biliup::error::CustomError;
+use crate::cli::UploadLine;
 
-#[derive(Parser)]
-#[clap(author, version, about)]
-struct Cli {
-    /// Turn debugging information on
-    // #[clap(short, long, parse(from_occurrences))]
-    // debug: usize,
-
-    #[clap(subcommand)]
-    command: Commands,
-
-    /// 登录信息文件
-    #[clap(short, long, default_value = "cookies.json")]
-    user_cookie: PathBuf,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// 登录B站并保存登录信息
-    Login,
-    /// 手动验证并刷新登录信息
-    Renew,
-    /// 上传视频
-    Upload {
-        // Optional name to operate on
-        // name: Option<String>,
-        /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
-        #[clap(parse(from_os_str))]
-        video_path: Vec<PathBuf>,
-
-        /// Sets a custom config file
-        #[clap(short, long, parse(from_os_str), value_name = "FILE")]
-        config: Option<PathBuf>,
-
-        /// 选择上传线路
-        #[clap(short, long, arg_enum)]
-        line: Option<UploadLine>,
-
-        /// 单视频文件最大并发数
-        #[clap(long, default_value = "3")]
-        limit: usize,
-
-        #[clap(flatten)]
-        studio: Studio,
-    },
-    /// 是否要对某稿件追加视频
-    Append {
-        // Optional name to operate on
-        // name: Option<String>,
-        /// vid为稿件 av 或 bv 号
-        #[clap(short, long)]
-        vid: Vid,
-        /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
-        #[clap(parse(from_os_str))]
-        video_path: Vec<PathBuf>,
-
-        /// 选择上传线路
-        #[clap(short, long, arg_enum)]
-        line: Option<UploadLine>,
-
-        /// 单视频文件最大并发数
-        #[clap(long, default_value = "3")]
-        limit: usize,
-
-        #[clap(flatten)]
-        studio: Studio,
-    },
-    /// 打印视频详情
-    Show {
-        /// vid为稿件 av 或 bv 号
-        // #[clap()]
-        vid: Vid,
-    },
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-pub enum UploadLine {
-    Bda2,
-    Ws,
-    Qn,
-    Kodo,
-    Cos,
-    CosInternal,
-}
-
-pub async fn parse() -> Result<()> {
-    let cli = Cli::parse();
-
-    // You can check the value provided by positional arguments, or option arguments
-    // if let Some(name) = cli.name.as_deref() {
-    //     println!("Value for name: {}", name);
-    // }
-    //
-    // if let Some(config_path) = cli.config.as_deref() {
-    //     println!("Value for config: {}", config_path.display());
-    // }
-
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    // match cli.debug {
-    //     0 => println!("Debug mode is off"),
-    //     1 => println!("Debug mode is kind of on"),
-    //     2 => println!("Debug mode is on"),
-    //     _ => println!("Don't be crazy"),
-    // }
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level app
+pub async fn login(user_cookie: PathBuf) -> Result<()> {
     let client: Client = Default::default();
-    match cli.command {
-        Commands::Login => {
-            login(client, cli.user_cookie).await?;
-        }
-        Commands::Renew => {
-            renew(client, cli.user_cookie).await?;
-        }
-        Commands::Upload {
-            video_path,
-            config: None,
-            line,
-            limit,
-            mut studio,
-        } if !video_path.is_empty() => {
-            println!("number of concurrent futures: {limit}");
-            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
-            if studio.title.is_empty() {
-                studio.title = video_path[0]
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string())
-                    .unwrap();
-            }
-            cover_up(&mut studio, &login_info, &client).await?;
-            studio.videos = upload(&video_path, &client, line, limit).await?;
-            studio.submit(&login_info).await?;
-        }
-        Commands::Upload {
-            video_path: _,
-            config: Some(config),
-            ..
-        } => {
-            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
-            let config = load_config(&config)?;
-            println!("number of concurrent futures: {}", config.limit);
-            for (filename_patterns, mut studio) in config.streamers {
-                let mut paths = Vec::new();
-                for entry in glob::glob(&filename_patterns)?.filter_map(Result::ok) {
-                    paths.push(entry);
-                }
-                if paths.is_empty() {
-                    println!("未搜索到匹配的视频文件：{filename_patterns}");
-                    continue;
-                }
-                cover_up(&mut studio, &login_info, &client).await?;
-
-                studio.videos = upload(
-                    &paths,
-                    &client,
-                    config
-                        .line
-                        .as_ref()
-                        .and_then(|l| UploadLine::from_str(l, true).ok()),
-                    config.limit,
-                )
-                .await?;
-                studio.submit(&login_info).await?;
-            }
-        }
-        Commands::Append {
-            video_path,
-            vid,
-            line,
-            limit,
-            studio: _,
-        } if !video_path.is_empty() => {
-            println!("number of concurrent futures: {limit}");
-            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
-            let mut uploaded_videos = upload(&video_path, &client, line, limit).await?;
-            let mut studio = BiliBili::new(&login_info, &client).studio_data(vid).await?;
-            studio.videos.append(&mut uploaded_videos);
-            studio.edit(&login_info).await?;
-        }
-        Commands::Show { vid } => {
-            let login_info = client.login_by_cookies(fopen_rw(cli.user_cookie)?).await?;
-            let video_info = BiliBili::new(&login_info, &client).video_data(vid).await?;
-            println!("{}", serde_json::to_string_pretty(&video_info)?)
-        }
-        _ => {
-            println!("参数不正确请参阅帮助");
-            Cli::command().print_help()?
-        }
-    };
-    Ok(())
-}
-
-async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("选择一种登录方式")
         .default(1)
@@ -225,7 +32,8 @@ async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
         .item("短信登录")
         .item("扫码登录")
         .item("浏览器登录")
-        .item("网页Cookie登录")
+        .item("网页Cookie登录1")
+        .item("网页Cookie登录2")
         .interact()?;
     let info = match selection {
         0 => login_by_password(client).await?,
@@ -233,6 +41,7 @@ async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
         2 => login_by_qrcode(client).await?,
         3 => login_by_browser(client).await?,
         4 => login_by_web_cookies(client).await?,
+        5 => login_by_webqr_cookies(client).await?,
         _ => panic!(),
     };
     let file = std::fs::File::create(user_cookie)?;
@@ -241,7 +50,8 @@ async fn login(client: Client, user_cookie: PathBuf) -> Result<()> {
     Ok(())
 }
 
-async fn renew(client: Client, user_cookie: PathBuf) -> Result<()> {
+pub async fn renew(user_cookie: PathBuf) -> Result<()> {
+    let client: Client = Default::default();
     let mut file = fopen_rw(user_cookie)?;
     let login_info: LoginInfo = serde_json::from_reader(&file)?;
     let new_info = client.renew_tokens(login_info).await?;
@@ -252,9 +62,80 @@ async fn renew(client: Client, user_cookie: PathBuf) -> Result<()> {
     Ok(())
 }
 
-async fn cover_up(studio: &mut Studio, login_info: &LoginInfo, client: &Client) -> Result<()> {
+pub async fn upload_by_command(mut studio: Studio,user_cookie: PathBuf, video_path: Vec<PathBuf>,line: Option<UploadLine>,limit: usize)-> Result<()> {
+    let bili = login_by_cookies(user_cookie).await?;
+    if studio.title.is_empty() {
+        studio.title = video_path[0]
+            .file_stem()
+            .and_then(OsStr::to_str)
+            .map(|s| s.to_string())
+            .unwrap();
+    }
+    cover_up(&mut studio, &bili).await?;
+    studio.videos = upload(&video_path, &bili, line, limit).await?;
+    bili.submit(&studio).await?;
+    Ok(())
+}
+
+pub async fn upload_by_config(config: PathBuf,user_cookie: PathBuf) -> Result<()>{
+    // println!("number of concurrent futures: {limit}");
+    let bilibili = login_by_cookies(user_cookie).await?;
+    let config = load_config(&config)?;
+    for (filename_patterns, mut studio) in config.streamers {
+        let mut paths = Vec::new();
+        for entry in glob::glob(&filename_patterns)?.filter_map(Result::ok) {
+            paths.push(entry);
+        }
+        if paths.is_empty() {
+            println!("未搜索到匹配的视频文件：{filename_patterns}");
+            continue;
+        }
+        cover_up(&mut studio, &bilibili).await?;
+
+        studio.videos = upload(
+            &paths,
+            &bilibili,
+            config
+                .line
+                .as_ref()
+                .and_then(|l| UploadLine::from_str(l, true).ok()),
+            config.limit,
+        )
+        .await?;
+        bilibili.submit(&studio).await?;
+    }
+    Ok(())
+}
+
+pub async fn append(user_cookie: PathBuf, vid: Vid,video_path: Vec<PathBuf>,line: Option<UploadLine>,limit: usize) -> Result<()>{
+    let bilibili = login_by_cookies(user_cookie).await?;
+    let mut uploaded_videos = upload(&video_path, &bilibili, line, limit).await?;
+    let mut studio = bilibili.studio_data(vid).await?;
+    studio.videos.append(&mut uploaded_videos);
+    bilibili.edit(&studio).await?;
+    // studio.edit(&login_info).await?;
+    Ok(())
+}
+
+pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()>{
+    let bilibili = login_by_cookies(user_cookie).await?;
+    let video_info = bilibili.video_data(vid).await?;
+    println!("{}", serde_json::to_string_pretty(&video_info)?);
+    Ok(())
+}
+
+async fn login_by_cookies(user_cookie: PathBuf)  -> Result<BiliBili>{
+    let mut result = Client::login_by_cookies(&user_cookie).await;
+    Ok(if let Err(CustomError::IO(_)) = result {
+        result.with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
+    } else {
+        result?
+    })
+}
+
+pub async fn cover_up(studio: &mut Studio, bili: &BiliBili) -> Result<()> {
     if !studio.cover.is_empty() {
-        let url = BiliBili::new(login_info, client)
+        let url = bili
             .cover_up(
                 &std::fs::read(Path::new(&studio.cover))
                     .with_context(|| format!("cover: {}", studio.cover))?,
@@ -268,10 +149,11 @@ async fn cover_up(studio: &mut Studio, login_info: &LoginInfo, client: &Client) 
 
 pub async fn upload(
     video_path: &[PathBuf],
-    client: &Client,
+    bili: &BiliBili,
     line: Option<UploadLine>,
     limit: usize,
 ) -> Result<Vec<Video>> {
+    println!("number of concurrent futures: {limit}");
     let mut videos = Vec::new();
     let line = match line {
         // Some("kodo") => line::kodo(),
@@ -296,7 +178,7 @@ pub async fn upload(
             .with_context(|| format!("file {}", video_path.to_string_lossy()))?;
         let total_size = video_file.total_size;
         let file_name = video_file.file_name.clone();
-        let uploader = line.to_uploader(video_file);
+        let uploader = line.pre_upload(bili,video_file).await?;
         //Progress bar
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
@@ -307,7 +189,7 @@ pub async fn upload(
         let instant = Instant::now();
 
         let video = uploader
-            .upload(client, limit, |vs| {
+            .upload(limit, |vs| {
                 vs.map(|chunk| {
                     let pb = pb.clone();
                     let chunk = chunk?;
@@ -399,6 +281,33 @@ pub async fn login_by_web_cookies(client: Client) -> Result<LoginInfo> {
     Ok(client.login_by_web_cookies(&sess_data, &bili_jct).await?)
 }
 
+pub async fn login_by_webqr_cookies(client: Client) -> Result<LoginInfo> {
+    let sess_data: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("请输入SESSDATA")
+        .interact_text()?;
+    let dede_user_id: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("请输入DedeUserID")
+        .interact_text()?;
+    Ok(client.login_by_web_qrcode(&sess_data, &dede_user_id).await?)
+}
+
+impl From<Progressbar> for Body {
+    fn from(async_stream: Progressbar) -> Self {
+        Body::wrap_stream(async_stream)
+    }
+}
+
+#[inline]
+pub fn fopen_rw<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
+    let path = path.as_ref();
+    std::fs::File::options()
+        .read(true)
+        .write(true)
+        .open(path)
+        .with_context(|| String::from("open cookies file: ") + &path.to_string_lossy())
+}
+
+
 #[derive(Clone)]
 struct Progressbar {
     bytes: Bytes,
@@ -443,20 +352,4 @@ impl Stream for Progressbar {
             Some(s) => Poll::Ready(Some(Ok(s))),
         }
     }
-}
-
-impl From<Progressbar> for Body {
-    fn from(async_stream: Progressbar) -> Self {
-        Body::wrap_stream(async_stream)
-    }
-}
-
-#[inline]
-fn fopen_rw<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
-    let path = path.as_ref();
-    std::fs::File::options()
-        .read(true)
-        .write(true)
-        .open(path)
-        .with_context(|| String::from("open cookies file: ") + &path.to_string_lossy())
 }

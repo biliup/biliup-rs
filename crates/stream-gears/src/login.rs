@@ -1,10 +1,10 @@
 use anyhow::Result;
 use biliup::client;
 use biliup::client::Client;
+use biliup::video::BiliBili;
 
-pub async fn login_by_cookies() -> Result<client::LoginInfo> {
-    let login_info = Client::new()
-        .login_by_cookies(std::fs::File::open("cookies.json")?)
+pub async fn login_by_cookies() -> Result<BiliBili> {
+    let login_info = Client::login_by_cookies("cookies.json")
         .await?;
     Ok(login_info)
 }

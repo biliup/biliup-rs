@@ -1,5 +1,5 @@
 use crate::downloader::util;
-use crate::flv_parser::{
+use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, ScriptData, SoundFormat, SoundRate,
     SoundSize, SoundType, TagHeader,
 };

@@ -110,13 +110,23 @@ checksum = "e6b4d9b1225d28d360ec6a231d65af1fd99a2a095154c8040689617290569c5c"
 name = "biliup"
 version = "0.1.11"
 dependencies = [
+ "anyhow",
  "base64",
+ "byteorder",
  "bytes",
+ "chrono",
  "clap",
  "cookie 0.15.1",
  "cookie_store 0.15.1",
+ "dialoguer",
  "futures",
+ "glob",
+ "image",
+ "indicatif",
+ "m3u8-rs",
  "md-5",
+ "nom",
+ "qrcode",
  "rand",
  "reqwest",
  "reqwest-middleware",
@@ -133,29 +143,6 @@ dependencies = [
  "tracing-subscriber",
  "typed-builder",
  "url",
-]
-
-[[package]]
-name = "biliup-bin"
-version = "0.1.11"
-dependencies = [
- "anyhow",
- "biliup",
- "bytes",
- "clap",
- "dialoguer",
- "futures",
- "glob",
- "image",
- "indicatif",
- "qrcode",
- "reqwest",
- "serde",
- "serde_json",
- "stream-gears",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1978,26 +1965,18 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 
 [[package]]
 name = "stream-gears"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "biliup",
- "byteorder",
- "bytes",
- "chrono",
  "futures",
- "m3u8-rs",
- "nom",
  "pyo3",
- "reqwest",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
- "url",
 ]
 
 [[package]]

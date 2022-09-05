@@ -9,6 +9,7 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;
+use biliup::error::CustomError;
 
 #[pyclass]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -36,14 +37,18 @@ pub async fn upload(
     cover: String,
     dtime: Option<u32>,
 ) -> Result<Value> {
-    let client: Client = Default::default();
-    let file = std::fs::File::options()
-        .read(true)
-        .write(true)
-        .open(&cookie_file);
-    let login_info = client
-        .login_by_cookies(file.with_context(|| cookie_file.to_str().unwrap().to_string())?)
-        .await?;
+    // let file = std::fs::File::options()
+    //     .read(true)
+    //     .write(true)
+    //     .open(&cookie_file);
+    let bilibili = Client::
+        login_by_cookies(&cookie_file)
+        .await;
+    let bilibili = if let Err(CustomError::IO(_)) = bilibili {
+        bilibili.with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
+    } else {
+        bilibili?
+    };
     let mut videos = Vec::new();
     let line = match line {
         Some(UploadLine::Kodo) => line::kodo(),
@@ -61,12 +66,12 @@ pub async fn upload(
         let video_file = VideoFile::new(&video_path)?;
         let total_size = video_file.total_size;
         let file_name = video_file.file_name.clone();
-        let uploader = line.to_uploader(video_file);
+        let uploader = line.pre_upload(&bilibili, video_file).await?;
 
         let instant = Instant::now();
 
         let video = uploader
-            .upload(&client, limit, |vs| {
+            .upload( limit, |vs| {
                 vs.map(|vs| {
                     let chunk = vs?;
                     let len = chunk.len();
@@ -95,7 +100,7 @@ pub async fn upload(
         .videos(videos)
         .build();
     if !studio.cover.is_empty() {
-        let url = BiliBili::new(&login_info, &client)
+        let url = bilibili
             .cover_up(
                 &std::fs::read(&studio.cover)
                     .with_context(|| format!("cover: {}", studio.cover))?,
@@ -104,6 +109,6 @@ pub async fn upload(
         println!("{url}");
         studio.cover = url;
     }
-    Ok(studio.submit(&login_info).await?)
+    Ok(bilibili.submit(&studio).await?)
     // Ok(videos)
 }

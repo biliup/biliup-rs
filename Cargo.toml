@@ -2,7 +2,6 @@
 members = [
     "crates/biliup",
     "crates/stream-gears",
-    "crates/bin",
 ]
 resolver = "2"
 

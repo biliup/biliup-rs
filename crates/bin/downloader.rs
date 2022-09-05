@@ -1,54 +1,18 @@
-mod cli;
+use biliup::downloader::httpflv::map_parse_err;
+use biliup::downloader::flv_parser::{aac_audio_packet_header, avc_video_packet_header, CodecId, header, script_data, SoundFormat, tag_data, tag_header, TagData};
+use biliup::downloader::flv_writer;
+use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
+use std::io::{BufReader, BufWriter, ErrorKind, Read};
+use std::path::PathBuf;
 use anyhow::Result;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use std::env;
-use std::io::{BufReader, BufWriter, ErrorKind, Read};
-use std::time::Duration;
-use stream_gears::downloader::httpflv::{download, map_parse_err, Connection};
-use stream_gears::downloader::util::Segment;
-use stream_gears::flv_parser::{
-    aac_audio_packet_header, avc_video_packet_header, header, script_data, tag_data, tag_header,
-    CodecId, SoundFormat, TagData,
-};
-use stream_gears::flv_writer::{self, FlvTag, TagDataHeader};
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
+use thiserror::private::PathAsDisplay;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // let args: Vec<String> = std::env::args().collect();
-    println!("{:?}", std::env::current_exe());
-    // a builder for `FmtSubscriber`.
-    let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::INFO)
-        // completes the builder.
-        .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-    cli::parse().await?;
-
+pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     // let args: Vec<String> = env::args().collect();
     // let file_name = &args[1];
-    // let flv_file = std::fs::File::open(file_name)?;
-    // let buf_reader = BufReader::new(flv_file);
-    // let mut connection = Connection::new(buf_reader);
-    // connection.read_frame(9)?;
-    // download(
-    //     connection,
-    //     &(file_name.to_owned() + "new%H_%M_%S%.f"),
-    //     Segment::Time(Duration::from_secs(60 * 60 * 24), Default::default()),
-    // );
-    // Ok(result)
-    // generate_json()?;
-    Ok(())
-}
-
-fn generate_json() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
-    let file_name = &args[1];
-    let flv_file = std::fs::File::open(file_name)?;
+    let flv_file = std::fs::File::open(&file_name)?;
     let buf_reader = BufReader::new(flv_file);
     let mut reader = Reader::new(buf_reader);
 
@@ -58,7 +22,9 @@ fn generate_json() -> Result<()> {
     let mut tag_count = 0;
     let _err_count = 0;
     let flv_header = reader.read_frame(9)?;
-    let file = std::fs::File::create(format!("{file_name}.json"))?;
+    // file_name.parent().and_then(|p|p + file_name.file_name()+".json");
+    file_name.set_extension("json");
+    let file = std::fs::File::create(file_name)?;
     let mut writer = BufWriter::new(file);
     // Vec::clear()
     let (_, header) = map_parse_err(header(&flv_header), "flv header")?;

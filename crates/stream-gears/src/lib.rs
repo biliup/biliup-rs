@@ -1,21 +1,16 @@
-pub mod downloader;
-pub mod error;
-pub mod flv_parser;
-pub mod flv_writer;
 mod login;
 mod uploader;
 
-use crate::downloader::construct_headers;
-use crate::uploader::UploadLine;
-
 use pyo3::prelude::*;
 
-use downloader::util::Segment;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use tracing_subscriber::layer::SubscriberExt;
+use biliup::downloader::construct_headers;
+use biliup::downloader::util::Segment;
+use crate::uploader::UploadLine;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
@@ -58,7 +53,7 @@ fn download(
             PySegment::Size { size } => Segment::Size(size, 0),
         };
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
-            match downloader::download(url, map, file_name, segment) {
+            match biliup::downloader::download(url, map, file_name, segment) {
                 Ok(res) => Ok(res),
                 // Ok(_) => {  },
                 Err(err) => {

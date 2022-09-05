@@ -1,9 +1,9 @@
 use crate::downloader::httpflv::Connection;
-use crate::flv_parser::header;
+use flv_parser::header;
 use nom::Err;
 use reqwest::blocking::Response;
 use reqwest::header::{
-    HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, USER_AGENT,
+    ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderName, HeaderValue, USER_AGENT,
 };
 use std::collections::HashMap;
 
@@ -16,6 +16,9 @@ use util::Segment;
 mod hls;
 pub mod httpflv;
 pub mod util;
+pub mod flv_parser;
+pub mod flv_writer;
+pub mod error;
 
 pub fn download(
     url: &str,
@@ -97,10 +100,10 @@ fn retry<O, E: std::fmt::Display>(mut f: impl FnMut() -> Result<O, E>) -> Result
 
 #[cfg(test)]
 mod tests {
-    use crate::downloader::download;
-    use crate::downloader::util::Segment;
     use anyhow::Result;
     use reqwest::header::{HeaderMap, HeaderValue, REFERER};
+    use crate::downloader::download;
+    use crate::downloader::util::Segment;
 
     #[test]
     fn it_works() -> Result<()> {

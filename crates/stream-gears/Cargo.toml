@@ -10,25 +10,19 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 pyo3 = { version = "0.16.3", features = ["extension-module"] }
-url = "*"
-m3u8-rs = "4.0.0"
-nom = "7"
 serde = "1"
 serde_json = "1.0"
-chrono = "0.4"
-bytes = "1.1.0"
-byteorder = "1.4.3"
-anyhow = "1.0"
-thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 tracing-appender = "0.2"
+anyhow = "1.0"
 futures = "0.3.21"
-reqwest = { version = "0.11", default-features = false, features = ["blocking", "deflate", "gzip"] }
+biliup = { path = "../biliup"}
 
-[target.'cfg(all(target_arch="aarch64", target_os="linux"))'.dependencies]
-biliup = { path = "../biliup", default-features = false , features = ["rustls-tls"]}
-
-[target.'cfg(not(all(target_arch="aarch64", target_os="linux")))'.dependencies]
-biliup = { path = "../biliup" }
+#[target.'cfg(all(target_arch="aarch64", target_os="linux"))'.dependencies]
+#downloader = { path = "../downloader", default-features = false , features = ["rustls-tls"] }
+#
+#
+#[target.'cfg(not(all(target_arch="aarch64", target_os="linux")))'.dependencies]
+#downloader = { path = "../downloader" }
