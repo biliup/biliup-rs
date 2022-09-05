@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 
 use std::fmt::{Display, Formatter};
 
+use crate::video::BiliBili;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 use std::io::Seek;
 use std::path::Path;
@@ -19,7 +20,6 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::info;
 use url::Url;
-use crate::video::BiliBili;
 
 // const APP_KEY: &str = "ae57252b0c09105d";
 // const APPSEC: &str = "c75875c596a69eb55bd119e74b07cfe3";
@@ -88,10 +88,7 @@ impl Client {
     pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
         let client: Client = Default::default();
         // let path = file.as_ref();
-        let mut file = std::fs::File::options()
-            .read(true)
-            .write(true)
-            .open(file)?;
+        let mut file = std::fs::File::options().read(true).write(true).open(file)?;
         let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
         client.set_cookie(&login_info.cookie_info);
         info!("通过cookie登录");
@@ -119,9 +116,9 @@ impl Client {
             }
             _ => return Err(CustomError::Custom(response.to_string())),
         };
-        Ok(BiliBili{
+        Ok(BiliBili {
             client: client.client,
-            login_info
+            login_info,
         })
     }
 
@@ -411,7 +408,11 @@ impl Client {
         Ok((hash.to_string(), key.to_string()))
     }
 
-    pub async fn login_by_web_qrcode(&self, sess_data: &str, dede_user_id: &str) -> Result<LoginInfo> {
+    pub async fn login_by_web_qrcode(
+        &self,
+        sess_data: &str,
+        dede_user_id: &str,
+    ) -> Result<LoginInfo> {
         info!("login_by_web_qrcode");
         let qrcode: Value = reqwest::Client::new()
             .get("http://passport.bilibili.com/qrcode/getLoginUrl")
@@ -441,9 +442,9 @@ impl Client {
             .await?
             .json()
             .await?;
-        self.login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct")).await
+        self.login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct"))
+            .await
     }
-
 
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
         info!("获取二维码");
@@ -506,7 +507,7 @@ impl Client {
     }
 
     fn get_cookie(&self, name: &str) -> String {
-        let mut store = self.cookie_store.lock().unwrap();
+        let store = self.cookie_store.lock().unwrap();
         for item in store.iter_any() {
             if item.name() == name {
                 return item.value().to_string();

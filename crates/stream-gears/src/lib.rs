@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use tracing_subscriber::layer::SubscriberExt;
+use crate::uploader::UploadLine;
 use biliup::downloader::construct_headers;
 use biliup::downloader::util::Segment;
-use crate::uploader::UploadLine;
+use tracing_subscriber::layer::SubscriberExt;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
@@ -56,13 +56,11 @@ fn download(
             match biliup::downloader::download(url, map, file_name, segment) {
                 Ok(res) => Ok(res),
                 // Ok(_) => {  },
-                Err(err) => {
-                    return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "{}, {}",
-                        err.root_cause(),
-                        err
-                    )));
-                }
+                Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "{}, {}",
+                    err.root_cause(),
+                    err
+                ))),
             }
         })
     })
@@ -73,13 +71,11 @@ fn login_by_cookies() -> PyResult<bool> {
     let result = rt.block_on(async { login::login_by_cookies().await });
     match result {
         Ok(_) => Ok(true),
-        Err(err) => {
-            return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-                "{}, {}",
-                err.root_cause(),
-                err
-            )));
-        }
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}, {}",
+            err.root_cause(),
+            err
+        ))),
     }
 }
 #[pyfunction]
@@ -182,13 +178,11 @@ fn upload(
             )) {
                 Ok(_res) => Ok(()),
                 // Ok(_) => {  },
-                Err(err) => {
-                    return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "{}, {}",
-                        err.root_cause(),
-                        err
-                    )));
-                }
+                Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "{}, {}",
+                    err.root_cause(),
+                    err
+                ))),
             }
         })
     })

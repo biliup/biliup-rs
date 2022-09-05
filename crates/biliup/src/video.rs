@@ -1,4 +1,4 @@
-use crate::client::{Client, LoginInfo};
+use crate::client::LoginInfo;
 use crate::error::{CustomError, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -173,7 +173,7 @@ impl Video {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Vid {
     Aid(u64),
     Bvid(String),
@@ -349,7 +349,7 @@ impl BiliBili {
         {
             Ok(value["url"].as_str().ok_or("cover_up error")?.into())
         } else {
-            return Err(CustomError::Custom(format!("{res:?}")));
+            Err(CustomError::Custom(format!("{res:?}")))
         }
     }
 }

@@ -1,18 +1,15 @@
 mod cli;
-mod uploader;
 mod downloader;
+mod uploader;
 
 use anyhow::Result;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use std::env;
-use std::time::Duration;
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
+
 use crate::cli::{Cli, Commands};
-use clap::Parser;
 use crate::downloader::generate_json;
 use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_config};
-
+use clap::Parser;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -49,9 +46,7 @@ async fn parse() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Login => {
-            login(cli.user_cookie).await?
-        }
+        Commands::Login => login(cli.user_cookie).await?,
         Commands::Renew => {
             renew(cli.user_cookie).await?;
         }
@@ -60,38 +55,22 @@ async fn parse() -> Result<()> {
             config: None,
             line,
             limit,
-            mut studio,
-        } => {
-           upload_by_command( studio,cli.user_cookie, video_path,line,
-                              limit,
-                              ).await?
-        }
+            studio,
+        } => upload_by_command(studio, cli.user_cookie, video_path, line, limit).await?,
         Commands::Upload {
             video_path: _,
             config: Some(config),
             ..
-        } => {
-            upload_by_config(config,cli.user_cookie).await?
-        }
+        } => upload_by_config(config, cli.user_cookie).await?,
         Commands::Append {
             video_path,
             vid,
             line,
             limit,
             studio: _,
-        } => {
-            append(cli.user_cookie, vid,video_path,line,
-                   limit,).await?
-        }
-        Commands::Show { vid } => {
-            show(cli.user_cookie, vid).await?
-        },
-        Commands::DumpFlv{file_name} => {
-            generate_json(file_name)?
-        }
+        } => append(cli.user_cookie, vid, video_path, line, limit).await?,
+        Commands::Show { vid } => show(cli.user_cookie, vid).await?,
+        Commands::DumpFlv { file_name } => generate_json(file_name)?,
     };
     Ok(())
 }
-
-
-

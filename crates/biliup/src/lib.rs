@@ -10,10 +10,10 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 pub mod client;
+pub mod downloader;
 pub mod error;
 pub mod line;
 pub mod video;
-pub mod downloader;
 
 pub mod uploader {
     use serde::{Deserialize, Serialize};
@@ -33,12 +33,12 @@ pub mod uploader {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub account: Account,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Account {
     pub username: String,
     pub password: String,
@@ -154,7 +154,6 @@ mod tests {
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
     use url::Url;
-    use crate::client::Client;
 
     #[test]
     fn it_works() {
@@ -181,7 +180,8 @@ mod tests {
         let subscriber = FmtSubscriber::builder()
             .with_max_level(Level::INFO)
             .finish();
-        tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("setting default subscriber failed");
         Url::parse("https://bilibili.com/").unwrap();
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
         let stream = futures::stream::iter(chunks);

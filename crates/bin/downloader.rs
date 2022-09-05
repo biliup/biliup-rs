@@ -1,13 +1,14 @@
-use biliup::downloader::httpflv::map_parse_err;
-use biliup::downloader::flv_parser::{aac_audio_packet_header, avc_video_packet_header, CodecId, header, script_data, SoundFormat, tag_data, tag_header, TagData};
+use anyhow::Result;
+use biliup::downloader::flv_parser::{
+    aac_audio_packet_header, avc_video_packet_header, header, script_data, tag_data, tag_header,
+    CodecId, SoundFormat, TagData,
+};
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
+use biliup::downloader::httpflv::map_parse_err;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
-use anyhow::Result;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use thiserror::private::PathAsDisplay;
-
 
 pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     // let args: Vec<String> = env::args().collect();

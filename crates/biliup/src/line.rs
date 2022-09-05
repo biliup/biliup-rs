@@ -1,4 +1,3 @@
-use crate::client::Client;
 use crate::error::Result;
 use crate::uploader::cos::Cos;
 use crate::uploader::kodo::Kodo;
@@ -7,15 +6,15 @@ use crate::uploader::Uploader;
 use crate::{Video, VideoFile, VideoStream};
 use futures::{Stream, TryStreamExt};
 use reqwest::Body;
-use serde::de::DeserializeOwned;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 
 use crate::error::CustomError::Custom;
+use crate::video::BiliBili;
 use std::time::Instant;
 use tracing::info;
-use crate::video::BiliBili;
 
 pub struct Parcel {
     // line: &'a Line,
@@ -201,7 +200,6 @@ enum Bucket {
     Upos(crate::uploader::upos::Bucket),
 }
 
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Line {
     os: Uploader,
@@ -234,7 +232,8 @@ impl Line {
             "size": total_size,
         });
         info!("pre_upload: {}", params);
-        let response = bili.client
+        let response = bili
+            .client
             .get(format!(
                 "https://member.bilibili.com/preupload?{}",
                 self.query
@@ -249,16 +248,21 @@ impl Line {
             )));
         }
         match self.os {
-            Uploader::Upos => {
-                Ok(Parcel{line: Bucket::Upos(response.json().await?), video_file })
+            Uploader::Upos => Ok(Parcel {
+                line: Bucket::Upos(response.json().await?),
+                video_file,
+            }),
+            Uploader::Kodo => Ok(Parcel {
+                line: Bucket::Kodo(response.json().await?),
+                video_file,
+            }),
+            Uploader::Bos | Uploader::Gcs => {
+                panic!("unsupported")
             }
-            Uploader::Kodo => {
-                Ok(Parcel{line: Bucket::Kodo(response.json().await?), video_file })
-            }
-            Uploader::Bos |Uploader::Gcs  => {panic!("unsupported")}
-            Uploader::Cos => {
-                Ok(Parcel{line: Bucket::Cos(response.json().await?, self.probe_url == "internal"), video_file })
-            }
+            Uploader::Cos => Ok(Parcel {
+                line: Bucket::Cos(response.json().await?, self.probe_url == "internal"),
+                video_file,
+            }),
         }
     }
 

@@ -1,3 +1,12 @@
+use crate::cli::UploadLine;
+use anyhow::{anyhow, Context, Result};
+use biliup::client::{Client, LoginInfo};
+use biliup::error::CustomError;
+use biliup::line::Probe;
+use biliup::video::{BiliBili, Studio, Vid, Video};
+use biliup::{line, load_config, VideoFile};
+use bytes::{Buf, Bytes};
+use clap::ValueEnum;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
@@ -11,17 +20,8 @@ use std::ffi::OsStr;
 use std::io::Seek;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use anyhow::{anyhow, Context, Result};
-use clap::ValueEnum;
-use biliup::client::{Client, LoginInfo};
-use biliup::line::Probe;
-use biliup::video::{BiliBili, Studio, Vid, Video};
-use biliup::{line, load_config, VideoFile};
-use bytes::{Buf, Bytes};
 use std::task::Poll;
 use std::time::Instant;
-use biliup::error::CustomError;
-use crate::cli::UploadLine;
 
 pub async fn login(user_cookie: PathBuf) -> Result<()> {
     let client: Client = Default::default();
@@ -62,7 +62,13 @@ pub async fn renew(user_cookie: PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub async fn upload_by_command(mut studio: Studio,user_cookie: PathBuf, video_path: Vec<PathBuf>,line: Option<UploadLine>,limit: usize)-> Result<()> {
+pub async fn upload_by_command(
+    mut studio: Studio,
+    user_cookie: PathBuf,
+    video_path: Vec<PathBuf>,
+    line: Option<UploadLine>,
+    limit: usize,
+) -> Result<()> {
     let bili = login_by_cookies(user_cookie).await?;
     if studio.title.is_empty() {
         studio.title = video_path[0]
@@ -77,7 +83,7 @@ pub async fn upload_by_command(mut studio: Studio,user_cookie: PathBuf, video_pa
     Ok(())
 }
 
-pub async fn upload_by_config(config: PathBuf,user_cookie: PathBuf) -> Result<()>{
+pub async fn upload_by_config(config: PathBuf, user_cookie: PathBuf) -> Result<()> {
     // println!("number of concurrent futures: {limit}");
     let bilibili = login_by_cookies(user_cookie).await?;
     let config = load_config(&config)?;
@@ -107,7 +113,13 @@ pub async fn upload_by_config(config: PathBuf,user_cookie: PathBuf) -> Result<()
     Ok(())
 }
 
-pub async fn append(user_cookie: PathBuf, vid: Vid,video_path: Vec<PathBuf>,line: Option<UploadLine>,limit: usize) -> Result<()>{
+pub async fn append(
+    user_cookie: PathBuf,
+    vid: Vid,
+    video_path: Vec<PathBuf>,
+    line: Option<UploadLine>,
+    limit: usize,
+) -> Result<()> {
     let bilibili = login_by_cookies(user_cookie).await?;
     let mut uploaded_videos = upload(&video_path, &bilibili, line, limit).await?;
     let mut studio = bilibili.studio_data(vid).await?;
@@ -117,17 +129,18 @@ pub async fn append(user_cookie: PathBuf, vid: Vid,video_path: Vec<PathBuf>,line
     Ok(())
 }
 
-pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()>{
+pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
     let bilibili = login_by_cookies(user_cookie).await?;
     let video_info = bilibili.video_data(vid).await?;
     println!("{}", serde_json::to_string_pretty(&video_info)?);
     Ok(())
 }
 
-async fn login_by_cookies(user_cookie: PathBuf)  -> Result<BiliBili>{
-    let mut result = Client::login_by_cookies(&user_cookie).await;
+async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
+    let result = Client::login_by_cookies(&user_cookie).await;
     Ok(if let Err(CustomError::IO(_)) = result {
-        result.with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
+        result
+            .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
     } else {
         result?
     })
@@ -178,7 +191,7 @@ pub async fn upload(
             .with_context(|| format!("file {}", video_path.to_string_lossy()))?;
         let total_size = video_file.total_size;
         let file_name = video_file.file_name.clone();
-        let uploader = line.pre_upload(bili,video_file).await?;
+        let uploader = line.pre_upload(bili, video_file).await?;
         //Progress bar
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
@@ -288,7 +301,9 @@ pub async fn login_by_webqr_cookies(client: Client) -> Result<LoginInfo> {
     let dede_user_id: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入DedeUserID")
         .interact_text()?;
-    Ok(client.login_by_web_qrcode(&sess_data, &dede_user_id).await?)
+    Ok(client
+        .login_by_web_qrcode(&sess_data, &dede_user_id)
+        .await?)
 }
 
 impl From<Progressbar> for Body {
@@ -306,7 +321,6 @@ pub fn fopen_rw<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
         .open(path)
         .with_context(|| String::from("open cookies file: ") + &path.to_string_lossy())
 }
-
 
 #[derive(Clone)]
 struct Progressbar {

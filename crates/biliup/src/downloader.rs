@@ -3,7 +3,7 @@ use flv_parser::header;
 use nom::Err;
 use reqwest::blocking::Response;
 use reqwest::header::{
-    ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderName, HeaderValue, USER_AGENT,
+    HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, USER_AGENT,
 };
 use std::collections::HashMap;
 
@@ -13,12 +13,12 @@ use std::thread::sleep;
 use std::time::Duration;
 use util::Segment;
 
+pub mod error;
+pub mod flv_parser;
+pub mod flv_writer;
 mod hls;
 pub mod httpflv;
 pub mod util;
-pub mod flv_parser;
-pub mod flv_writer;
-pub mod error;
 
 pub fn download(
     url: &str,
@@ -100,10 +100,10 @@ fn retry<O, E: std::fmt::Display>(mut f: impl FnMut() -> Result<O, E>) -> Result
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use reqwest::header::{HeaderMap, HeaderValue, REFERER};
     use crate::downloader::download;
     use crate::downloader::util::Segment;
+    use anyhow::Result;
+    use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 
     #[test]
     fn it_works() -> Result<()> {

@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use biliup::client::Client;
+use biliup::error::CustomError;
 use biliup::line::{self, Probe};
-use biliup::video::{BiliBili, Studio};
+use biliup::video::Studio;
 use biliup::VideoFile;
 use futures::StreamExt;
 use pyo3::pyclass;
@@ -9,7 +10,6 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;
-use biliup::error::CustomError;
 
 #[pyclass]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -41,11 +41,10 @@ pub async fn upload(
     //     .read(true)
     //     .write(true)
     //     .open(&cookie_file);
-    let bilibili = Client::
-        login_by_cookies(&cookie_file)
-        .await;
+    let bilibili = Client::login_by_cookies(&cookie_file).await;
     let bilibili = if let Err(CustomError::IO(_)) = bilibili {
-        bilibili.with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
+        bilibili
+            .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
     } else {
         bilibili?
     };
@@ -71,7 +70,7 @@ pub async fn upload(
         let instant = Instant::now();
 
         let video = uploader
-            .upload( limit, |vs| {
+            .upload(limit, |vs| {
                 vs.map(|vs| {
                     let chunk = vs?;
                     let len = chunk.len();

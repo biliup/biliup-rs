@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-use clap::{ArgEnum, CommandFactory, Parser, Subcommand};
 use biliup::video::{Studio, Vid};
+use clap::{ArgEnum, Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -75,10 +75,10 @@ pub enum Commands {
         vid: Vid,
     },
     /// 输出flv元数据
-    DumpFlv{
+    DumpFlv {
         #[clap(parse(from_os_str))]
-        file_name: PathBuf
-    }
+        file_name: PathBuf,
+    },
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]

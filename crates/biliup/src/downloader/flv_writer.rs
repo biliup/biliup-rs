@@ -1,8 +1,8 @@
-use crate::downloader::util;
 use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, ScriptData, SoundFormat, SoundRate,
     SoundSize, SoundType, TagHeader,
 };
+use crate::downloader::util;
 use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
 use std::fs::File;

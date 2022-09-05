@@ -1,11 +1,10 @@
 use anyhow::Result;
-use biliup::client;
+
 use biliup::client::Client;
 use biliup::video::BiliBili;
 
 pub async fn login_by_cookies() -> Result<BiliBili> {
-    let login_info = Client::login_by_cookies("cookies.json")
-        .await?;
+    let login_info = Client::login_by_cookies("cookies.json").await?;
     Ok(login_info)
 }
 pub async fn send_sms(country_code: u32, phone: u64) -> Result<serde_json::Value> {

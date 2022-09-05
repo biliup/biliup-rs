@@ -1,9 +1,9 @@
-use crate::downloader::util::Segment;
 use crate::downloader::flv_parser::{
     aac_audio_packet_header, avc_video_packet_header, script_data, tag_data, tag_header,
     AACPacketType, AVCPacketType, CodecId, FrameType, SoundFormat, TagData, TagHeader,
 };
 use crate::downloader::flv_writer::{FlvFile, FlvTag, TagDataHeader};
+use crate::downloader::util::Segment;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use nom::{Err, IResult};
 use std::io::{ErrorKind, Read};
@@ -261,9 +261,10 @@ pub fn map_parse_err<'a, T>(
 ) -> core::result::Result<(&'a [u8], T), crate::downloader::error::Error> {
     match i_result {
         Ok((i, res)) => Ok((i, res)),
-        Err(nom::Err::Incomplete(needed)) => {
-            Err(crate::downloader::error::Error::NomIncomplete(msg.to_string(), needed))
-        }
+        Err(nom::Err::Incomplete(needed)) => Err(crate::downloader::error::Error::NomIncomplete(
+            msg.to_string(),
+            needed,
+        )),
         Err(Err::Error(e)) => {
             panic!("parse {msg} err: {e:?}")
         }
