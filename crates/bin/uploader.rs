@@ -142,7 +142,9 @@ async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
         result
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
     } else {
-        result?
+        let bili = result?;
+        println!("user: {}", bili.my_info().await?["data"]["name"].as_str().unwrap_or_default());
+        bili
     })
 }
 

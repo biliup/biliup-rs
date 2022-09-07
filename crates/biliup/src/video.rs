@@ -305,6 +305,16 @@ impl BiliBili {
         Ok(studio)
     }
 
+    pub async fn my_info(&self) -> Result<Value> {
+        Ok(self
+            .client
+            .get("https://api.bilibili.com/x/space/myinfo")
+            .send()
+            .await?
+            .json()
+            .await?)
+    }
+
     pub async fn archive_pre(&self) -> Result<Value> {
         Ok(self
             .client

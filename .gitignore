@@ -1,6 +1,7 @@
 /target
 .idea
 *.mp4
+*.flv
 *.json
 *.exe
 *.png

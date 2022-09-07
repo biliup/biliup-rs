@@ -1,13 +1,12 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use biliup::downloader::flv_parser::{
     aac_audio_packet_header, avc_video_packet_header, header, script_data, tag_data, tag_header,
     CodecId, SoundFormat, TagData,
 };
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
-use biliup::downloader::httpflv::map_parse_err;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use std::io::{BufReader, BufWriter, ErrorKind, Read};
+use biliup::downloader::httpflv::{Connection, map_parse_err};
+use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 
 pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
@@ -15,7 +14,7 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     // let file_name = &args[1];
     let flv_file = std::fs::File::open(&file_name)?;
     let buf_reader = BufReader::new(flv_file);
-    let mut reader = Reader::new(buf_reader);
+    let mut reader = Connection::new(buf_reader);
 
     let mut script_tag_count = 0;
     let mut audio_tag_count = 0;
@@ -24,11 +23,15 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     let _err_count = 0;
     let flv_header = reader.read_frame(9)?;
     // file_name.parent().and_then(|p|p + file_name.file_name()+".json");
-    file_name.set_extension("json");
-    let file = std::fs::File::create(file_name)?;
-    let mut writer = BufWriter::new(file);
     // Vec::clear()
     let (_, header) = map_parse_err(header(&flv_header), "flv header")?;
+    let mut os_string = file_name.extension().unwrap_or_default().to_owned();
+    os_string.push(".json");
+    file_name.set_extension(os_string);
+    // file_name.extend(".json");
+    // file_name.with_extension()
+    let file = std::fs::File::options().create_new(true).write(true).open(&file_name).with_context(|| format!("file name: {}", file_name.canonicalize().unwrap().display()))?;
+    let mut writer = BufWriter::new(file);
     flv_writer::to_json(&mut writer, &header)?;
     loop {
         let _previous_tag_size = reader.read_frame(4)?;
@@ -118,45 +121,8 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
         flv_writer::to_json(&mut writer, &flv_tag)?;
     }
     println!("tag count: {tag_count}");
-    println!("audio tag count: {audio_tag_count}");
     println!("script tag count: {script_tag_count}");
+    println!("audio tag count: {audio_tag_count}");
     println!("video tag count: {video_tag_count}");
     Ok(())
-}
-
-pub struct Reader<T> {
-    read: T,
-    buffer: BytesMut,
-}
-
-impl<T: Read> Reader<T> {
-    fn new(read: T) -> Reader<T> {
-        Reader {
-            read,
-            buffer: BytesMut::with_capacity(8 * 1024),
-        }
-    }
-
-    fn read_frame(&mut self, chunk_size: usize) -> std::io::Result<Bytes> {
-        let mut buf = [0u8; 8 * 1024];
-        loop {
-            if chunk_size <= self.buffer.len() {
-                let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
-                self.buffer.advance(chunk_size as usize);
-                return Ok(bytes);
-            }
-            // BytesMut::with_capacity(0).deref_mut()
-            // tokio::fs::File::open("").read()
-            // self.read_buf.
-            let n = match self.read.read(&mut buf) {
-                Ok(n) => n,
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
-                Err(e) => return Err(e),
-            };
-            if n == 0 {
-                return Ok(self.buffer.split().freeze());
-            }
-            self.buffer.put_slice(&buf[..n]);
-        }
-    }
 }
