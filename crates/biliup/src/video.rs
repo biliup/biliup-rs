@@ -102,54 +102,6 @@ pub struct Studio {
     pub open_elec: Option<u8>,
 }
 
-// impl Studio {
-//     pub async fn submit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
-//         let ret: serde_json::Value = reqwest::Client::builder()
-//             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-//             .timeout(Duration::new(60, 0))
-//             .build()?
-//             .post(format!(
-//                 "http://member.bilibili.com/x/vu/client/add?access_key={}",
-//                 login_info.token_info.access_token
-//             ))
-//             .json(self)
-//             .send()
-//             .await?
-//             .json()
-//             .await?;
-//         info!("{}", ret);
-//         if ret["code"] == 0 {
-//             info!("投稿成功");
-//             Ok(ret)
-//         } else {
-//             Err(CustomError::Custom(ret.to_string()))
-//         }
-//     }
-//
-//     pub async fn edit(&mut self, login_info: &LoginInfo) -> Result<serde_json::Value> {
-//         let ret: serde_json::Value = reqwest::Client::builder()
-//             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-//             .timeout(Duration::new(60, 0))
-//             .build()?
-//             .post(format!(
-//                 "http://member.bilibili.com/x/vu/client/edit?access_key={}",
-//                 login_info.token_info.access_token
-//             ))
-//             .json(self)
-//             .send()
-//             .await?
-//             .json()
-//             .await?;
-//         info!("{}", ret);
-//         if ret["code"] == 0 {
-//             info!("稿件修改成功");
-//             Ok(ret)
-//         } else {
-//             Err(CustomError::Custom(ret.to_string()))
-//         }
-//     }
-// }
-
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Subtitle {
     open: i8,
@@ -215,12 +167,6 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
-    // pub fn new<'a, 'b>(login_info: &'b LoginInfo, login: &'a Client) -> BiliBili<'a, 'b> {
-    //     BiliBili {
-    //         client: &login.client,
-    //         login_info,
-    //     }
-    // }
     pub async fn submit(&self, studio: &Studio) -> Result<serde_json::Value> {
         let ret: serde_json::Value = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")

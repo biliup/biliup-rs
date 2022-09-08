@@ -167,16 +167,6 @@ mod tests {
 
     #[tokio::test]
     async fn try_clone_stream() {
-        let response = ClientBuilder::new()
-            .redirect(reqwest::redirect::Policy::none())
-            .build()
-            .unwrap()
-            .get("https://passport.bilibili.com/qrcode/h5/login?origin=tv")
-            .header(ORIGIN, "tv")
-            .send()
-            .await
-            .unwrap();
-        println!("{:#?}", response.headers());
         let subscriber = FmtSubscriber::builder()
             .with_max_level(Level::INFO)
             .finish();
@@ -185,14 +175,6 @@ mod tests {
         Url::parse("https://bilibili.com/").unwrap();
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
         let stream = futures::stream::iter(chunks);
-        let client = reqwest::Client::new();
-        retry(|| {
-            let builder = client
-                .get("http://httpbin.org/get")
-                .body(reqwest::Body::wrap_stream(stream));
-            let clone = builder.try_clone();
-            assert!(clone.is_none());
-        })
     }
 
     fn retry(f: impl FnOnce()) {

@@ -5,7 +5,7 @@ use biliup::downloader::flv_parser::{
 };
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
-use biliup::downloader::httpflv::{Connection, map_parse_err};
+use biliup::downloader::httpflv::{map_parse_err, Connection};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 
@@ -30,7 +30,11 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     file_name.set_extension(os_string);
     // file_name.extend(".json");
     // file_name.with_extension()
-    let file = std::fs::File::options().create_new(true).write(true).open(&file_name).with_context(|| format!("file name: {}", file_name.canonicalize().unwrap().display()))?;
+    let file = std::fs::File::options()
+        .create_new(true)
+        .write(true)
+        .open(&file_name)
+        .with_context(|| format!("file name: {}", file_name.canonicalize().unwrap().display()))?;
     let mut writer = BufWriter::new(file);
     flv_writer::to_json(&mut writer, &header)?;
     loop {

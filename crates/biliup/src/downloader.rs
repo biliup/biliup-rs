@@ -106,6 +106,7 @@ mod tests {
     use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 
     #[test]
+    #[ignore]
     fn it_works() -> Result<()> {
         tracing_subscriber::fmt::init();
 
