@@ -2,7 +2,10 @@
 [![Crates.io](https://img.shields.io/crates/v/biliup)](https://crates.io/crates/biliup)
 ![GitHub all releases](https://img.shields.io/github/downloads/forgqi/biliup-rs/total)
 [![Telegram](https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram)](https://t.me/+IkpIABHqy6U0ZTQ5)
+[![Discord chat][discord-badge]][discord-url]
 
+[discord-badge]: https://img.shields.io/discord/1015494098481852447.svg?logo=discord
+[discord-url]: https://discord.gg/shZmdxDFB7
 B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，**扫码登录**，**浏览器登录**，**网页Cookie登录**
 ，并将登录后返回的 cookie 和 token 保存在 `cookie.json` 中，可用于其他项目。
 
@@ -62,18 +65,18 @@ USAGE:
     biliup.exe [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
-    -u, --user-cookie <COOKIE_FILE>    登录信息文件 [default: cookies.json]
     -h, --help                         Print help information
+    -u, --user-cookie <USER_COOKIE>    登录信息文件 [default: cookies.json]
     -V, --version                      Print version information
 
 SUBCOMMANDS:
-    append    是否要对某稿件追加视频
-    help      Print this message or the help of the given subcommand(s)
-    login     登录B站并保存登录信息
-    renew     手动验证并刷新登录信息
-    show      打印视频详情
-    upload    上传视频
-
+    append      是否要对某稿件追加视频
+    dump-flv    输出flv元数据
+    help        Print this message or the help of the given subcommand(s)
+    login       登录B站并保存登录信息
+    renew       手动验证并刷新登录信息
+    show        打印视频详情
+    upload      上传视频
 ```
 
 ### 多账号支持

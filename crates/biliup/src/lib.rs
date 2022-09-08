@@ -148,8 +148,8 @@ impl VideoFile {
 #[cfg(test)]
 mod tests {
     use crate::video::Vid;
-    use reqwest::header::ORIGIN;
-    use reqwest::ClientBuilder;
+    
+    
     use std::str::FromStr;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
@@ -174,7 +174,7 @@ mod tests {
             .expect("setting default subscriber failed");
         Url::parse("https://bilibili.com/").unwrap();
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
-        let stream = futures::stream::iter(chunks);
+        let _stream = futures::stream::iter(chunks);
     }
 
     fn retry(f: impl FnOnce()) {
