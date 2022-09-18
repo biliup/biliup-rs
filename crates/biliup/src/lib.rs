@@ -148,8 +148,7 @@ impl VideoFile {
 #[cfg(test)]
 mod tests {
     use crate::video::Vid;
-    
-    
+
     use std::str::FromStr;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;

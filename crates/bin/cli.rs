@@ -79,6 +79,8 @@ pub enum Commands {
         #[clap(parse(from_os_str))]
         file_name: PathBuf,
     },
+    /// 下载视频
+    Download { url: String },
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]

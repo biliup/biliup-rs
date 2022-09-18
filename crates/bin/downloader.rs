@@ -1,20 +1,33 @@
 use anyhow::{Context, Result};
+use biliup::downloader::extractor::find_extractor;
 use biliup::downloader::flv_parser::{
     aac_audio_packet_header, avc_video_packet_header, header, script_data, tag_data, tag_header,
     CodecId, SoundFormat, TagData,
 };
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
-use biliup::downloader::httpflv::{map_parse_err, Connection};
-use std::io::{BufReader, BufWriter};
+use biliup::downloader::httpflv::map_parse_err;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
+use tracing::warn;
+
+pub async fn download(url: &str) -> Result<()> {
+    if let Some(extractor) = find_extractor(url) {
+        let site = extractor.get_site(url).await?;
+        site.download(&site.title, Default::default()).await?;
+    } else {
+        warn!("not find extractor for {url}")
+    }
+    Ok(())
+}
 
 pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     // let args: Vec<String> = env::args().collect();
     // let file_name = &args[1];
     let flv_file = std::fs::File::open(&file_name)?;
     let buf_reader = BufReader::new(flv_file);
-    let mut reader = Connection::new(buf_reader);
+    let mut reader = Reader::new(buf_reader);
 
     let mut script_tag_count = 0;
     let mut audio_tag_count = 0;
@@ -129,4 +142,41 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
     println!("audio tag count: {audio_tag_count}");
     println!("video tag count: {video_tag_count}");
     Ok(())
+}
+
+pub struct Reader<T> {
+    read: T,
+    buffer: BytesMut,
+}
+
+impl<T: Read> Reader<T> {
+    fn new(read: T) -> Reader<T> {
+        Reader {
+            read,
+            buffer: BytesMut::with_capacity(8 * 1024),
+        }
+    }
+
+    fn read_frame(&mut self, chunk_size: usize) -> std::io::Result<Bytes> {
+        let mut buf = [0u8; 8 * 1024];
+        loop {
+            if chunk_size <= self.buffer.len() {
+                let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
+                self.buffer.advance(chunk_size as usize);
+                return Ok(bytes);
+            }
+            // BytesMut::with_capacity(0).deref_mut()
+            // tokio::fs::File::open("").read()
+            // self.read_buf.
+            let n = match self.read.read(&mut buf) {
+                Ok(n) => n,
+                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+            if n == 0 {
+                return Ok(self.buffer.split().freeze());
+            }
+            self.buffer.put_slice(&buf[..n]);
+        }
+    }
 }

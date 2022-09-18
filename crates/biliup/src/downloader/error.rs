@@ -4,6 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("{0}")]
+    Custom(String),
+
     #[error(transparent)]
     IOError(#[from] io::Error),
 
@@ -15,6 +18,9 @@ pub enum Error {
 
     #[error("Parsing {0} requires {1:?} bytes/chars.")]
     NomIncomplete(String, Needed),
+
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

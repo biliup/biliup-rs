@@ -3,15 +3,17 @@ use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, SoundFormat, TagData, TagHeader,
 };
 use crate::downloader::flv_writer::{FlvFile, FlvTag, TagDataHeader};
-use crate::downloader::util::Segment;
+use crate::downloader::util::{Segment, Segmentable};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use futures::AsyncReadExt;
 use nom::{Err, IResult};
+use reqwest::Response;
 use std::io::{ErrorKind, Read};
 use std::time::Duration;
 use tracing::{info, warn};
 
-pub fn download<T: Read>(connection: Connection<T>, file_name: &str, segment: Segment) {
-    match parse_flv(connection, file_name, segment) {
+pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
+    match parse_flv(connection, file_name, segment).await {
         Ok(_) => {
             info!("Done... {file_name}");
         }
@@ -21,14 +23,14 @@ pub fn download<T: Read>(connection: Connection<T>, file_name: &str, segment: Se
     }
 }
 
-fn parse_flv<T: Read>(
-    mut connection: Connection<T>,
+pub(crate) async fn parse_flv(
+    mut connection: Connection,
     file_name: &str,
-    mut segment: Segment,
+    mut segment: Segmentable,
 ) -> crate::downloader::error::Result<()> {
     let mut flv_tags_cache: Vec<(TagHeader, Bytes, Bytes)> = Vec::new();
 
-    let _previous_tag_size = connection.read_frame(4)?;
+    let _previous_tag_size = connection.read_frame(4).await?;
     // let mut rdr = Cursor::new(previous_tag_size);
     // println!("{}", rdr.read_u32::<BigEndian>().unwrap());
     // let file = std::fs::File::create(format!("{file_name}_flv.json"))?;
@@ -36,14 +38,15 @@ fn parse_flv<T: Read>(
     // flv_writer::to_json(&mut writer, &header)?;
 
     let mut out = FlvFile::new(file_name)?;
-    let mut downloaded_size = 9 + 4;
+    segment.set_size_position(9 + 4);
+    // let mut downloaded_size = 9 + 4;
     let mut on_meta_data = None;
     let mut aac_sequence_header = None;
     let mut h264_sequence_header: Option<(TagHeader, Bytes, Bytes)> = None;
     let mut prev_timestamp = 0;
     let mut create_new = false;
     loop {
-        let tag_header_bytes = connection.read_frame(11)?;
+        let tag_header_bytes = connection.read_frame(11).await?;
         if tag_header_bytes.is_empty() {
             // let mut rdr = Cursor::new(tag_header_bytes);
             // println!("{}", rdr.read_u32::<BigEndian>().unwrap());
@@ -53,8 +56,8 @@ fn parse_flv<T: Read>(
         let (_, tag_header) = map_parse_err(tag_header(&tag_header_bytes), "tag header")?;
         // write_tag_header(&mut out, &tag_header)?;
 
-        let bytes = connection.read_frame(tag_header.data_size as usize)?;
-        let previous_tag_size = connection.read_frame(4)?;
+        let bytes = connection.read_frame(tag_header.data_size as usize).await?;
+        let previous_tag_size = connection.read_frame(4).await?;
         // out.write(&bytes)?;
         let (i, flv_tag_data) = map_parse_err(
             tag_data(tag_header.tag_type, tag_header.data_size as usize)(&bytes),
@@ -152,12 +155,12 @@ fn parse_flv<T: Read>(
                     },
                 ..
             } => {
-                if segment.needed(
-                    downloaded_size,
-                    Duration::from_millis(flv_tag.header.timestamp as u64),
-                ) {
+                segment.set_time_position(Duration::from_millis(flv_tag.header.timestamp as u64));
+                if segment.needed() {
+                    segment.set_start_time(Duration::from_millis(flv_tag.header.timestamp as u64));
                     // let new_file_name = format_filename(file_name);
-                    downloaded_size = 9 + 4;
+                    segment.set_size_position(9 + 4);
+                    // downloaded_size = 9 + 4;
                     out = FlvFile::new(file_name)?;
                     let on_meta_data = on_meta_data.as_ref().expect("on_meta_data does not exist");
                     // onMetaData
@@ -191,7 +194,8 @@ fn parse_flv<T: Read>(
                     // out.write_tag_header( tag_header)?;
                     // out.write(flv_tag_data)?;
                     // out.write(previous_tag_size_bytes)?;
-                    downloaded_size += (11 + tag_header.data_size + 4) as u64;
+                    segment.increase_size((11 + tag_header.data_size + 4) as u64);
+                    // downloaded_size += (11 + tag_header.data_size + 4) as u64;
                     prev_timestamp = tag_header.timestamp
                     // println!("{downloaded_size}");
                 }
@@ -227,34 +231,6 @@ fn parse_flv<T: Read>(
     Ok(())
 }
 
-// fn is_splitting(
-//     flv_tag: FlvTag,
-//     segment: &Segment,
-//     first_tag_time: &mut u32,
-//     downloaded_size: &mut u64,
-// ) -> bool {
-//     match segment {
-//         Segment::Time(duration, _) => {
-//             if duration
-//                 <= &Duration::from_millis((flv_tag.header.timestamp - *first_tag_time) as u64)
-//             {
-//                 *first_tag_time = flv_tag.header.timestamp;
-//                 true
-//             } else {
-//                 false
-//             }
-//         }
-//         Segment::Size(file_size, _) => {
-//             if *downloaded_size >= *file_size {
-//                 *downloaded_size = 9 + 4;
-//                 true
-//             } else {
-//                 false
-//             }
-//         }
-//     }
-// }
-
 pub fn map_parse_err<'a, T>(
     i_result: IResult<&'a [u8], T>,
     msg: &str,
@@ -274,21 +250,21 @@ pub fn map_parse_err<'a, T>(
     }
 }
 
-pub struct Connection<T> {
-    resp: T,
+pub struct Connection {
+    resp: Response,
     buffer: BytesMut,
 }
 
-impl<T: Read> Connection<T> {
-    pub fn new(resp: T) -> Connection<T> {
+impl Connection {
+    pub fn new(resp: Response) -> Connection {
         Connection {
             resp,
             buffer: BytesMut::with_capacity(8 * 1024),
         }
     }
 
-    pub fn read_frame(&mut self, chunk_size: usize) -> std::io::Result<Bytes> {
-        let mut buf = [0u8; 8 * 1024];
+    pub async fn read_frame(&mut self, chunk_size: usize) -> reqwest::Result<Bytes> {
+        // let mut buf = [0u8; 8 * 1024];
         loop {
             if chunk_size <= self.buffer.len() {
                 let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
@@ -297,16 +273,25 @@ impl<T: Read> Connection<T> {
             }
             // BytesMut::with_capacity(0).deref_mut()
             // tokio::fs::File::open("").read()
-            let n = match self.resp.read(&mut buf) {
-                Ok(n) => n,
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
-                Err(e) => return Err(e),
-            };
-
-            if n == 0 {
+            // self.resp.chunk()
+            if let Some(chunk) = self.resp.chunk().await? {
+                // let n = chunk.len();
+                // println!("Chunk: {:?}", chunk);
+                self.buffer.put(chunk);
+                // self.buffer.put_slice(&buf[..n]);
+            } else {
                 return Ok(self.buffer.split().freeze());
             }
-            self.buffer.put_slice(&buf[..n]);
+            // let n = match self.resp.read(&mut buf).await {
+            //     Ok(n) => n,
+            //     Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+            //     Err(e) => return Err(e),
+            // };
+
+            // if n == 0 {
+            //     return Ok(self.buffer.split().freeze());
+            // }
+            // self.buffer.put_slice(&buf[..n]);
         }
     }
 }

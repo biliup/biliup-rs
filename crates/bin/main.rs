@@ -5,8 +5,9 @@ mod uploader;
 use anyhow::Result;
 
 use crate::cli::{Cli, Commands};
-use crate::downloader::generate_json;
+use crate::downloader::{download, generate_json};
 use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_config};
+use biliup::downloader::extractor::find_extractor;
 use clap::Parser;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
@@ -70,6 +71,7 @@ async fn parse() -> Result<()> {
         } => append(cli.user_cookie, vid, video_path, line, limit).await?,
         Commands::Show { vid } => show(cli.user_cookie, vid).await?,
         Commands::DumpFlv { file_name } => generate_json(file_name)?,
+        Commands::Download { url } => download(&url).await?,
     };
     Ok(())
 }

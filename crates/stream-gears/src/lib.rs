@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::uploader::UploadLine;
 use biliup::downloader::construct_headers;
-use biliup::downloader::util::Segment;
+use biliup::downloader::util::{Segment, Segmentable};
 use tracing_subscriber::layer::SubscriberExt;
 
 #[derive(FromPyObject)]
@@ -47,10 +47,8 @@ fn download(
 
         let collector = formatting_layer.with(file_layer);
         let segment = match segment {
-            PySegment::Time { time } => {
-                Segment::Time(Duration::from_secs(time), Duration::default())
-            }
-            PySegment::Size { size } => Segment::Size(size, 0),
+            PySegment::Time { time } => Segmentable::new(Duration::from_secs(time), u64::MAX),
+            PySegment::Size { size } => Segmentable::new(Duration::ZERO, size),
         };
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
             match biliup::downloader::download(url, map, file_name, segment) {

@@ -58,6 +58,8 @@ nom = "7"
 
 chrono = "0.4"
 byteorder = "1.4.3"
+regex = "1.6.0"
+async-trait = "0.1.57"
 
 #[features]
 #default = ["default-tls"]
