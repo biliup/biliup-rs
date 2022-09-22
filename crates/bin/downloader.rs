@@ -7,15 +7,23 @@ use biliup::downloader::flv_parser::{
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
 use biliup::downloader::httpflv::map_parse_err;
+use biliup::downloader::util::Segmentable;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
+
 use tracing::warn;
 
-pub async fn download(url: &str) -> Result<()> {
+pub async fn download(
+    url: &str,
+    output: String,
+    split_size: Option<u64>,
+    split_time: Option<humantime::Duration>,
+) -> Result<()> {
+    let segmentable = Segmentable::new(split_time.map(|t| t.into()), split_size);
     if let Some(extractor) = find_extractor(url) {
         let site = extractor.get_site(url).await?;
-        site.download(&site.title, Default::default()).await?;
+        site.download(&output, segmentable).await?;
     } else {
         warn!("not find extractor for {url}")
     }

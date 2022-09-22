@@ -3,12 +3,11 @@ use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, SoundFormat, TagData, TagHeader,
 };
 use crate::downloader::flv_writer::{FlvFile, FlvTag, TagDataHeader};
-use crate::downloader::util::{Segment, Segmentable};
+use crate::downloader::util::Segmentable;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use futures::AsyncReadExt;
 use nom::{Err, IResult};
 use reqwest::Response;
-use std::io::{ErrorKind, Read};
+
 use std::time::Duration;
 use tracing::{info, warn};
 

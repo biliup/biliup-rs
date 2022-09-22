@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use std::ops::AddAssign;
+
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -15,18 +15,18 @@ pub struct Segmentable {
 }
 #[derive(Debug)]
 struct Time {
-    expected: Duration,
+    expected: Option<Duration>,
     start: Duration,
     current: Duration,
 }
 #[derive(Debug)]
 struct Size {
-    expected: u64,
+    expected: Option<u64>,
     current: u64,
 }
 
 impl Segmentable {
-    pub fn new(expected_time: Duration, expected_size: u64) -> Self {
+    pub fn new(expected_time: Option<Duration>, expected_size: Option<u64>) -> Self {
         Self {
             time: Time {
                 expected: expected_time,
@@ -41,8 +41,13 @@ impl Segmentable {
     }
 
     pub fn needed(&self) -> bool {
-        (self.time.current - self.time.start) >= self.time.expected
-            || self.size.current > self.size.expected
+        if let Some(expected_time) = self.time.expected {
+            return (self.time.current - self.time.start) >= expected_time;
+        }
+        if let Some(expected_size) = self.size.expected {
+            return self.size.current > expected_size;
+        }
+        false
     }
 
     pub fn increase_time(&mut self, number: Duration) {
@@ -75,12 +80,12 @@ impl Default for Segmentable {
     fn default() -> Self {
         Segmentable {
             time: Time {
-                expected: Duration::MAX,
+                expected: None,
                 start: Duration::ZERO,
                 current: Duration::ZERO,
             },
             size: Size {
-                expected: u64::MAX,
+                expected: None,
                 current: 0,
             },
         }

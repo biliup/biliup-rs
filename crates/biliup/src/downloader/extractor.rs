@@ -1,13 +1,12 @@
 use crate::downloader;
 use crate::downloader::httpflv::Connection;
-use crate::downloader::util::{Segment, Segmentable};
+use crate::downloader::util::Segmentable;
 use crate::downloader::{get_response, hls, httpflv};
 use async_trait::async_trait;
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::header::HeaderMap;
 use std::fmt::{Display, Formatter};
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::path::Path;
+
 
 mod bilibili;
 mod huya;
@@ -32,8 +31,8 @@ pub struct Site {
 
 impl Display for Site {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Name: {}\n", self.name)?;
-        write!(f, "Title: {}\n", self.title)?;
+        writeln!(f, "Name: {}", self.name)?;
+        writeln!(f, "Title: {}", self.title)?;
         write!(f, "Direct url: {}", self.direct_url)
     }
 }
@@ -49,6 +48,10 @@ impl Site {
         file_name: &str,
         segment: Segmentable,
     ) -> downloader::error::Result<()> {
+        let file_name = file_name.replace("{title}", &self.title);
+        // file_name.canonicalize()
+
+        println!("Save to {}", Path::new(&file_name).display());
         println!("{}", self);
         match self.extension {
             Extension::Flv => {
@@ -56,10 +59,10 @@ impl Site {
                 // response.bytes_stream()
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
-                httpflv::parse_flv(connection, file_name, segment).await?
+                httpflv::parse_flv(connection, &file_name, segment).await?
             }
             Extension::Ts => {
-                hls::download(&self.direct_url, &self.header_map, file_name, segment).await?
+                hls::download(&self.direct_url, &self.header_map, &file_name, segment).await?
             }
         }
         Ok(())
@@ -72,5 +75,5 @@ pub fn find_extractor(url: &str) -> Option<&dyn SiteDefinition> {
             return Some(extractor);
         }
     }
-    return None;
+    None
 }

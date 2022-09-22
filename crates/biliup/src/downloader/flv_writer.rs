@@ -5,9 +5,11 @@ use crate::downloader::flv_parser::{
 use crate::downloader::util;
 use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
+use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use tracing::error;
+use std::path::{PathBuf};
+use tracing::{error, info};
 
 const FLV_HEADER: [u8; 9] = [
     0x46, // 'F'
@@ -26,8 +28,22 @@ pub struct FlvFile {
 impl FlvFile {
     pub fn new(file_name: &str) -> std::io::Result<Self> {
         let file_name = util::format_filename(file_name);
-        let out =
-            File::create(format!("{file_name}.flv.part")).expect("Unable to create flv file.");
+        let mut path = PathBuf::from(&file_name);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?
+        }
+        path.set_extension("flv.part");
+        let result = File::create(&path);
+        let out = match result {
+            Ok(o) => o,
+            Err(e) => {
+                return Err(std::io::Error::new(
+                    e.kind(),
+                    format!("Unable to create flv file {file_name}"),
+                ))
+            }
+        };
+        info!("create flv file {}", path.display());
         let mut buf_writer = BufWriter::new(out);
         buf_writer.write_all(&FLV_HEADER)?;
         Self::write_previous_tag_size(&mut buf_writer, 0)?;
@@ -73,7 +89,7 @@ impl Drop for FlvFile {
             format!("{}.flv.part", self.name),
             format!("{}.flv", self.name),
         )
-        .unwrap_or_else(|e| error!("{e}"))
+        .unwrap_or_else(|e| error!("drop {} {e}", self.name))
     }
 }
 

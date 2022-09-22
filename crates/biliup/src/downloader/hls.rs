@@ -1,5 +1,5 @@
 use crate::downloader::error::Result;
-use crate::downloader::util::{format_filename, Segment, Segmentable};
+use crate::downloader::util::{format_filename, Segmentable};
 use m3u8_rs::Playlist;
 use reqwest::header::HeaderMap;
 use std::fs::File;

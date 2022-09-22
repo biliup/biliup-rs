@@ -9,12 +9,8 @@ use std::collections::HashMap;
 use crate::downloader::util::Segmentable;
 use crate::uploader::retryable::retry;
 use reqwest::Response;
-use std::io::Read;
+
 use std::str::FromStr;
-use std::thread::sleep;
-use std::time::Duration;
-use tokio::io::AsyncReadExt;
-use util::Segment;
 
 pub mod error;
 pub mod extractor;
@@ -31,7 +27,7 @@ pub async fn download(
     file_name: &str,
     segment: Segmentable,
 ) -> anyhow::Result<()> {
-    let mut response = get_response(url, &headers).await?;
+    let response = get_response(url, &headers).await?;
     let mut connection = Connection::new(response);
     // let buf = &mut [0u8; 9];
     let bytes = connection.read_frame(9).await?;
@@ -106,7 +102,7 @@ pub async fn get_response(url: &str, headers: &HeaderMap) -> reqwest::Result<Res
 #[cfg(test)]
 mod tests {
     use crate::downloader::download;
-    use crate::downloader::util::{Segment, Segmentable};
+    use crate::downloader::util::Segmentable;
     use anyhow::Result;
     use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 
@@ -125,7 +121,7 @@ mod tests {
             headers,
             "testdouyu%Y-%m-%dT%H_%M_%S",
             // Segment::Size(20 * 1024 * 1024, 0),
-            Segmentable::new(std::time::Duration::from_secs(6000), u64::MAX),
+            Segmentable::new(Some(std::time::Duration::from_secs(6000)), None),
         )?;
         Ok(())
     }

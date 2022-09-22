@@ -2,7 +2,6 @@ use crate::downloader::error::Result;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use serde_json::Value;
-use std::fmt::format;
 
 pub struct HuyaLive {}
 
@@ -35,7 +34,7 @@ impl SiteDefinition for HuyaLive {
         let mut v_multi_stream_info = stream["vMultiStreamInfo"].take();
         // vec![1,2].iter().max()
         // println!("{}", v_multi_stream_info);
-        let stream_info = v_multi_stream_info
+        let _stream_info = v_multi_stream_info
             .as_array()
             .and_then(|v| v.iter().max_by_key(|info| info["iBitRate"].as_i64()));
         // println!("{:?}", stream_info);

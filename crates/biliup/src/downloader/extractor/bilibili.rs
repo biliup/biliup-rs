@@ -1,11 +1,8 @@
 use crate::downloader::error::{Error, Result};
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
-use futures::{FutureExt, StreamExt};
-use nom::Parser;
 use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 use serde_json::Value;
-use std::ops::Deref;
 
 pub struct BiliLive {}
 
@@ -53,7 +50,7 @@ impl SiteDefinition for BiliLive {
             ("ptype", "8"),
             ("dolby", "5"),
         ];
-        let mut room_play_info: Value = client
+        let room_play_info: Value = client
             .get("https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo")
             .query(&params)
             .send()
@@ -67,7 +64,7 @@ impl SiteDefinition for BiliLive {
         let direct_url = room_play_info["data"]["playurl_info"]["playurl"]["stream"]
             .as_array()
             .and_then(|v| {
-                v.into_iter()
+                v.iter()
                     .filter_map(|v| v["format"].as_array())
                     .flatten()
                     .find(|v| v["format_name"] == "flv")
@@ -76,7 +73,7 @@ impl SiteDefinition for BiliLive {
                 let url_info = v["codec"][0]["url_info"]
                     .as_array()
                     .and_then(|info| {
-                        info.into_iter()
+                        info.iter()
                             .find(|i| !i["host"].to_string().contains(".mcdn."))
                     })
                     .unwrap_or(&v["codec"][0]["url_info"][0]);
