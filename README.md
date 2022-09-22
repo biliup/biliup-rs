@@ -16,6 +16,18 @@ B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，
 
 [下载地址](https://github.com/ForgQi/biliup-rs/releases)
 
+## Aspirations
+### upload
+- [x] bilibili
+- [ ] 小红书（work-in-process）
+### download
+- [ ] 斗鱼live (coming soon)
+- [x] 虎牙live 
+- [x] B站live 
+- [ ] 抖音live (coming soon)
+- [ ] 快手live (coming soon)
+
+
 ## USAGE
 
 投稿支持**直接投稿**和对现有稿件**追加投稿**：
@@ -55,10 +67,11 @@ OPTIONS:
         --up-close-reply
         --up-selection-reply
 ```
- 
+* 下载视频：`./biliup download https://xxxx`
+* 查看转码失败具体分p：`./biliup show BVxxxxx`
 * 查看完整用法命令行输入 `biliup -h`
 ```shell
-biliup 0.1.8
+biliup 0.1.14
 Upload video to bilibili.
 
 USAGE:
@@ -71,6 +84,7 @@ OPTIONS:
 
 SUBCOMMANDS:
     append      是否要对某稿件追加视频
+    download    下载视频
     dump-flv    输出flv元数据
     help        Print this message or the help of the given subcommand(s)
     login       登录B站并保存登录信息
@@ -110,6 +124,7 @@ ___
 
 bilibili投稿模式分主要为fetch和直传两种，线路概览：
 
+测速：http://member.bilibili.com/preupload?r=ping
 * bup（直传b站投稿系统，适合**大陆地区**）
   * upos
     - [x] bda2（百度）
