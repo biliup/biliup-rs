@@ -1,11 +1,13 @@
 use crate::downloader;
 use crate::downloader::httpflv::Connection;
 use crate::downloader::util::Segmentable;
-use crate::downloader::{get_response, hls, httpflv};
+use crate::downloader::{hls, httpflv};
 use async_trait::async_trait;
-use reqwest::header::HeaderMap;
+use reqwest::header::{ACCEPT_ENCODING, HeaderMap, HeaderValue};
 use std::fmt::{Display, Formatter};
 use std::path::Path;
+use reqwest::{Request, RequestBuilder};
+use crate::client::StatelessClient;
 
 
 mod bilibili;
@@ -18,7 +20,7 @@ pub trait SiteDefinition {
     // true, if this site can handle <url>.
     fn can_handle_url(&self, url: &str) -> bool;
 
-    async fn get_site(&self, url: &str) -> super::error::Result<Site>;
+    async fn get_site(&self, url: &str, client: StatelessClient) -> super::error::Result<Site>;
 }
 
 pub struct Site {
@@ -26,7 +28,7 @@ pub struct Site {
     pub title: String,
     pub direct_url: String,
     extension: Extension,
-    header_map: HeaderMap,
+    client: StatelessClient,
 }
 
 impl Display for Site {
@@ -44,25 +46,39 @@ enum Extension {
 
 impl Site {
     pub async fn download(
-        &self,
+        &mut self,
         file_name: &str,
         segment: Segmentable,
+        // client: &StatelessClient
     ) -> downloader::error::Result<()> {
         let file_name = file_name.replace("{title}", &self.title);
+        // let mut header_map = HeaderMap::new();
         // file_name.canonicalize()
-
+        self.client.headers.append(ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate"));
+        // self.header_map
+        // for (k, v) in self.header_map.into_iter() {
+        //     header_map.append(k, v);
+        //     // header_map.insert()
+        // }
+        // header_map.extend(self.header_map.clone());
+        // .header(ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        //     .header(ACCEPT_ENCODING, "gzip, deflate")
+            // .header(ACCEPT_LANGUAGE, "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3")
+            // .headers(headers.clone())
         println!("Save to {}", Path::new(&file_name).display());
+        // let client = StatelessClient::new(header_map);
+        // let req = self.req_builder.cl.build()?;
         println!("{}", self);
         match self.extension {
             Extension::Flv => {
-                let response = get_response(&self.direct_url, &self.header_map).await?;
+                let response = self.client.retryable(&self.direct_url).await?;
                 // response.bytes_stream()
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
                 httpflv::parse_flv(connection, &file_name, segment).await?
             }
             Extension::Ts => {
-                hls::download(&self.direct_url, &self.header_map, &file_name, segment).await?
+                hls::download(&self.direct_url, &self.client, &file_name, segment).await?
             }
         }
         Ok(())

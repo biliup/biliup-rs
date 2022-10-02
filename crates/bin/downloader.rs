@@ -21,8 +21,9 @@ pub async fn download(
     split_time: Option<humantime::Duration>,
 ) -> Result<()> {
     let segmentable = Segmentable::new(split_time.map(|t| t.into()), split_size);
+    let client = Default::default();
     if let Some(extractor) = find_extractor(url) {
-        let site = extractor.get_site(url).await?;
+        let mut site = extractor.get_site(url, client).await?;
         site.download(&output, segmentable).await?;
     } else {
         warn!("not find extractor for {url}")

@@ -1,4 +1,3 @@
-use crate::video::{Studio, Video};
 use bytes::Bytes;
 use futures::{io, Stream};
 use serde::{Deserialize, Serialize};
@@ -8,151 +7,56 @@ use std::ops::DerefMut;
 use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::future::Future;
+use rand::distributions::uniform::{UniformFloat, UniformSampler};
+use tokio::time::sleep;
+use std::time::Duration;
+use tracing::info;
 
 pub mod client;
 pub mod downloader;
 pub mod error;
-pub mod line;
-pub mod video;
+pub mod uploader;
 
-pub mod uploader {
-    use serde::{Deserialize, Serialize};
-    pub mod cos;
-    pub mod kodo;
-    pub mod retryable;
-    pub mod upos;
 
-    #[derive(Deserialize, Serialize, Debug)]
-    #[serde(rename_all = "lowercase")]
-    pub enum Uploader {
-        Upos,
-        Kodo,
-        Bos,
-        Gcs,
-        Cos,
-    }
-}
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct User {
-    pub account: Account,
-}
+pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F) -> Result<O, E>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<O, E>>,
+{
+    let mut retries = 3;
+    let mut wait = 1;
+    let mut jittered_wait_for;
+    loop {
+        match f().await {
+            Err(e) if retries > 0 => {
+                retries -= 1;
+                let jitter_factor =
+                    UniformFloat::<f64>::sample_single(0., 1., &mut rand::thread_rng());
+                wait *= 2;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Account {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub user: Option<User>,
-    pub line: Option<String>,
-    #[serde(default = "default_limit")]
-    pub limit: usize,
-    pub streamers: HashMap<String, Studio>,
-}
-
-fn default_limit() -> usize {
-    3
-}
-
-pub fn load_config(config: &Path) -> error::Result<Config> {
-    let file = std::fs::File::open(config)?;
-    let config: Config = serde_yaml::from_reader(file)?;
-    // println!("body = {:?}", client);
-    Ok(config)
-}
-
-pub struct VideoStream {
-    pub capacity: usize,
-    buffer: Vec<u8>,
-    pub file: std::fs::File,
-}
-
-impl VideoStream {
-    pub fn with_capacity(file: std::fs::File, capacity: usize) -> Self {
-        // self.capacity = capacity;
-        // self.buffer = vec![0u8; capacity];
-        // self.buf = BytesMut::with_capacity(capacity);
-        VideoStream {
-            capacity,
-            buffer: vec![0u8; capacity],
-            file,
-        }
-    }
-
-    pub fn read(&mut self) -> io::Result<Option<Bytes>> {
-        let mut len = 0;
-        let mut buf = self.buffer.deref_mut();
-        while !buf.is_empty() {
-            match self.file.read(buf) {
-                Ok(0) => break,
-                Ok(n) => {
-                    let tmp = buf;
-                    len += n;
-                    buf = &mut tmp[n..];
-                }
-                Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
-                Err(e) => return Err(e),
+                jittered_wait_for = f64::min(jitter_factor + (wait as f64), 64.);
+                info!(
+                    "Retry attempt #{}. Sleeping {:?} before the next attempt. {e}",
+                    3 - retries,
+                    jittered_wait_for
+                );
+                sleep(Duration::from_secs_f64(jittered_wait_for)).await;
             }
-        }
-        if len == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(Bytes::copy_from_slice(&self.buffer[..len])))
+            res => break res,
         }
     }
 }
 
-impl Stream for VideoStream {
-    type Item = io::Result<Bytes>;
-
-    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        match self.read()? {
-            None => Poll::Ready(None),
-            Some(b) => Poll::Ready(Some(Ok(b))),
-        }
-    }
-}
-
-pub struct VideoFile {
-    pub total_size: u64,
-    pub file_name: String,
-    pub filepath: std::path::PathBuf,
-    pub file: std::fs::File,
-}
-
-impl VideoFile {
-    pub fn new(filepath: &std::path::Path) -> io::Result<Self> {
-        let file = std::fs::File::open(&filepath)?;
-        let total_size = file.metadata()?.len();
-        let file_name = filepath
-            .file_name()
-            .and_then(|file_name| file_name.to_str())
-            .ok_or_else(|| io::Error::new(ErrorKind::NotFound, "the path terminates in .."))?;
-        Ok(Self {
-            file,
-            // capacity: 10485760,
-            total_size,
-            file_name: file_name.into(),
-            filepath: filepath.into(),
-        })
-    }
-
-    pub fn get_stream(&self, capacity: usize) -> io::Result<VideoStream> {
-        Ok(VideoStream::with_capacity(self.file.try_clone()?, capacity))
-    }
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::video::Vid;
-
     use std::str::FromStr;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
     use url::Url;
+    use crate::uploader::bilibili::Vid;
 
     #[test]
     fn it_works() {

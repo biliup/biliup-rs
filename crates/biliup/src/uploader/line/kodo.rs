@@ -1,5 +1,4 @@
 use crate::error::{CustomError, Result};
-use crate::Video;
 use base64::URL_SAFE;
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
@@ -12,36 +11,25 @@ use std::collections::HashMap;
 
 use std::str::FromStr;
 use std::time::Duration;
+use crate::client::StatelessClient;
+use crate::retry;
+use crate::uploader::bilibili::Video;
 
 pub struct Kodo {
-    client: ClientWithMiddleware,
-    raw_client: reqwest::Client,
+    client: StatelessClient,
     bucket: Bucket,
     url: String,
 }
 
 impl Kodo {
-    pub async fn from(bucket: Bucket) -> Result<Self> {
-        let mut headers = header::HeaderMap::new();
-        headers.insert(
+    pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
+        client.headers.insert(
             "Authorization",
             format!("UpToken {}", bucket.uptoken).parse()?,
         );
-        let raw_client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .default_headers(headers)
-            .timeout(Duration::new(60, 0))
-            .build()
-            .unwrap();
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
-        let client = ClientBuilder::new(raw_client.clone())
-            // Retry failed requests.
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build();
         let url = format!("https:{}/mkblk", bucket.endpoint); // 视频上传路径
         Ok(Kodo {
             client,
-            raw_client,
             bucket,
             url,
         })
@@ -63,7 +51,7 @@ impl Kodo {
         let _chunk_size = 4194304;
         let mut parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
-        let client = &self.raw_client;
+        let client = &self.client.client;
         let url = &self.url;
 
         // let stream = read_chunk(file, chunk_size, process)
@@ -74,7 +62,7 @@ impl Kodo {
                 let (chunk, len) = chunk?;
                 // let len = chunk.len();
                 // println!("{}", len);
-                let ctx: serde_json::Value = super::retryable::retry(|| async {
+                let ctx: serde_json::Value = retry(|| async {
                     let url = format!("{url}/{len}");
                     let response = client
                         .post(url)
@@ -103,7 +91,7 @@ impl Kodo {
         }
         parts.sort_by_key(|x| x.index);
         let key = base64::encode_config(self.bucket.key, URL_SAFE);
-        self.client
+        self.client.client_with_middleware
             .post(format!(
                 "https:{}/mkfile/{total_size}/key/{key}",
                 self.bucket.endpoint,
@@ -123,7 +111,7 @@ impl Kodo {
         }
         // reqwest::header::HeaderName::
         let result: serde_json::Value = self
-            .client
+            .client.client_with_middleware
             .post(format!("https:{}", self.bucket.fetch_url))
             .headers(headers)
             .send()

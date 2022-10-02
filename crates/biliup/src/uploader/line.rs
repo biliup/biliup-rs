@@ -1,20 +1,24 @@
 use crate::error::Result;
-use crate::uploader::cos::Cos;
-use crate::uploader::kodo::Kodo;
-use crate::uploader::upos::Upos;
-use crate::uploader::Uploader;
-use crate::{Video, VideoFile, VideoStream};
+use crate::uploader::{Uploader, VideoFile, VideoStream};
 use futures::{Stream, TryStreamExt};
-use reqwest::Body;
+use reqwest::{Body, RequestBuilder};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 
 use crate::error::CustomError::Custom;
-use crate::video::BiliBili;
 use std::time::Instant;
 use tracing::info;
+use crate::client::StatelessClient;
+use crate::uploader::line::cos::Cos;
+use crate::uploader::line::kodo::Kodo;
+use crate::uploader::line::upos::Upos;
+use crate::uploader::bilibili::{BiliBili, Video};
+
+pub mod cos;
+pub mod kodo;
+pub mod upos;
 
 pub struct Parcel {
     // line: &'a Line,
@@ -32,7 +36,7 @@ impl Parcel {
     //     }
     // }
 
-    pub async fn upload<F, S, B>(self, limit: usize, progress: F) -> Result<Video>
+    pub async fn upload<F, S, B>(self,client: StatelessClient, limit: usize, progress: F) -> Result<Video>
     where
         F: FnOnce(VideoStream) -> S,
         S: Stream<Item = Result<(B, usize)>>,
@@ -41,7 +45,7 @@ impl Parcel {
         let mut video = match self.line {
             Bucket::Cos(bucket, enable_internal) => {
                 // let bucket = self.pre_upload(client).await?;
-                let cos_client = Cos::form_post(bucket).await?;
+                let cos_client = Cos::form_post(client, bucket).await?;
                 let chunk_size = 10485760;
                 let parts = cos_client
                     .upload_stream(
@@ -56,7 +60,7 @@ impl Parcel {
             Bucket::Kodo(bucket) => {
                 // let bucket = self.pre_upload(client).await?;
                 let chunk_size = 4194304;
-                Kodo::from(bucket)
+                Kodo::from(client, bucket)
                     .await?
                     .upload_stream(
                         progress(self.video_file.get_stream(chunk_size)?),
@@ -68,7 +72,7 @@ impl Parcel {
             Bucket::Upos(bucket) => {
                 // let bucket: crate::uploader::upos::Bucket = self.pre_upload(client).await?;
                 let chunk_size = bucket.chunk_size;
-                let upos = Upos::from(bucket).await?;
+                let upos = Upos::from(client, bucket).await?;
                 let mut parts = Vec::new();
                 let stream = upos
                     .upload_stream(
@@ -85,60 +89,7 @@ impl Parcel {
                     .await?
             }
         };
-        // let mut video = match self.line.os {
-        //     Uploader::Upos => {
-        //         let bucket: crate::uploader::upos::Bucket = self.pre_upload(client).await?;
-        //         let chunk_size = bucket.chunk_size;
-        //         let upos = Upos::from(bucket).await?;
-        //         let mut parts = Vec::new();
-        //         let stream = upos
-        //             .upload_stream(
-        //                 progress(self.video_file.get_stream(chunk_size)?),
-        //                 self.video_file.total_size,
-        //                 limit,
-        //             )
-        //             .await?;
-        //         tokio::pin!(stream);
-        //         while let Some((part, _size)) = stream.try_next().await? {
-        //             parts.push(part);
-        //         }
-        //         upos.get_ret_video_info(&parts, &self.video_file.filepath)
-        //             .await?
-        //     }
-        //     Uploader::Kodo => {
-        //         let bucket = self.pre_upload(client).await?;
-        //         let chunk_size = 4194304;
-        //         Kodo::from(bucket)
-        //             .await?
-        //             .upload_stream(
-        //                 progress(self.video_file.get_stream(chunk_size)?),
-        //                 self.video_file.total_size,
-        //                 limit,
-        //             )
-        //             .await?
-        //     }
-        //     Uploader::Bos => {
-        //         panic!()
-        //     }
-        //     Uploader::Gcs => {
-        //         panic!()
-        //     }
-        //     Uploader::Cos => {
-        //         let bucket = self.pre_upload(client).await?;
-        //         let cos_client = Cos::form_post(bucket).await?;
-        //         let chunk_size = 10485760;
-        //         let enable_internal = self.line.probe_url == "internal";
-        //         let parts = cos_client
-        //             .upload_stream(
-        //                 progress(self.video_file.get_stream(chunk_size)?),
-        //                 self.video_file.total_size,
-        //                 limit,
-        //                 enable_internal,
-        //             )
-        //             .await?;
-        //         cos_client.merge_files(parts).await?
-        //     }
-        // };
+
         if video.title == None {
             video.title = self
                 .video_file
@@ -160,28 +111,20 @@ pub struct Probe {
 }
 
 impl Probe {
-    pub async fn probe() -> Result<Line> {
-        let res: Self = reqwest::get("https://member.bilibili.com/preupload?r=probe")
+    pub async fn probe(client: &reqwest::Client) -> Result<Line> {
+        let res: Self = client.get("https://member.bilibili.com/preupload?r=probe")
+            .send()
             .await?
             .json()
             .await?;
-        let client = if !res.probe["get"].is_null() {
-            |url| reqwest::Client::new().get(url)
-        } else {
-            |url| {
-                reqwest::Client::new()
-                    .post(url)
-                    .body(vec![0; (1024. * 0.1 * 1024.) as usize])
-            }
-        };
+        // let client = res.ping(client);
         let mut choice_line: Line = Default::default();
         for mut line in res.lines {
             let instant = Instant::now();
-            if client(format!("https:{}", line.probe_url))
+            if Probe::ping(&res.probe, &format!("https:{}", line.probe_url), client)
                 .send()
                 .await?
-                .status()
-                == 200
+                .status().is_success()
             {
                 line.cost = instant.elapsed().as_millis();
                 info!("{}: {}", line.query, line.cost);
@@ -192,12 +135,22 @@ impl Probe {
         }
         Ok(choice_line)
     }
+
+    fn ping(probe: &serde_json::Value, url: &str, client: &reqwest::Client) -> RequestBuilder {
+        if !probe["get"].is_null() {
+            client.get(url)
+        } else {
+            client
+                .post(url)
+                .body(vec![0; (1024. * 0.1 * 1024.) as usize])
+        }
+    }
 }
 
 enum Bucket {
-    Cos(crate::uploader::cos::Bucket, bool),
-    Kodo(crate::uploader::kodo::Bucket),
-    Upos(crate::uploader::upos::Bucket),
+    Cos(cos::Bucket, bool),
+    Kodo(kodo::Bucket),
+    Upos(upos::Bucket),
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -265,41 +218,6 @@ impl Line {
             }),
         }
     }
-
-    // pub async fn pre_upload<T: DeserializeOwned>(&self, client: &reqwest::Client, video_file: VideoFile) -> Result<T> {
-    //     let total_size = video_file.total_size;
-    //     let file_name = video_file.file_name.clone();
-    //     let profile = if let Uploader::Upos = line.os {
-    //         "ugcupos/bup"
-    //     } else {
-    //         "ugcupos/bupfetch"
-    //     };
-    //     let params = json!({
-    //         "r": self.os,
-    //         "profile": profile,
-    //         "ssl": 0,
-    //         "version": "2.11.0",
-    //         "build": 2110000,
-    //         "name": file_name,
-    //         "size": total_size,
-    //     });
-    //     info!("pre_upload: {}", params);
-    //     let response = client
-    //         .get(format!(
-    //             "https://member.bilibili.com/preupload?{}",
-    //             self.query
-    //         ))
-    //         .query(&self.params)
-    //         .send()
-    //         .await?;
-    //     if !response.status().is_success() {
-    //         return Err(Custom(format!(
-    //             "Failed to pre_upload from {}",
-    //             response.text().await?
-    //         )));
-    //     }
-    //     Ok(response.json().await?)
-    // }
 }
 
 impl Default for Line {

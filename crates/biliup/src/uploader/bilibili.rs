@@ -1,4 +1,4 @@
-use crate::client::LoginInfo;
+use crate::uploader::credential::LoginInfo;
 use crate::error::{CustomError, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -154,7 +154,7 @@ impl Display for Vid {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Response {
+pub struct ResResult {
     pub code: i32,
     pub data: Option<Value>,
     message: String,
@@ -215,7 +215,7 @@ impl BiliBili {
 
     /// 查询视频的 json 信息
     pub async fn video_data(&self, vid: Vid) -> Result<Value> {
-        let res: Response = reqwest::Client::builder()
+        let res: ResResult = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -228,12 +228,12 @@ impl BiliBili {
             .json()
             .await?;
         match res {
-            res @ Response {
+            res @ ResResult {
                 code: _,
                 data: None,
                 ..
             } => Err(CustomError::Custom(format!("{res:?}"))),
-            Response {
+            ResResult {
                 code: _,
                 data: Some(v),
                 ..
@@ -291,13 +291,13 @@ impl BiliBili {
             }))
             .send()
             .await?;
-        let res: Response = if !response.status().is_success() {
+        let res: ResResult = if !response.status().is_success() {
             return Err(CustomError::Custom(response.text().await?));
         } else {
             response.json().await?
         };
 
-        if let Response {
+        if let ResResult {
             code: _,
             data: Some(value),
             ..

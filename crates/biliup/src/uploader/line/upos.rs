@@ -1,5 +1,4 @@
 use crate::error::{CustomError, Result};
-use crate::video::Video;
 use futures::Stream;
 use futures::StreamExt;
 
@@ -13,10 +12,12 @@ use serde_json::json;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::time::Duration;
+use crate::client::StatelessClient;
+use crate::retry;
+use crate::uploader::bilibili::Video;
 
 pub struct Upos {
-    client: ClientWithMiddleware,
-    raw_client: reqwest::Client,
+    client: StatelessClient,
     bucket: Bucket,
     url: String,
     upload_id: String,
@@ -45,26 +46,15 @@ pub struct Protocol<'a> {
 }
 
 impl Upos {
-    pub async fn from(bucket: Bucket) -> Result<Self> {
-        let mut headers = header::HeaderMap::new();
-        headers.insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
-        let raw_client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .default_headers(headers)
-            .timeout(Duration::new(300, 0))
-            .build()
-            .unwrap();
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
-        let client = ClientBuilder::new(raw_client.clone())
-            // Retry failed requests.
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build();
+    pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
+        client.headers.insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
+
         let url = format!(
             "https:{}/{}",
             bucket.endpoint,
             bucket.upos_uri.replace("upos://", "")
         ); // 视频上传路径
-        let upload_id: serde_json::Value = client
+        let upload_id: serde_json::Value = client.client_with_middleware
             .post(format!("{url}?uploads&output=json"))
             .send()
             .await?
@@ -84,7 +74,6 @@ impl Upos {
         // let upos_uri = ret["upos_uri"].as_str().unwrap();
         Ok(Upos {
             client,
-            raw_client,
             bucket,
             url,
             upload_id,
@@ -110,7 +99,7 @@ impl Upos {
         let chunk_size = self.bucket.chunk_size;
         let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
                                                                                   // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
-        let client = &self.raw_client;
+        let client = &self.client.client;
         let url = &self.url;
         let upload_id = &*self.upload_id;
         let stream = stream
@@ -130,7 +119,7 @@ impl Upos {
                     start: i as u64 * chunk_size as u64,
                     end: i as u64 * chunk_size as u64 + len as u64,
                 };
-                super::retryable::retry(|| async {
+                retry(|| async {
                     let response = client
                         .put(url)
                         .query(&params)
@@ -206,7 +195,7 @@ impl Upos {
         });
         // let res: serde_json::Value = self.client.post(url).query(&value).json(&json!({"parts": *parts_cell.borrow()}))
         let res: serde_json::Value = self
-            .client
+            .client.client_with_middleware
             .post(&self.url)
             .query(&value)
             .json(&json!({ "parts": parts }))

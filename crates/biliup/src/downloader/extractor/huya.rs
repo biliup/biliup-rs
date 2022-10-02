@@ -2,6 +2,7 @@ use crate::downloader::error::Result;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use serde_json::Value;
+use crate::client::StatelessClient;
 
 pub struct HuyaLive {}
 
@@ -13,8 +14,8 @@ impl SiteDefinition for HuyaLive {
             .is_match(url)
     }
 
-    async fn get_site(&self, url: &str) -> Result<Site> {
-        let response = reqwest::Client::new().get(url).send().await?;
+    async fn get_site(&self, url: &str, client: StatelessClient) -> Result<Site> {
+        let response = client.client.get(url).send().await?;
         // println!("{:?}", response);
 
         let text = response.text().await?;
@@ -56,7 +57,7 @@ impl SiteDefinition for HuyaLive {
                 .to_string(),
             direct_url,
             extension: Extension::Flv,
-            header_map: Default::default(),
+            client: client,
         })
     }
 }

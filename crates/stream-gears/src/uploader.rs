@@ -1,15 +1,16 @@
 use anyhow::{Context, Result};
-use biliup::client::Client;
 use biliup::error::CustomError;
-use biliup::line::{self, Probe};
-use biliup::video::Studio;
-use biliup::VideoFile;
+use biliup::uploader::{line, VideoFile};
 use futures::StreamExt;
 use pyo3::pyclass;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;
+use biliup::client::StatelessClient;
+use biliup::uploader::bilibili::Studio;
+use biliup::uploader::credential::login_by_cookies;
+use biliup::uploader::line::Probe;
 
 #[pyclass]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -41,13 +42,14 @@ pub async fn upload(
     //     .read(true)
     //     .write(true)
     //     .open(&cookie_file);
-    let bilibili = Client::login_by_cookies(&cookie_file).await;
+    let bilibili = login_by_cookies(&cookie_file).await;
     let bilibili = if let Err(CustomError::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
     } else {
         bilibili?
     };
+    let client = StatelessClient::default();
     let mut videos = Vec::new();
     let line = match line {
         Some(UploadLine::Kodo) => line::kodo(),
@@ -56,7 +58,7 @@ pub async fn upload(
         Some(UploadLine::Qn) => line::qn(),
         Some(UploadLine::Cos) => line::cos(),
         Some(UploadLine::CosInternal) => line::cos_internal(),
-        None => Probe::probe().await.unwrap_or_default(),
+        None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();
     for video_path in video_path {
@@ -70,7 +72,7 @@ pub async fn upload(
         let instant = Instant::now();
 
         let video = uploader
-            .upload(limit, |vs| {
+            .upload(client.clone(), limit, |vs| {
                 vs.map(|vs| {
                     let chunk = vs?;
                     let len = chunk.len();

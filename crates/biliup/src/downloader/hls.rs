@@ -7,15 +7,17 @@ use std::io::{BufWriter, Write};
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 use url::Url;
+use crate::client;
+use crate::client::StatelessClient;
 
 pub async fn download(
     url: &str,
-    headers: &HeaderMap,
+    client: &StatelessClient,
     file_name: &str,
     mut splitting: Segmentable,
 ) -> Result<()> {
     println!("Downloading {}...", url);
-    let resp = super::get_response(url, headers).await?;
+    let resp = client.retryable(url).await?;
     println!("{}", resp.status());
     // let mut resp = resp.bytes_stream();
     let bytes = resp.bytes().await?;
@@ -27,7 +29,7 @@ pub async fn download(
             println!("Master playlist:\n{:#?}", pl);
             media_url = media_url.join(&pl.variants[0].uri)?;
             println!("media url: {media_url}");
-            let resp = super::get_response(media_url.as_str(), headers).await?;
+            let resp = client.retryable(media_url.as_str()).await?;
             let bs = resp.bytes().await?;
             // println!("{:?}", bs);
             if let Ok((_, pl)) = m3u8_rs::parse_media_playlist(&bs) {
@@ -66,7 +68,7 @@ pub async fn download(
                 }
                 let length = download_to_file(
                     media_url.join(&segment.uri)?,
-                    headers,
+                    client,
                     &mut ts_file.buf_writer,
                 )
                 .await?;
@@ -81,7 +83,7 @@ pub async fn download(
             }
             seq += 1;
         }
-        let resp = super::get_response(media_url.as_str(), headers).await?;
+        let resp = client.retryable(media_url.as_str()).await?;
         let bs = resp.bytes().await?;
         if let Ok((_, playlist)) = m3u8_rs::parse_media_playlist(&bs) {
             pl = playlist;
@@ -91,9 +93,9 @@ pub async fn download(
     Ok(())
 }
 
-async fn download_to_file(url: Url, headers: &HeaderMap, out: &mut impl Write) -> Result<u64> {
+async fn download_to_file(url: Url, client: &StatelessClient, out: &mut impl Write) -> Result<u64> {
     debug!("url: {url}");
-    let mut response = super::get_response(url.as_str(), headers).await?;
+    let mut response = client.retryable(url.as_str()).await?;
     let mut length: u64 = 0;
     while let Some(chunk) = response.chunk().await? {
         length += chunk.len() as u64;

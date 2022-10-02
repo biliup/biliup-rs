@@ -1,5 +1,4 @@
 use crate::error::{CustomError, Result};
-use crate::Video;
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{AUTHORIZATION, CONTENT_LENGTH};
 use reqwest::{header, Body};
@@ -13,31 +12,21 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use std::time::Duration;
+use crate::client::StatelessClient;
+use crate::retry;
+use crate::uploader::bilibili::Video;
 
 pub struct Cos {
-    client: ClientWithMiddleware,
-    raw_client: reqwest::Client,
+    client: StatelessClient,
     bucket: Bucket,
     upload_id: String,
 }
 
 impl Cos {
-    pub async fn form_post(bucket: Bucket) -> Result<Cos> {
-        let raw_client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            // .default_headers(headers)
-            .timeout(Duration::new(300, 0))
-            .build()
-            .unwrap();
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
-        let client = ClientBuilder::new(raw_client.clone())
-            // Retry failed requests.
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build();
-        let upload_id = get_uploadid(&client, &bucket).await?;
+    pub async fn form_post(client: StatelessClient, bucket: Bucket) -> Result<Cos> {
+        let upload_id = get_uploadid(&client.client_with_middleware, &bucket).await?;
         Ok(Cos {
             client,
-            raw_client,
             bucket,
             upload_id,
         })
@@ -57,7 +46,7 @@ impl Cos {
         let chunk_size = 10485760;
         let _chunks_num = (total_size as f64 / chunk_size as f64).ceil() as u32; // 获取分块数量
                                                                                  // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
-        let client = &self.raw_client;
+        let client = &self.client.client;
         let temp;
         let url = if enable_internal {
             temp = self
@@ -80,7 +69,7 @@ impl Cos {
                     upload_id,
                     part_number: (i + 1) as u32,
                 };
-                let response = super::retryable::retry(|| async {
+                let response = retry(|| async {
                     let response = client
                         .put(url)
                         .header(AUTHORIZATION, &self.bucket.put_auth)
@@ -151,7 +140,7 @@ impl Cos {
             header::HeaderValue::from_str(&self.bucket.post_auth)?,
         );
         let response = self
-            .client
+            .client.client_with_middleware
             .post(&self.bucket.url)
             .query(&[("uploadId", &self.upload_id)])
             .body(xml)
@@ -185,7 +174,7 @@ impl Cos {
             )?,
         );
         let res = self
-            .client
+            .client.client_with_middleware
             .post(format!("https:{}", self.bucket.fetch_url))
             .headers(headers)
             .send()

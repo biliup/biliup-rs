@@ -1,10 +1,6 @@
 use crate::cli::UploadLine;
 use anyhow::{anyhow, Context, Result};
-use biliup::client::{Client, LoginInfo};
 use biliup::error::CustomError;
-use biliup::line::Probe;
-use biliup::video::{BiliBili, Studio, Vid, Video};
-use biliup::{line, load_config, VideoFile};
 use bytes::{Buf, Bytes};
 use clap::ValueEnum;
 use dialoguer::theme::ColorfulTheme;
@@ -22,9 +18,14 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::Poll;
 use std::time::Instant;
+use biliup::client::{StatefulClient, StatelessClient};
+use biliup::uploader::{credential, line, load_config, VideoFile};
+use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
+use biliup::uploader::credential::{Credential, LoginInfo};
+use biliup::uploader::line::Probe;
 
 pub async fn login(user_cookie: PathBuf) -> Result<()> {
-    let client: Client = Default::default();
+    let client = Credential::new();
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("选择一种登录方式")
         .default(1)
@@ -51,7 +52,7 @@ pub async fn login(user_cookie: PathBuf) -> Result<()> {
 }
 
 pub async fn renew(user_cookie: PathBuf) -> Result<()> {
-    let client: Client = Default::default();
+    let client = Credential::new();
     let mut file = fopen_rw(user_cookie)?;
     let login_info: LoginInfo = serde_json::from_reader(&file)?;
     let new_info = client.renew_tokens(login_info).await?;
@@ -137,7 +138,7 @@ pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
 }
 
 async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
-    let result = Client::login_by_cookies(&user_cookie).await;
+    let result = credential::login_by_cookies(&user_cookie).await;
     Ok(if let Err(CustomError::IO(_)) = result {
         result
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
@@ -175,21 +176,15 @@ pub async fn upload(
 ) -> Result<Vec<Video>> {
     println!("number of concurrent futures: {limit}");
     let mut videos = Vec::new();
+    let client = StatelessClient::default();
     let line = match line {
-        // Some("kodo") => line::kodo(),
-        // Some("bda2") => line::bda2(),
-        // Some("ws") => line::ws(),
-        // Some("qn") => line::qn(),
-        // Some("cos") => line::cos(),
-        // Some("cos-internal") => line::cos_internal(),
-        // Some(name) => panic!("不正确的线路{name}"),
         Some(UploadLine::Kodo) => line::kodo(),
         Some(UploadLine::Bda2) => line::bda2(),
         Some(UploadLine::Ws) => line::ws(),
         Some(UploadLine::Qn) => line::qn(),
         Some(UploadLine::Cos) => line::cos(),
         Some(UploadLine::CosInternal) => line::cos_internal(),
-        None => Probe::probe().await.unwrap_or_default(),
+        None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();
     for video_path in video_path {
@@ -209,7 +204,7 @@ pub async fn upload(
         let instant = Instant::now();
 
         let video = uploader
-            .upload(limit, |vs| {
+            .upload(client.clone(), limit, |vs| {
                 vs.map(|chunk| {
                     let pb = pb.clone();
                     let chunk = chunk?;
@@ -230,17 +225,17 @@ pub async fn upload(
     Ok(videos)
 }
 
-pub async fn login_by_password(client: Client) -> Result<LoginInfo> {
+pub async fn login_by_password(credential: Credential) -> Result<LoginInfo> {
     let username: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入账号")
         .interact()?;
     let password: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入密码")
         .interact()?;
-    Ok(client.login_by_password(&username, &password).await?)
+    Ok(credential.login_by_password(&username, &password).await?)
 }
 
-pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
+pub async fn login_by_sms(credential: Credential) -> Result<LoginInfo> {
     let country_code: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入手机国家代码")
         .default(86)
@@ -248,16 +243,16 @@ pub async fn login_by_sms(client: Client) -> Result<LoginInfo> {
     let phone: u64 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入手机号")
         .interact_text()?;
-    let res = client.send_sms(phone, country_code).await?;
+    let res = credential.send_sms(phone, country_code).await?;
     let input: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入验证码")
         .interact_text()?;
     // println!("{}", payload);
-    Ok(client.login_by_sms(input, res).await?)
+    Ok(credential.login_by_sms(input, res).await?)
 }
 
-pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
-    let value = client.get_qrcode().await?;
+pub async fn login_by_qrcode(credential: Credential) -> Result<LoginInfo> {
+    let value = credential.get_qrcode().await?;
     let code = QrCode::new(
         value["data"]["url"]
             .as_str()
@@ -276,11 +271,11 @@ pub async fn login_by_qrcode(client: Client) -> Result<LoginInfo> {
     println!("在Windows下建议使用Windows Terminal(支持utf8，可完整显示二维码)\n否则可能无法正常显示，此时请打开./qrcode.png扫码");
     // Save the image.
     image.save("qrcode.png").unwrap();
-    Ok(client.login_by_qrcode(value).await?)
+    Ok(credential.login_by_qrcode(value).await?)
 }
 
-pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
-    let value = client.get_qrcode().await?;
+pub async fn login_by_browser(credential: Credential) -> Result<LoginInfo> {
+    let value = credential.get_qrcode().await?;
     println!(
         "{}",
         value["data"]["url"]
@@ -288,27 +283,27 @@ pub async fn login_by_browser(client: Client) -> Result<LoginInfo> {
             .ok_or_else(|| anyhow!("{}", value))?
     );
     println!("请复制此链接至浏览器中完成登录");
-    Ok(client.login_by_qrcode(value).await?)
+    Ok(credential.login_by_qrcode(value).await?)
 }
 
-pub async fn login_by_web_cookies(client: Client) -> Result<LoginInfo> {
+pub async fn login_by_web_cookies(credential: Credential) -> Result<LoginInfo> {
     let sess_data: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入SESSDATA")
         .interact_text()?;
     let bili_jct: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入bili_jct")
         .interact_text()?;
-    Ok(client.login_by_web_cookies(&sess_data, &bili_jct).await?)
+    Ok(credential.login_by_web_cookies(&sess_data, &bili_jct).await?)
 }
 
-pub async fn login_by_webqr_cookies(client: Client) -> Result<LoginInfo> {
+pub async fn login_by_webqr_cookies(credential: Credential) -> Result<LoginInfo> {
     let sess_data: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入SESSDATA")
         .interact_text()?;
     let dede_user_id: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入DedeUserID")
         .interact_text()?;
-    Ok(client
+    Ok(credential
         .login_by_web_qrcode(&sess_data, &dede_user_id)
         .await?)
 }

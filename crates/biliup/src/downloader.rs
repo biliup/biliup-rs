@@ -7,10 +7,11 @@ use reqwest::header::{
 use std::collections::HashMap;
 
 use crate::downloader::util::Segmentable;
-use crate::uploader::retryable::retry;
+use crate::retry;
 use reqwest::Response;
 
 use std::str::FromStr;
+use crate::client::StatelessClient;
 
 pub mod error;
 pub mod extractor;
@@ -27,7 +28,8 @@ pub async fn download(
     file_name: &str,
     segment: Segmentable,
 ) -> anyhow::Result<()> {
-    let response = get_response(url, &headers).await?;
+    let client = StatelessClient::new(headers);
+    let response = client.retryable(url).await?;
     let mut connection = Connection::new(response);
     // let buf = &mut [0u8; 9];
     let bytes = connection.read_frame(9).await?;
@@ -48,7 +50,7 @@ pub async fn download(
         }
         Err(e) => {
             println!("{e}");
-            hls::download(url, &headers, file_name, segment).await?;
+            hls::download(url, &client, file_name, segment).await?;
         }
     }
     Ok(())
@@ -63,21 +65,6 @@ pub fn construct_headers(hash_map: HashMap<String, String>) -> HeaderMap {
         );
     }
     headers
-}
-
-pub async fn get_response(url: &str, headers: &HeaderMap) -> reqwest::Result<Response> {
-    let resp = retry(|| {
-        reqwest::Client::new()
-            .get(url)
-            .header(ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-            .header(ACCEPT_ENCODING, "gzip, deflate")
-            .header(ACCEPT_LANGUAGE, "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3")
-            .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
-            .headers(headers.clone())
-            .send()
-    }).await?;
-    resp.error_for_status_ref()?;
-    Ok(resp)
 }
 
 // fn retry<O, E: std::fmt::Display>(mut f: impl FnMut() -> Result<O, E>) -> Result<O, E> {
