@@ -1,4 +1,4 @@
-use crate::error::{CustomError, Result};
+use crate::error::{Kind, Result};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{AUTHORIZATION, CONTENT_LENGTH};
 use reqwest::{header, Body};
@@ -43,7 +43,7 @@ impl Cos {
     {
         let chunk_size = 10485760;
         let _chunks_num = (total_size as f64 / chunk_size as f64).ceil() as u32; // 获取分块数量
-                                                                                 // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
+
         let client = &self.client.client;
         let temp;
         let url = if enable_internal {
@@ -85,19 +85,19 @@ impl Cos {
                 let headers = response.headers();
                 let etag = match headers.get("Etag") {
                     None => {
-                        return Err(CustomError::Custom(format!(
+                        return Err(Kind::Custom(format!(
                             "upload chunk {i} error: {}",
                             response.text().await?
                         )))
                     }
                     Some(etag) => etag
                         .to_str()
-                        .map_err(|e| CustomError::Custom(e.to_string()))?
+                        .map_err(|e| Kind::Custom(e.to_string()))?
                         .to_string(),
                 };
                 // etag.ok_or(anyhow!("{res}")).map(|s|s.to_str())??.to_string()
                 // let res = response.text().await?;
-                Ok::<_, CustomError>((i + 1, etag))
+                Ok::<_, Kind>((i + 1, etag))
             })
             .buffer_unordered(limit);
         let mut parts = Vec::new();
@@ -115,22 +115,16 @@ impl Cos {
             .iter()
             .map(|(number, etag)| {
                 format!(
-                    r#"
-    <Part>
-        <PartNumber>{number}</PartNumber>
-        <ETag>{etag}</ETag>
-    </Part>
-    "#
+                    r#"<Part>
+                        <PartNumber>{number}</PartNumber>
+                        <ETag>{etag}</ETag>
+                       </Part>"#
                 )
             })
             .reduce(|accum, item| accum + &item)
             .unwrap();
         let xml = format!(
-            r#"
-    <CompleteMultipartUpload>
-    {complete_multipart_upload}
-    </CompleteMultipartUpload>
-    "#
+            r#"<CompleteMultipartUpload>{complete_multipart_upload}</CompleteMultipartUpload>"#
         );
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -147,7 +141,7 @@ impl Cos {
             .send()
             .await?;
         if !response.status().is_success() {
-            return Err(CustomError::Custom(response.text().await?));
+            return Err(Kind::Custom(response.text().await?));
         }
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -180,7 +174,7 @@ impl Cos {
             .send()
             .await?;
         if !res.status().is_success() {
-            return Err(CustomError::Custom(res.text().await?));
+            return Err(Kind::Custom(res.text().await?));
         }
         Ok(Video {
             title: None,
@@ -205,11 +199,11 @@ async fn get_uploadid(client: &ClientWithMiddleware, bucket: &Bucket) -> Result<
         .await?;
     let start = res
         .find(r"<UploadId>")
-        .ok_or_else(|| CustomError::Custom(res.clone()))?
+        .ok_or_else(|| Kind::Custom(res.clone()))?
         + "<UploadId>".len();
     let end = res
         .rfind(r"</UploadId>")
-        .ok_or_else(|| CustomError::Custom(res.clone()))?;
+        .ok_or_else(|| Kind::Custom(res.clone()))?;
     let uploadid = &res[start..end];
     Ok(uploadid.to_string())
 }

@@ -1,4 +1,4 @@
-use crate::error::{CustomError, Result};
+use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -125,7 +125,7 @@ impl Video {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Vid {
     Aid(u64),
     Bvid(String),
@@ -186,7 +186,7 @@ impl BiliBili {
             info!("投稿成功");
             Ok(ret)
         } else {
-            Err(CustomError::Custom(ret.to_string()))
+            Err(Kind::Custom(ret.to_string()))
         }
     }
 
@@ -209,7 +209,7 @@ impl BiliBili {
             info!("稿件修改成功");
             Ok(ret)
         } else {
-            Err(CustomError::Custom(ret.to_string()))
+            Err(Kind::Custom(ret.to_string()))
         }
     }
 
@@ -232,7 +232,7 @@ impl BiliBili {
                 code: _,
                 data: None,
                 ..
-            } => Err(CustomError::Custom(format!("{res:?}"))),
+            } => Err(Kind::Custom(format!("{res:?}"))),
             ResResult {
                 code: _,
                 data: Some(v),
@@ -292,7 +292,7 @@ impl BiliBili {
             .send()
             .await?;
         let res: ResResult = if !response.status().is_success() {
-            return Err(CustomError::Custom(response.text().await?));
+            return Err(Kind::Custom(response.text().await?));
         } else {
             response.json().await?
         };
@@ -305,7 +305,7 @@ impl BiliBili {
         {
             Ok(value["url"].as_str().ok_or("cover_up error")?.into())
         } else {
-            Err(CustomError::Custom(format!("{res:?}")))
+            Err(Kind::Custom(format!("{res:?}")))
         }
     }
 }

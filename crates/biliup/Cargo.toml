@@ -33,7 +33,7 @@ futures = "0.3.17"
 typed-builder = "0.9.1"
 reqwest-middleware = "0.1.1"
 reqwest-retry = "0.1.1"
-clap = { version = "3.0.0", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 
 anyhow = "1.0"
 #clap = { version = "3.0.0", features = ["derive"] }

@@ -2,10 +2,10 @@ use reqwest::header::{InvalidHeaderName, InvalidHeaderValue};
 
 use thiserror::Error;
 
-pub type Result<T> = core::result::Result<T, CustomError>;
+pub type Result<T> = core::result::Result<T, Kind>;
 
 #[derive(Error, Debug)]
-pub enum CustomError {
+pub enum Kind {
     #[error("{0}")]
     Custom(String),
 
@@ -35,8 +35,8 @@ pub enum CustomError {
     // source and Display delegate to anyhow::Error
 }
 
-impl From<&str> for CustomError {
+impl From<&str> for Kind {
     fn from(s: &str) -> Self {
-        CustomError::Custom(s.into())
+        Self::Custom(s.into())
     }
 }

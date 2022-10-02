@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use biliup::client::StatelessClient;
-use biliup::error::CustomError;
+use biliup::error::Kind;
 use biliup::uploader::bilibili::Studio;
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
@@ -43,7 +43,7 @@ pub async fn upload(
     //     .write(true)
     //     .open(&cookie_file);
     let bilibili = login_by_cookies(&cookie_file).await;
-    let bilibili = if let Err(CustomError::IO(_)) = bilibili {
+    let bilibili = if let Err(Kind::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
     } else {

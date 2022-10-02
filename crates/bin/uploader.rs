@@ -1,7 +1,7 @@
 use crate::cli::UploadLine;
 use anyhow::{anyhow, Context, Result};
 use biliup::client::StatelessClient;
-use biliup::error::CustomError;
+use biliup::error::Kind;
 use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
 use biliup::uploader::credential::{Credential, LoginInfo};
 use biliup::uploader::line::Probe;
@@ -139,7 +139,7 @@ pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
 
 async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
     let result = credential::login_by_cookies(&user_cookie).await;
-    Ok(if let Err(CustomError::IO(_)) = result {
+    Ok(if let Err(Kind::IO(_)) = result {
         result
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
     } else {

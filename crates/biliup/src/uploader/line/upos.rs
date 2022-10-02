@@ -1,4 +1,4 @@
-use crate::error::{CustomError, Result};
+use crate::error::{Kind, Result};
 use futures::Stream;
 use futures::StreamExt;
 
@@ -45,10 +45,6 @@ pub struct Protocol<'a> {
 
 impl Upos {
     pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
-        client
-            .headers
-            .insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
-
         let url = format!(
             "https:{}/{}",
             bucket.endpoint,
@@ -57,6 +53,7 @@ impl Upos {
         let upload_id: serde_json::Value = client
             .client_with_middleware
             .post(format!("{url}?uploads&output=json"))
+            .header("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?)
             .send()
             .await?
             .json()
@@ -64,7 +61,7 @@ impl Upos {
         let upload_id = upload_id
             .get("upload_id")
             .and_then(|s| s.as_str())
-            .ok_or_else(|| CustomError::Custom(upload_id.to_string()))?
+            .ok_or_else(|| Kind::Custom(upload_id.to_string()))?
             .into();
         // = upload_id["upload_id"].as_str().unwrap().into();
         // let ret =  &upload.ret;
@@ -123,63 +120,25 @@ impl Upos {
                 retry(|| async {
                     let response = client
                         .put(url)
+                        .header(
+                            "X-Upos-Auth",
+                            header::HeaderValue::from_str(&self.bucket.auth)?,
+                        )
                         .query(&params)
                         .header(CONTENT_LENGTH, len)
                         .body(chunk.clone())
                         .send()
                         .await?;
                     response.error_for_status()?;
-                    Ok::<_, reqwest::Error>(())
+                    Ok::<_, Kind>(())
                 })
                 .await?;
 
-                Ok::<_, CustomError>((json!({"partNumber": params.chunk + 1, "eTag": "etag"}), len))
+                Ok::<_, Kind>((json!({"partNumber": params.chunk + 1, "eTag": "etag"}), len))
             })
             .buffer_unordered(limit);
         Ok(stream)
-        // tokio::pin!(stream);
-        // while let Some((part, size)) = stream.try_next().await? {
-        //     parts.push(part);
-        //     // yield UploadStatus::Processing(size);
-        // }
-        // let res = self.get_ret_video_info(&parts, path).await?;
     }
-
-    // pub async fn upload(&self, file: std::fs::File, path: &Path) -> Result<Video> {
-    //     let parts: Vec<_> = self
-    //         .upload_stream(file, 3)
-    //         .await?
-    //         .map(|union| Ok::<_, reqwest_middleware::Error>(union?.0))
-    //         .try_collect()
-    //         .await?;
-    // .for_each_concurrent()
-    // .try_collect().await?;
-    // let mut parts = Vec::with_capacity(chunks_num);
-    // .for_each_concurrent()
-    // .try_collect().await?;
-    // let mut parts = Vec::with_capacity(chunks_num);
-    // tokio::pin!(stream);
-
-    // .for_each_concurrent()
-    // .try_collect().await?;
-    // let mut parts = Vec::with_capacity(chunks_num);
-    // .for_each_concurrent()
-    // .try_collect().await?;
-    // let mut parts = Vec::with_capacity(chunks_num);
-    // tokio::pin!(stream);
-    // while let Some((part, size)) = stream.try_next().await? {
-    //     parts.push(part);
-    //     // (callback)(instant, total_size, size);
-    //     // if !callback(instant, total_size, size) {
-    //     //     bail!("移除视频");
-    //     // }
-    // }
-    // println!(
-    //     "{:.2} MB/s.",
-    //     total_size as f64 / 1000. / instant.elapsed().as_millis() as f64
-    // );
-    //     self.get_ret_video_info(&parts, path).await
-    // }
 
     pub(crate) async fn get_ret_video_info(
         &self,
@@ -199,6 +158,10 @@ impl Upos {
             .client
             .client_with_middleware
             .post(&self.url)
+            .header(
+                "X-Upos-Auth",
+                header::HeaderValue::from_str(&self.bucket.auth)?,
+            )
             .query(&value)
             .json(&json!({ "parts": parts }))
             .send()
@@ -206,7 +169,7 @@ impl Upos {
             .json()
             .await?;
         if res["OK"] != 1 {
-            return Err(CustomError::Custom(res.to_string()));
+            return Err(Kind::Custom(res.to_string()));
         }
         Ok(Video {
             title: None,

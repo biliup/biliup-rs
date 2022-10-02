@@ -6,7 +6,7 @@ use std::io::Seek;
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::error::{CustomError, Result};
+use crate::error::{Kind, Result};
 use crate::uploader::bilibili::{BiliBili, ResResult};
 use base64::encode;
 use cookie::Cookie;
@@ -83,10 +83,10 @@ pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
             info!("无需更新cookie");
             login_info
         }
-        _ => return Err(CustomError::Custom(response.to_string())),
+        _ => return Err(Kind::Custom(response.to_string())),
     };
     Ok(BiliBili {
-        client: client.client,
+        client: client.0.client,
         login_info,
     })
 }
@@ -144,10 +144,8 @@ pub struct OAuthInfo {
     pub refresh: bool,
 }
 
-pub struct Credential {
-    pub client: reqwest::Client,
-    cookie_store: Arc<CookieStoreMutex>,
-}
+#[derive(Debug)]
+pub struct Credential(StatefulClient);
 
 impl Credential {
     pub fn new() -> Self {
@@ -156,11 +154,7 @@ impl Credential {
             "Referer",
             header::HeaderValue::from_static("https://www.bilibili.com/"),
         );
-        let stateful_client = StatefulClient::new(headers);
-        Self {
-            client: stateful_client.client,
-            cookie_store: stateful_client.cookie_store,
-        }
+        Self(StatefulClient::new(headers))
     }
 
     async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData> {
@@ -179,6 +173,7 @@ impl Credential {
         };
 
         let response: ResponseData = self
+            .0
             .client
             .get("https://passport.bilibili.com/x/passport-login/oauth2/info")
             .query(&payload)
@@ -212,6 +207,7 @@ impl Credential {
             payload
         };
         let response: ResponseData = self
+            .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/oauth2/refresh_token")
             .form(&payload)
@@ -228,7 +224,7 @@ impl Credential {
                     ..info
                 })
             }
-            _ => Err(CustomError::Custom(response.to_string())),
+            _ => Err(Kind::Custom(response.to_string())),
         }
     }
 
@@ -267,6 +263,7 @@ impl Credential {
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
         let response: ResponseData = self
+            .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/oauth2/login")
             .form(&payload)
@@ -283,7 +280,7 @@ impl Credential {
                     ..info
                 })
             }
-            _ => Err(CustomError::Custom(response.to_string())),
+            _ => Err(Kind::Custom(response.to_string())),
         }
     }
 
@@ -297,6 +294,7 @@ impl Credential {
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
         let res: ResponseData = self
+            .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/login/sms")
             .form(&payload)
@@ -309,7 +307,7 @@ impl Credential {
                 platform: Some("Android".to_string()),
                 ..info
             }),
-            _ => Err(CustomError::Custom(res.to_string())),
+            _ => Err(Kind::Custom(res.to_string())),
         }
     }
 
@@ -338,6 +336,7 @@ impl Credential {
         // let mut form = payload.clone();
         // form["sign"] = Value::from(sign);
         let res: ResponseData = self
+            .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/sms/send")
             .header("content-type", "application/x-www-form-urlencoded")
@@ -357,7 +356,7 @@ impl Credential {
                 payload["captcha_key"] = data["captcha_key"].take();
                 Ok(payload)
             }
-            _ => Err(CustomError::Custom(res.to_string())),
+            _ => Err(Kind::Custom(res.to_string())),
         }
     }
 
@@ -374,6 +373,7 @@ impl Credential {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
             let res: ResponseData = self
+                .0
                 .client
                 .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll")
                 .form(&form)
@@ -397,7 +397,7 @@ impl Credential {
                     // form["ts"] = Value::from(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
                 }
                 _ => {
-                    break Err(CustomError::Custom(format!("{res:#?}")));
+                    break Err(Kind::Custom(format!("{res:#?}")));
                 }
             }
         }
@@ -413,6 +413,7 @@ impl Credential {
         let sign = Self::sign(&urlencoded, AppKeyStore::BiliTV.appsec());
         form["sign"] = Value::from(sign);
         Ok(self
+            .0
             .client
             .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/auth_code")
             .form(&form)
@@ -428,6 +429,7 @@ impl Credential {
             "sign": Credential::sign(&format!("appkey={}", AppKeyStore::Android.app_key()), AppKeyStore::Android.appsec()),
         });
         let response: Value = self
+            .0
             .client
             .get("https://passport.bilibili.com/x/passport-login/web/key")
             .json(&payload)
@@ -437,15 +439,15 @@ impl Credential {
             .await?;
         let response = response
             .get("data")
-            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+            .ok_or_else(|| Kind::Custom(response.to_string()))?;
         let hash = response
             .get("hash")
             .and_then(Value::as_str)
-            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+            .ok_or_else(|| Kind::Custom(response.to_string()))?;
         let key = response
             .get("key")
             .and_then(Value::as_str)
-            .ok_or_else(|| CustomError::Custom(response.to_string()))?;
+            .ok_or_else(|| Kind::Custom(response.to_string()))?;
         Ok((hash.to_string(), key.to_string()))
     }
 
@@ -455,7 +457,7 @@ impl Credential {
         dede_user_id: &str,
     ) -> Result<LoginInfo> {
         info!("login_by_web_qrcode");
-        let qrcode: Value = self.client
+        let qrcode: Value = self.0.client
             .get("http://passport.bilibili.com/qrcode/getLoginUrl")
             .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
             .send()
@@ -464,7 +466,7 @@ impl Credential {
             .await?;
         let oauth_key = qrcode["data"]["oauthKey"].as_str();
         let cookies = format!("SESSDATA={sess_data}; DedeUserID={dede_user_id}");
-        self.client
+        self.0.client
             .post("https://passport.bilibili.com/qrcode/login/confirm")
             .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
             .header(COOKIE, cookies)
@@ -472,19 +474,16 @@ impl Credential {
             .header(ORIGIN, "https://passport.bilibili.com")
             .form(&[("oauthKey", oauth_key)])
             .send()
-            .await?
-            .json()
-            .await?;
-        self.client
+            .await?.error_for_status()?;
+        self.0.client
             .post("http://passport.bilibili.com/qrcode/getLoginInfo")
             .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1 BiliApp")
             .form(&[("oauthKey", oauth_key)])
             .send()
-            .await?
-            .json()
-            .await?;
-        self.login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct"))
-            .await
+            .await?.error_for_status()?;
+        Ok(self
+            .login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct"))
+            .await?)
     }
 
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {
@@ -511,7 +510,7 @@ impl Credential {
         });
         let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
         info!("自动确认二维码");
-        let response = self.client
+        let response = self.0.client
             .post("https://passport.bilibili.com/x/passport-tv-login/h5/qrcode/confirm")
             .header("Cookie", cookies)
             // .header("native_api_from", "h5")
@@ -520,11 +519,11 @@ impl Credential {
             .send()
             .await?;
         if !response.status().is_success() {
-            return Err(CustomError::Custom(response.text().await?));
+            return Err(Kind::Custom(response.text().await?));
         }
         let res: ResResult = response.json().await?;
         if res.code != 0 {
-            return Err(CustomError::Custom(format!("{res:#?}")));
+            return Err(Kind::Custom(format!("{res:#?}")));
         }
         Ok(())
     }
@@ -539,7 +538,7 @@ impl Credential {
     }
 
     fn set_cookie(&self, cookie_info: &serde_json::Value) {
-        let mut store = self.cookie_store.lock().unwrap();
+        let mut store = self.0.cookie_store.lock().unwrap();
         for cookie in cookie_info["cookies"].as_array().unwrap() {
             let cookie = Cookie::build(
                 cookie["name"].as_str().unwrap(),
@@ -554,7 +553,7 @@ impl Credential {
     }
 
     fn get_cookie(&self, name: &str) -> String {
-        let store = self.cookie_store.lock().unwrap();
+        let store = self.0.cookie_store.lock().unwrap();
         for item in store.iter_any() {
             if item.name() == name {
                 return item.value().to_string();

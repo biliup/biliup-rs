@@ -1,8 +1,8 @@
-use crate::error::{CustomError, Result};
+use crate::error::{Kind, Result};
 use base64::URL_SAFE;
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
-use reqwest::Body;
+use reqwest::{header, Body};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,7 +23,7 @@ impl Kodo {
     pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
         client.headers.insert(
             "Authorization",
-            format!("UpToken {}", bucket.uptoken).parse()?,
+            header::HeaderValue::try_from(format!("UpToken {}", bucket.uptoken))?,
         );
         let url = format!("https:{}/mkblk", bucket.endpoint); // 视频上传路径
         Ok(Kodo {
@@ -51,7 +51,7 @@ impl Kodo {
         // let parts_cell = &RefCell::new(parts);
         let client = &self.client.client;
         let url = &self.url;
-
+        let uptoken = &format!("UpToken {}", &self.bucket.uptoken);
         // let stream = read_chunk(file, chunk_size, process)
         let stream = stream
             // let mut chunks = read_chunk(file, chunk_size)
@@ -65,16 +65,17 @@ impl Kodo {
                     let response = client
                         .post(url)
                         .header(CONTENT_LENGTH, len)
+                        .header("Authorization", header::HeaderValue::try_from(uptoken)?)
                         .body(chunk.clone())
                         .send()
                         .await?;
                     response.error_for_status_ref()?;
                     let res = response.json().await?;
-                    Ok::<_, CustomError>(res)
+                    Ok::<_, Kind>(res)
                 })
                 .await?;
 
-                Ok::<_, CustomError>((
+                Ok::<_, Kind>((
                     Ctx {
                         index: i,
                         ctx: ctx["ctx"].as_str().unwrap_or_default().into(),
@@ -120,7 +121,7 @@ impl Kodo {
             .await?;
         Ok(match result.get("OK") {
             Some(x) if x.as_i64().ok_or("kodo fetch err")? != 1 => {
-                return Err(CustomError::Custom(result.to_string()));
+                return Err(Kind::Custom(result.to_string()));
             }
             _ => Video {
                 title: None,

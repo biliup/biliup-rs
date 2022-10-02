@@ -8,7 +8,7 @@ use serde_json::json;
 use std::ffi::OsStr;
 
 use crate::client::StatelessClient;
-use crate::error::CustomError::Custom;
+use crate::error::Kind::Custom;
 use crate::uploader::bilibili::{BiliBili, Video};
 use crate::uploader::line::cos::Cos;
 use crate::uploader::line::kodo::Kodo;
@@ -27,15 +27,6 @@ pub struct Parcel {
 }
 
 impl Parcel {
-    // fn new(line: &'a Line, video_file: VideoFile) -> Parcel<'a> {
-    //     let total_size = video_file.total_size;
-    //     let file_name = video_file.file_name.clone();
-    //     Self {
-    //         line,
-    //         video_file,
-    //     }
-    // }
-
     pub async fn upload<F, S, B>(
         self,
         client: StatelessClient,
@@ -170,10 +161,6 @@ pub struct Line {
 }
 
 impl Line {
-    // pub fn to_uploader(&self, filepath: VideoFile) -> Parcel<'_> {
-    //     Parcel::new(self, filepath)
-    // }
-
     pub async fn pre_upload(&self, bili: &BiliBili, video_file: VideoFile) -> Result<Parcel> {
         let total_size = video_file.total_size;
         let file_name = video_file.file_name.clone();
