@@ -2,16 +2,14 @@ use crate::error::{CustomError, Result};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{AUTHORIZATION, CONTENT_LENGTH};
 use reqwest::{header, Body};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
+use reqwest_middleware::ClientWithMiddleware;
+
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
 use std::path::Path;
 
-use std::time::Duration;
 use crate::client::StatelessClient;
 use crate::retry;
 use crate::uploader::bilibili::Video;
@@ -140,7 +138,8 @@ impl Cos {
             header::HeaderValue::from_str(&self.bucket.post_auth)?,
         );
         let response = self
-            .client.client_with_middleware
+            .client
+            .client_with_middleware
             .post(&self.bucket.url)
             .query(&[("uploadId", &self.upload_id)])
             .body(xml)
@@ -174,7 +173,8 @@ impl Cos {
             )?,
         );
         let res = self
-            .client.client_with_middleware
+            .client
+            .client_with_middleware
             .post(format!("https:{}", self.bucket.fetch_url))
             .headers(headers)
             .send()

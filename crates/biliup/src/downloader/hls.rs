@@ -1,13 +1,13 @@
 use crate::downloader::error::Result;
 use crate::downloader::util::{format_filename, Segmentable};
 use m3u8_rs::Playlist;
-use reqwest::header::HeaderMap;
+
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 use url::Url;
-use crate::client;
+
 use crate::client::StatelessClient;
 
 pub async fn download(

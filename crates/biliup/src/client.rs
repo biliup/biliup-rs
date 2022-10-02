@@ -1,27 +1,11 @@
-use crate::error::{CustomError, Result};
-use base64::encode;
-use cookie::Cookie;
-use md5::{Digest, Md5};
-use rand::rngs::OsRng;
-use reqwest::{header, Request, Response};
+use crate::retry;
+use reqwest::header::HeaderMap;
+use reqwest::{header, Response};
 use reqwest_cookie_store::CookieStoreMutex;
-use rsa::{PaddingScheme, pkcs8::FromPublicKey, PublicKey, RsaPublicKey};
-use serde::ser::Error;
-use serde_json::{json, Value};
-
-use std::fmt::{Display, Formatter};
-use reqwest::header::{COOKIE, HeaderMap, ORIGIN, REFERER, USER_AGENT};
-use std::io::Seek;
-use std::path::Path;
-use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
-use tracing::info;
-use url::Url;
-use crate::retry;
-// use crate::uploader::credential::{AppKeyStore, LoginInfo, ResponseData, ResponseValue};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct StatelessClient {
@@ -34,9 +18,7 @@ impl StatelessClient {
     pub fn new(mut headers: HeaderMap) -> Self {
         headers.insert("Connection", header::HeaderValue::from_static("keep-alive"));
         let client = reqwest::Client::builder()
-            .user_agent(
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108",
-            )
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .default_headers(headers)
             // .connect_timeout(std::time::Duration::from_secs(60))
             // .timeout(Duration::new(60, 0))
@@ -51,7 +33,7 @@ impl StatelessClient {
         Self {
             client,
             client_with_middleware,
-            headers: HeaderMap::new()
+            headers: HeaderMap::new(),
         }
     }
 
@@ -67,13 +49,12 @@ impl StatelessClient {
                 // .header(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0 Iceweasel/38.2.1")
                 // .headers(headers.clone())
                 .send()
-        }).await?;
+        })
+        .await?;
         resp.error_for_status_ref()?;
         Ok(resp)
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct StatefulClient {

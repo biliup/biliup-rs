@@ -1,8 +1,8 @@
+use crate::client::StatelessClient;
 use crate::downloader::error::Result;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use serde_json::Value;
-use crate::client::StatelessClient;
 
 pub struct HuyaLive {}
 
@@ -57,7 +57,7 @@ impl SiteDefinition for HuyaLive {
                 .to_string(),
             direct_url,
             extension: Extension::Flv,
-            client: client,
+            client,
         })
     }
 }

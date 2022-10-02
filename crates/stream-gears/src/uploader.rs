@@ -1,5 +1,9 @@
 use anyhow::{Context, Result};
+use biliup::client::StatelessClient;
 use biliup::error::CustomError;
+use biliup::uploader::bilibili::Studio;
+use biliup::uploader::credential::login_by_cookies;
+use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
 use futures::StreamExt;
 use pyo3::pyclass;
@@ -7,10 +11,6 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;
-use biliup::client::StatelessClient;
-use biliup::uploader::bilibili::Studio;
-use biliup::uploader::credential::login_by_cookies;
-use biliup::uploader::line::Probe;
 
 #[pyclass]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]

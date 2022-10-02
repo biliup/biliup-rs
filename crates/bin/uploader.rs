@@ -1,6 +1,11 @@
 use crate::cli::UploadLine;
 use anyhow::{anyhow, Context, Result};
+use biliup::client::StatelessClient;
 use biliup::error::CustomError;
+use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
+use biliup::uploader::credential::{Credential, LoginInfo};
+use biliup::uploader::line::Probe;
+use biliup::uploader::{credential, line, load_config, VideoFile};
 use bytes::{Buf, Bytes};
 use clap::ValueEnum;
 use dialoguer::theme::ColorfulTheme;
@@ -18,11 +23,6 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::Poll;
 use std::time::Instant;
-use biliup::client::{StatefulClient, StatelessClient};
-use biliup::uploader::{credential, line, load_config, VideoFile};
-use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
-use biliup::uploader::credential::{Credential, LoginInfo};
-use biliup::uploader::line::Probe;
 
 pub async fn login(user_cookie: PathBuf) -> Result<()> {
     let client = Credential::new();
@@ -293,7 +293,9 @@ pub async fn login_by_web_cookies(credential: Credential) -> Result<LoginInfo> {
     let bili_jct: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入bili_jct")
         .interact_text()?;
-    Ok(credential.login_by_web_cookies(&sess_data, &bili_jct).await?)
+    Ok(credential
+        .login_by_web_cookies(&sess_data, &bili_jct)
+        .await?)
 }
 
 pub async fn login_by_webqr_cookies(credential: Credential) -> Result<LoginInfo> {

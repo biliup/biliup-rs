@@ -1,25 +1,25 @@
-use std::path::Path;
-use std::fmt::{Display, Formatter};
-use std::io::Seek;
-use std::sync::Arc;
+use crate::client::StatefulClient;
 use reqwest::header;
 use serde::ser::Error;
-use crate::client::{StatefulClient};
-use crate::error;
+use std::fmt::{Display, Formatter};
+use std::io::Seek;
+use std::path::Path;
+use std::sync::Arc;
+
 use crate::error::{CustomError, Result};
+use crate::uploader::bilibili::{BiliBili, ResResult};
 use base64::encode;
 use cookie::Cookie;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
+use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 use reqwest_cookie_store::CookieStoreMutex;
-use rsa::{PaddingScheme, pkcs8::FromPublicKey, PublicKey, RsaPublicKey};
+use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use reqwest::header::{COOKIE, HeaderMap, ORIGIN, REFERER, USER_AGENT};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::info;
 use url::Url;
-use crate::uploader::bilibili::{BiliBili, ResResult};
 
 // const APP_KEY: &str = "ae57252b0c09105d";
 // const APPSEC: &str = "c75875c596a69eb55bd119e74b07cfe3";
@@ -144,23 +144,22 @@ pub struct OAuthInfo {
     pub refresh: bool,
 }
 
-
-pub struct Credential{
+pub struct Credential {
     pub client: reqwest::Client,
     cookie_store: Arc<CookieStoreMutex>,
 }
 
 impl Credential {
-    pub fn new() ->Self {
+    pub fn new() -> Self {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "Referer",
             header::HeaderValue::from_static("https://www.bilibili.com/"),
         );
         let stateful_client = StatefulClient::new(headers);
-        Self{
+        Self {
             client: stateful_client.client,
-            cookie_store: stateful_client.cookie_store
+            cookie_store: stateful_client.cookie_store,
         }
     }
 
@@ -350,14 +349,14 @@ impl Credential {
         // println!("{}", res);
         match res.data {
             ResponseValue::Value(mut data)
-            if !data["captcha_key"]
-                .as_str()
-                .ok_or("send sms error")?
-                .is_empty() =>
-                {
-                    payload["captcha_key"] = data["captcha_key"].take();
-                    Ok(payload)
-                }
+                if !data["captcha_key"]
+                    .as_str()
+                    .ok_or("send sms error")?
+                    .is_empty() =>
+            {
+                payload["captcha_key"] = data["captcha_key"].take();
+                Ok(payload)
+            }
             _ => Err(CustomError::Custom(res.to_string())),
         }
     }
@@ -494,11 +493,17 @@ impl Credential {
         let auth_code = qrcode["data"]["auth_code"]
             .as_str()
             .ok_or("Cannot get auth_code")?;
-        self.web_confirm_qrcode(auth_code, sess_data, bili_jct).await?;
+        self.web_confirm_qrcode(auth_code, sess_data, bili_jct)
+            .await?;
         self.login_by_qrcode(qrcode).await
     }
 
-    async fn web_confirm_qrcode(&self, auth_code: &str, sess_data: &str, bili_jct: &str) -> Result<()> {
+    async fn web_confirm_qrcode(
+        &self,
+        auth_code: &str,
+        sess_data: &str,
+        bili_jct: &str,
+    ) -> Result<()> {
         let form = json!({
             "auth_code": auth_code,
             "csrf": bili_jct,
@@ -540,8 +545,8 @@ impl Credential {
                 cookie["name"].as_str().unwrap(),
                 cookie["value"].as_str().unwrap(),
             )
-                .domain("bilibili.com")
-                .finish();
+            .domain("bilibili.com")
+            .finish();
             store
                 .insert_raw(&cookie, &Url::parse("https://bilibili.com/").unwrap())
                 .unwrap();
@@ -556,5 +561,11 @@ impl Credential {
             }
         }
         panic!("{name} not exist");
+    }
+}
+
+impl Default for Credential {
+    fn default() -> Self {
+        Self::new()
     }
 }

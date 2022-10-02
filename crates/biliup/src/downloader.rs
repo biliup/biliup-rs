@@ -1,17 +1,13 @@
 use crate::downloader::httpflv::Connection;
 use flv_parser::header;
 use nom::Err;
-use reqwest::header::{
-    HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, USER_AGENT,
-};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::collections::HashMap;
 
 use crate::downloader::util::Segmentable;
-use crate::retry;
-use reqwest::Response;
 
-use std::str::FromStr;
 use crate::client::StatelessClient;
+use std::str::FromStr;
 
 pub mod error;
 pub mod extractor;

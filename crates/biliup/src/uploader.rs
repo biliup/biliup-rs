@@ -1,19 +1,18 @@
+use crate::uploader::bilibili::Studio;
+use crate::{error, Stream};
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::collections::HashMap;
 use std::io;
-use bytes::Bytes;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use std::io::{ErrorKind, Read};
 use std::ops::DerefMut;
-use crate::{error, Stream};
-use crate::uploader::bilibili::Studio;
+use std::path::Path;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-pub mod retryable;
-pub mod line;
 pub mod bilibili;
 pub mod credential;
+pub mod line;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "lowercase")]

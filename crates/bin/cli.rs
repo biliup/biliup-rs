@@ -1,7 +1,6 @@
+use biliup::uploader::bilibili::{Studio, Vid};
 use clap::{ArgEnum, Parser, Subcommand};
 use std::path::PathBuf;
-use biliup::uploader::bilibili::{Studio, Vid};
-
 
 #[derive(Parser)]
 #[clap(author, version, about)]

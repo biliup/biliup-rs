@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 
-use crate::error::CustomError::Custom;
-use std::time::Instant;
-use tracing::info;
 use crate::client::StatelessClient;
+use crate::error::CustomError::Custom;
+use crate::uploader::bilibili::{BiliBili, Video};
 use crate::uploader::line::cos::Cos;
 use crate::uploader::line::kodo::Kodo;
 use crate::uploader::line::upos::Upos;
-use crate::uploader::bilibili::{BiliBili, Video};
+use std::time::Instant;
+use tracing::info;
 
 pub mod cos;
 pub mod kodo;
@@ -36,7 +36,12 @@ impl Parcel {
     //     }
     // }
 
-    pub async fn upload<F, S, B>(self,client: StatelessClient, limit: usize, progress: F) -> Result<Video>
+    pub async fn upload<F, S, B>(
+        self,
+        client: StatelessClient,
+        limit: usize,
+        progress: F,
+    ) -> Result<Video>
     where
         F: FnOnce(VideoStream) -> S,
         S: Stream<Item = Result<(B, usize)>>,
@@ -112,7 +117,8 @@ pub struct Probe {
 
 impl Probe {
     pub async fn probe(client: &reqwest::Client) -> Result<Line> {
-        let res: Self = client.get("https://member.bilibili.com/preupload?r=probe")
+        let res: Self = client
+            .get("https://member.bilibili.com/preupload?r=probe")
             .send()
             .await?
             .json()
@@ -124,7 +130,8 @@ impl Probe {
             if Probe::ping(&res.probe, &format!("https:{}", line.probe_url), client)
                 .send()
                 .await?
-                .status().is_success()
+                .status()
+                .is_success()
             {
                 line.cost = instant.elapsed().as_millis();
                 info!("{}: {}", line.query, line.cost);

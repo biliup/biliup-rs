@@ -1,5 +1,5 @@
-use crate::uploader::credential::LoginInfo;
 use crate::error::{CustomError, Result};
+use crate::uploader::credential::LoginInfo;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};

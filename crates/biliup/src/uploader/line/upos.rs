@@ -4,14 +4,12 @@ use futures::StreamExt;
 
 use reqwest::header::CONTENT_LENGTH;
 use reqwest::{header, Body};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 use std::path::Path;
-use std::time::Duration;
+
 use crate::client::StatelessClient;
 use crate::retry;
 use crate::uploader::bilibili::Video;
@@ -47,14 +45,17 @@ pub struct Protocol<'a> {
 
 impl Upos {
     pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
-        client.headers.insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
+        client
+            .headers
+            .insert("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?);
 
         let url = format!(
             "https:{}/{}",
             bucket.endpoint,
             bucket.upos_uri.replace("upos://", "")
         ); // 视频上传路径
-        let upload_id: serde_json::Value = client.client_with_middleware
+        let upload_id: serde_json::Value = client
+            .client_with_middleware
             .post(format!("{url}?uploads&output=json"))
             .send()
             .await?
@@ -195,7 +196,8 @@ impl Upos {
         });
         // let res: serde_json::Value = self.client.post(url).query(&value).json(&json!({"parts": *parts_cell.borrow()}))
         let res: serde_json::Value = self
-            .client.client_with_middleware
+            .client
+            .client_with_middleware
             .post(&self.url)
             .query(&value)
             .json(&json!({ "parts": parts }))

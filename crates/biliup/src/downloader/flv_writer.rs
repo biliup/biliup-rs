@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use tracing::{error, info};
 
 const FLV_HEADER: [u8; 9] = [

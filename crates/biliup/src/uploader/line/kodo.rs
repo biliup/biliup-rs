@@ -2,15 +2,13 @@ use crate::error::{CustomError, Result};
 use base64::URL_SAFE;
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
-use reqwest::{header, Body};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
+use reqwest::Body;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use std::str::FromStr;
-use std::time::Duration;
+
 use crate::client::StatelessClient;
 use crate::retry;
 use crate::uploader::bilibili::Video;
@@ -91,7 +89,8 @@ impl Kodo {
         }
         parts.sort_by_key(|x| x.index);
         let key = base64::encode_config(self.bucket.key, URL_SAFE);
-        self.client.client_with_middleware
+        self.client
+            .client_with_middleware
             .post(format!(
                 "https:{}/mkfile/{total_size}/key/{key}",
                 self.bucket.endpoint,
@@ -111,7 +110,8 @@ impl Kodo {
         }
         // reqwest::header::HeaderName::
         let result: serde_json::Value = self
-            .client.client_with_middleware
+            .client
+            .client_with_middleware
             .post(format!("https:{}", self.bucket.fetch_url))
             .headers(headers)
             .send()

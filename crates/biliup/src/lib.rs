@@ -1,24 +1,15 @@
-use bytes::Bytes;
-use futures::{io, Stream};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::io::{ErrorKind, Read};
-use std::ops::DerefMut;
-use std::path::Path;
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use std::future::Future;
+use futures::Stream;
+
 use rand::distributions::uniform::{UniformFloat, UniformSampler};
-use tokio::time::sleep;
+use std::future::Future;
 use std::time::Duration;
+use tokio::time::sleep;
 use tracing::info;
 
 pub mod client;
 pub mod downloader;
 pub mod error;
 pub mod uploader;
-
-
 
 pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F) -> Result<O, E>
 where
@@ -49,14 +40,13 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use crate::uploader::bilibili::Vid;
     use std::str::FromStr;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
     use url::Url;
-    use crate::uploader::bilibili::Vid;
 
     #[test]
     fn it_works() {
@@ -78,9 +68,5 @@ mod tests {
         Url::parse("https://bilibili.com/").unwrap();
         let chunks: Vec<Result<_, ::std::io::Error>> = vec![Ok("hello"), Ok(" "), Ok("world")];
         let _stream = futures::stream::iter(chunks);
-    }
-
-    fn retry(f: impl FnOnce()) {
-        f()
     }
 }

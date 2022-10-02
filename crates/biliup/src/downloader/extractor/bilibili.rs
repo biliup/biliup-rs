@@ -1,9 +1,9 @@
+use crate::client::StatelessClient;
 use crate::downloader::error::{Error, Result};
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 use serde_json::Value;
-use crate::client::StatelessClient;
 
 pub struct BiliLive {}
 
@@ -21,7 +21,8 @@ impl SiteDefinition for BiliLive {
         } else {
             return Err(Error::Custom(format!("Wrong url: {url}")));
         };
-        let mut room_info: Value = client.client
+        let mut room_info: Value = client
+            .client
             .get(format!(
                 "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom?room_id={rid}"
             ))
@@ -50,7 +51,8 @@ impl SiteDefinition for BiliLive {
             ("ptype", "8"),
             ("dolby", "5"),
         ];
-        let room_play_info: Value = client.client
+        let room_play_info: Value = client
+            .client
             .get("https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo")
             .query(&params)
             .send()
@@ -93,8 +95,10 @@ impl SiteDefinition for BiliLive {
             REFERER,
             HeaderValue::from_static("https://live.bilibili.com"),
         );
-        client.headers.append(REFERER,
-                              HeaderValue::from_static("https://live.bilibili.com"));
+        client.headers.append(
+            REFERER,
+            HeaderValue::from_static("https://live.bilibili.com"),
+        );
         return Ok(Site {
             name: "bilibili",
             title: room_info["data"]["room_info"]["title"]
