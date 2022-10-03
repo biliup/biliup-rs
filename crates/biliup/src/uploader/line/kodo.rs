@@ -21,10 +21,6 @@ pub struct Kodo {
 
 impl Kodo {
     pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
-        client.headers.insert(
-            "Authorization",
-            header::HeaderValue::try_from(format!("UpToken {}", bucket.uptoken))?,
-        );
         let url = format!("https:{}/mkblk", bucket.endpoint); // 视频上传路径
         Ok(Kodo {
             client,
@@ -96,6 +92,7 @@ impl Kodo {
                 "https:{}/mkfile/{total_size}/key/{key}",
                 self.bucket.endpoint,
             ))
+            .header("Authorization", header::HeaderValue::try_from(uptoken)?)
             .body(
                 parts
                     .iter()
@@ -104,7 +101,7 @@ impl Kodo {
                     .join(","),
             )
             .send()
-            .await?;
+            .await?.error_for_status_ref()?;
         let mut headers = HeaderMap::new();
         for (key, value) in self.bucket.fetch_headers {
             headers.insert(HeaderName::from_str(&key)?, value.parse()?);

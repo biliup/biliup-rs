@@ -7,36 +7,55 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
-#    container: quay.io/pypa/manylinux2010_x86_64
     steps:
     - uses: actions/checkout@v2
-#    - name: Install rust
-#      run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-#    - name: Installing custom dependency
-#      run: yum install -y openssl openssl-devel
     - uses: messense/maturin-action@v1
       with:
         manylinux: auto
         command: build
-        container: ghcr.io/biliup/manylinux2010
-        args: --release -o dist -m crates/stream-gears/Cargo.toml --find-interpreter
-    - name: aarch64
-      uses: messense/maturin-action@v1
-      with:
-        target: aarch64-unknown-linux-gnu
-        command: build
+        container: messense/manylinux2014-cross:x86_64
         args: --release --sdist -o dist -m crates/stream-gears/Cargo.toml --find-interpreter
-#    - name: Build
-#      run: |
-#        source $HOME/.cargo/env
-#        pip3 install maturin
-#        maturin build --release --manylinux 2010 -o dist
+#    - name: aarch64
+#      uses: messense/maturin-action@v1
+#      with:
+#        target: aarch64-unknown-linux-gnu
+#        command: build
+#        args: --release --sdist -o dist -m crates/stream-gears/Cargo.toml --find-interpreter
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
         name: wheels
         path: dist
-
+  linux-cross:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python:
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+        target: [aarch64, armv7, s390x, ppc64le]
+        include:
+          - python: pypy3.7
+            target: aarch64
+          - python: pypy3.8
+            target: aarch64
+          - python: pypy3.9
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: auto
+          args: -i ${{ matrix.python }} --release --out dist -m crates/stream-gears/Cargo.toml
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
   windows:
     runs-on: windows-latest
     steps:
