@@ -10,6 +10,7 @@ streamers:
     desc_format_id: 0
     desc: 简介
     dolby: 1 # 杜比音效
+    lossless_music: 1 # Hi-Res
     dynamic: ""
     subtitle:
       open: 0
@@ -26,6 +27,7 @@ streamers:
     desc_format_id: 0
     desc: 简介
     dolby: 1
+    lossless_music: 1
     dynamic: ""
     subtitle:
       open: 0
