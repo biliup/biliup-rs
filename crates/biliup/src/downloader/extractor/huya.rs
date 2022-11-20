@@ -3,6 +3,7 @@ use crate::downloader::error::Result;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use serde_json::Value;
+use std::any::Any;
 
 pub struct HuyaLive {}
 
@@ -51,7 +52,7 @@ impl SiteDefinition for HuyaLive {
         // println!("{}", direct_url);
         Ok(Site {
             name: "huya",
-            title: game["gameLiveInfo"]["roomName"]
+            title: game["gameLiveInfo"]["introduction"]
                 .as_str()
                 .unwrap()
                 .to_string(),
@@ -59,5 +60,9 @@ impl SiteDefinition for HuyaLive {
             extension: Extension::Flv,
             client,
         })
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

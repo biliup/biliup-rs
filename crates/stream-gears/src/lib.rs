@@ -53,7 +53,6 @@ fn download(
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
             match biliup::downloader::download(url, map, file_name, segment) {
                 Ok(res) => Ok(res),
-                // Ok(_) => {  },
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "{}, {}",
                     err.root_cause(),

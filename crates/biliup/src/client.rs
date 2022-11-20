@@ -18,7 +18,7 @@ impl StatelessClient {
     pub fn new(mut headers: HeaderMap) -> Self {
         headers.insert("Connection", header::HeaderValue::from_static("keep-alive"));
         let client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
             .default_headers(headers)
             // .connect_timeout(std::time::Duration::from_secs(60))
             // .timeout(Duration::new(60, 0))

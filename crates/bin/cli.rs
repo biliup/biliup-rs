@@ -1,5 +1,6 @@
 use biliup::uploader::bilibili::{Studio, Vid};
 use clap::{Parser, Subcommand, ValueEnum};
+use std::net::IpAddr;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -15,6 +16,9 @@ pub struct Cli {
     /// 登录信息文件
     #[arg(short, long, default_value = "cookies.json")]
     pub user_cookie: PathBuf,
+
+    #[arg(long, default_value = "sqlx=debug,tower_http=debug,info")]
+    pub rust_log: String,
 }
 
 #[derive(Subcommand)]
@@ -94,6 +98,16 @@ pub enum Commands {
         /// 按照时间分割视频
         #[arg(long)]
         split_time: Option<humantime::Duration>,
+    },
+    /// 启动web服务，默认端口19159
+    Server {
+        /// Specify bind address
+        #[arg(short, long, default_value = "0.0.0.0")]
+        bind: String,
+
+        /// Port to use
+        #[arg(short, long, default_value = "19159")]
+        port: u16,
     },
 }
 

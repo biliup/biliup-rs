@@ -44,7 +44,7 @@ pub struct Protocol<'a> {
 }
 
 impl Upos {
-    pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
+    pub async fn from(client: StatelessClient, bucket: Bucket) -> Result<Self> {
         let url = format!(
             "https:{}/{}",
             bucket.endpoint,

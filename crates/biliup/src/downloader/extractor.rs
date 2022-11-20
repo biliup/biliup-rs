@@ -4,6 +4,7 @@ use crate::downloader::util::Segmentable;
 use crate::downloader::{hls, httpflv};
 use async_trait::async_trait;
 use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 
@@ -12,7 +13,8 @@ use crate::client::StatelessClient;
 mod bilibili;
 mod huya;
 
-const EXTRACTORS: [&dyn SiteDefinition; 2] = [&bilibili::BiliLive {}, &huya::HuyaLive {}];
+const EXTRACTORS: [&(dyn SiteDefinition + Send + Sync); 2] =
+    [&bilibili::BiliLive {}, &huya::HuyaLive {}];
 
 #[async_trait]
 pub trait SiteDefinition {
@@ -20,6 +22,8 @@ pub trait SiteDefinition {
     fn can_handle_url(&self, url: &str) -> bool;
 
     async fn get_site(&self, url: &str, client: StatelessClient) -> super::error::Result<Site>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub struct Site {
@@ -70,7 +74,7 @@ impl Site {
     }
 }
 
-pub fn find_extractor(url: &str) -> Option<&dyn SiteDefinition> {
+pub fn find_extractor(url: &str) -> Option<&'static (dyn SiteDefinition + Send + Sync)> {
     EXTRACTORS
         .into_iter()
         .find(|&extractor| extractor.can_handle_url(url))

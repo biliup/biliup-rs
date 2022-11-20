@@ -20,7 +20,7 @@ pub struct Kodo {
 }
 
 impl Kodo {
-    pub async fn from(mut client: StatelessClient, bucket: Bucket) -> Result<Self> {
+    pub async fn from(client: StatelessClient, bucket: Bucket) -> Result<Self> {
         let url = format!("https:{}/mkblk", bucket.endpoint); // 视频上传路径
         Ok(Kodo {
             client,
@@ -101,7 +101,8 @@ impl Kodo {
                     .join(","),
             )
             .send()
-            .await?.error_for_status_ref()?;
+            .await?
+            .error_for_status_ref()?;
         let mut headers = HeaderMap::new();
         for (key, value) in self.bucket.fetch_headers {
             headers.insert(HeaderName::from_str(&key)?, value.parse()?);

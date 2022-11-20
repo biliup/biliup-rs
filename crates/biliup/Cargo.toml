@@ -20,7 +20,7 @@ reqwest_cookie_store = "0.2.0"
 cookie_store = "0.15.0"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rsa = "0.5.0"
 base64 = "0.13.0"
 md-5 = "0.9.1"
@@ -58,10 +58,12 @@ nom = "7"
 
 chrono = "0.4"
 byteorder = "1.4.3"
+indexmap = "1.9.2"
 regex = "1.6.0"
 async-trait = "0.1.57"
 humantime = "2.1.0"
-
+axum = "0.5.16"
+sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite" ] }
 #[features]
 #default = ["default-tls"]
 #rustls-tls = ["reqwest/rustls-tls"]

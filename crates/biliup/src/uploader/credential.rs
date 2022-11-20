@@ -4,7 +4,6 @@ use serde::ser::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Seek;
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::error::{Kind, Result};
 use crate::uploader::bilibili::{BiliBili, ResResult};
@@ -13,7 +12,7 @@ use cookie::Cookie;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
-use reqwest_cookie_store::CookieStoreMutex;
+
 use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -481,9 +480,8 @@ impl Credential {
             .form(&[("oauthKey", oauth_key)])
             .send()
             .await?.error_for_status()?;
-        Ok(self
-            .login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct"))
-            .await?)
+        self.login_by_web_cookies(&self.get_cookie("SESSDATA"), &self.get_cookie("bili_jct"))
+            .await
     }
 
     pub async fn login_by_web_cookies(&self, sess_data: &str, bili_jct: &str) -> Result<LoginInfo> {

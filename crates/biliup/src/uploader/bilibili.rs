@@ -78,7 +78,7 @@ pub struct Studio {
     pub dolby: u8,
 
     /// 是否开启 Hi-Res, 0-关闭 1-开启
-    #[clap(long="hires", default_value = "0")]
+    #[clap(long = "hires", default_value = "0")]
     #[serde(default)]
     pub lossless_music: u8,
 

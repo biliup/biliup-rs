@@ -4,6 +4,7 @@ use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 use serde_json::Value;
+use std::any::Any;
 
 pub struct BiliLive {}
 
@@ -109,5 +110,9 @@ impl SiteDefinition for BiliLive {
             extension: Extension::Flv,
             client,
         });
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

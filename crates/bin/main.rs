@@ -1,5 +1,6 @@
 mod cli;
 mod downloader;
+mod server;
 mod uploader;
 
 use anyhow::Result;
@@ -10,40 +11,27 @@ use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_c
 
 use clap::Parser;
 use tracing::Level;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // let args: Vec<String> = std::env::args().collect();
     // a builder for `FmtSubscriber`.
-    let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::INFO)
-        // completes the builder.
-        .finish();
+    // let subscriber = FmtSubscriber::builder()
+    //     // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
+    //     // will be written to stdout.
+    //     .with_max_level(Level::INFO)
+    //     // completes the builder.
+    //     .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-    parse().await?;
-
-    // let args: Vec<String> = env::args().collect();
-    // let file_name = &args[1];
-    // let flv_file = std::fs::File::open(file_name)?;
-    // let buf_reader = BufReader::new(flv_file);
-    // let mut connection = Connection::new(buf_reader);
-    // connection.read_frame(9)?;
-    // download(
-    //     connection,
-    //     &(file_name.to_owned() + "new%H_%M_%S%.f"),
-    //     Segment::Time(Duration::from_secs(60 * 60 * 24), Default::default()),
-    // );
-    // Ok(result)
-    // generate_json()?;
-    Ok(())
-}
-
-async fn parse() -> Result<()> {
+    // tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let cli = Cli::parse();
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(&cli.rust_log))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     match cli.command {
         Commands::Login => login(cli.user_cookie).await?,
@@ -77,6 +65,7 @@ async fn parse() -> Result<()> {
             split_size,
             split_time,
         } => download(&url, output, split_size, split_time).await?,
+        Commands::Server { bind, port } => server::run((&bind, port)).await?,
     };
     Ok(())
 }
