@@ -3,7 +3,7 @@ use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, SoundFormat, TagData, TagHeader,
 };
 use crate::downloader::flv_writer::{FlvFile, FlvTag, TagDataHeader};
-use crate::downloader::util::Segmentable;
+use crate::downloader::util::{LifecycleFile, Segmentable};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use nom::{Err, IResult};
 use reqwest::Response;
@@ -12,7 +12,8 @@ use std::time::Duration;
 use tracing::{info, warn};
 
 pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
-    match parse_flv(connection, file_name, segment).await {
+    let mut file: LifecycleFile = LifecycleFile::new(file_name);
+    match parse_flv(connection, file, segment).await {
         Ok(_) => {
             info!("Done... {file_name}");
         }
@@ -24,19 +25,14 @@ pub async fn download(connection: Connection, file_name: &str, segment: Segmenta
 
 pub(crate) async fn parse_flv(
     mut connection: Connection,
-    file_name: &str,
+    file: LifecycleFile,
     mut segment: Segmentable,
 ) -> crate::downloader::error::Result<()> {
     let mut flv_tags_cache: Vec<(TagHeader, Bytes, Bytes)> = Vec::new();
 
     let _previous_tag_size = connection.read_frame(4).await?;
-    // let mut rdr = Cursor::new(previous_tag_size);
-    // println!("{}", rdr.read_u32::<BigEndian>().unwrap());
-    // let file = std::fs::File::create(format!("{file_name}_flv.json"))?;
-    // let mut writer = BufWriter::new(file);
-    // flv_writer::to_json(&mut writer, &header)?;
 
-    let mut out = FlvFile::new(file_name)?;
+    let mut out = FlvFile::new(file)?;
     segment.set_size_position(9 + 4);
     // let mut downloaded_size = 9 + 4;
     let mut on_meta_data = None;
@@ -97,18 +93,15 @@ pub(crate) async fn parse_flv(
                     let (_, avc_video_header) = avc_video_packet_header(video_data.video_data)
                         .expect("Error in parsing avc video packet header.");
                     if avc_video_header.packet_type == AVCPacketType::SequenceHeader {
-                        h264_sequence_header = match h264_sequence_header {
-                            None => Some((tag_header, bytes.clone(), previous_tag_size.clone())),
-                            Some((_, binary_data, _)) => {
-                                warn!("Unexpected h264 sequence header tag. {tag_header:?}");
-                                // panic!("Unexpected h264 sequence header tag.");
-                                if bytes != binary_data {
-                                    create_new = true;
-                                    warn!("Different h264 sequence header tag. {tag_header:?}");
-                                }
-                                Some((tag_header, bytes.clone(), previous_tag_size.clone()))
+                        if let Some((_, binary_data, _)) = &h264_sequence_header {
+                            warn!("Unexpected h264 sequence header tag. {tag_header:?}");
+                            if bytes != binary_data {
+                                create_new = true;
+                                warn!("Different h264 sequence header tag. {tag_header:?}");
                             }
-                        };
+                        }
+                        h264_sequence_header =
+                            Some((tag_header, bytes.clone(), previous_tag_size.clone()))
                     }
                     (
                         Some(avc_video_header.packet_type),
@@ -132,9 +125,6 @@ pub(crate) async fn parse_flv(
                 let (_, tag_data) = script_data(i).expect("Error in parsing script tag.");
                 if on_meta_data.is_some() {
                     warn!("Unexpected script tag. {tag_header:?}");
-                    // create_new = true;
-
-                    // panic!("Unexpected script tag.");
                 }
                 on_meta_data = Some((tag_header, bytes.clone(), previous_tag_size.clone()));
 
@@ -154,70 +144,53 @@ pub(crate) async fn parse_flv(
                     },
                 ..
             } => {
-                segment.set_time_position(Duration::from_millis(flv_tag.header.timestamp as u64));
-                if segment.needed() {
-                    segment.set_start_time(Duration::from_millis(flv_tag.header.timestamp as u64));
-                    // let new_file_name = format_filename(file_name);
-                    segment.set_size_position(9 + 4);
-                    // downloaded_size = 9 + 4;
-                    out = FlvFile::new(file_name)?;
-                    let on_meta_data = on_meta_data.as_ref().expect("on_meta_data does not exist");
-                    // onMetaData
-                    out.write_tag(&on_meta_data.0, &on_meta_data.1, &on_meta_data.2)?;
-                    // AACSequenceHeader
-                    let aac_sequence_header = aac_sequence_header
-                        .as_ref()
-                        .expect("aac_sequence_header does not exist");
-                    out.write_tag(
-                        &aac_sequence_header.0,
-                        &aac_sequence_header.1,
-                        &aac_sequence_header.2,
-                    )?;
-                    // H264SequenceHeader
-                    let h264_sequence_header = h264_sequence_header
-                        .as_ref()
-                        .expect("h264_sequence_header does not exist");
-                    out.write_tag(
-                        &h264_sequence_header.0,
-                        &h264_sequence_header.1,
-                        &h264_sequence_header.2,
-                    )?;
-                    info!("{} splitting.{segment:?}", out.name);
-                }
-
+                let timestamp = (flv_tag.header.timestamp as u64);
+                segment.set_time_position(Duration::from_millis(timestamp));
                 for (tag_header, flv_tag_data, previous_tag_size_bytes) in &flv_tags_cache {
                     if tag_header.timestamp < prev_timestamp {
                         warn!("Non-monotonous DTS in output stream; previous: {prev_timestamp}, current: {};", tag_header.timestamp);
                     }
                     out.write_tag(tag_header, flv_tag_data, previous_tag_size_bytes)?;
-                    // out.write_tag_header( tag_header)?;
-                    // out.write(flv_tag_data)?;
-                    // out.write(previous_tag_size_bytes)?;
                     segment.increase_size((11 + tag_header.data_size + 4) as u64);
                     // downloaded_size += (11 + tag_header.data_size + 4) as u64;
                     prev_timestamp = tag_header.timestamp
                     // println!("{downloaded_size}");
                 }
                 flv_tags_cache.clear();
-                if create_new {
-                    // let new_file_name = format_filename(file_name);
-                    out = FlvFile::new(file_name)?;
-                    // let on_meta_data = on_meta_data.as_ref().unwrap();
-                    // flv_tags_cache.push(on_meta_data)
+
+                if segment.needed() || create_new {
+                    segment.set_start_time(Duration::from_millis(timestamp));
+                    segment.set_size_position(9 + 4);
+
+                    let (meta_header, meta_bytes, previous_meta_tag_size) =
+                        on_meta_data.as_ref().expect("on_meta_data does not exist");
                     // onMetaData
-                    let on_meta_data = on_meta_data.as_ref().expect("on_meta_data does not exist");
-                    out.write_tag(&on_meta_data.0, &on_meta_data.1, &on_meta_data.2)?;
+                    flv_tags_cache.push((
+                        *meta_header,
+                        meta_bytes.clone(),
+                        previous_meta_tag_size.clone(),
+                    ));
                     // AACSequenceHeader
                     let aac_sequence_header = aac_sequence_header
                         .as_ref()
                         .expect("aac_sequence_header does not exist");
-                    out.write_tag(
-                        &aac_sequence_header.0,
-                        &aac_sequence_header.1,
-                        &aac_sequence_header.2,
-                    )?;
+                    flv_tags_cache.push((
+                        aac_sequence_header.0,
+                        aac_sequence_header.1.clone(),
+                        aac_sequence_header.2.clone(),
+                    ));
+                    if !create_new {
+                        // H264SequenceHeader
+                        flv_tags_cache.push(
+                            h264_sequence_header
+                                .as_ref()
+                                .expect("h264_sequence_header does not exist")
+                                .clone(),
+                        );
+                    }
+                    info!("{} splitting.{segment:?}", out.file.file_name);
+                    out.create_new()?;
                     create_new = false;
-                    info!("{} splitting.", out.name);
                 }
                 flv_tags_cache.push((tag_header, bytes.clone(), previous_tag_size.clone()));
             }
@@ -225,7 +198,6 @@ pub(crate) async fn parse_flv(
                 flv_tags_cache.push((tag_header, bytes.clone(), previous_tag_size.clone()));
             }
         }
-        // flv_writer::to_json(&mut writer, &flv_tag)?;
     }
     Ok(())
 }

@@ -31,8 +31,12 @@ impl SiteDefinition for HuyaLive {
             )));
         };
         let mut game = stream["data"][0].take();
-        let mut game_stream_info_list = game["gameStreamInfoList"].take();
-        let game_stream_info = game_stream_info_list[0].take();
+        let game_stream_info = game["gameStreamInfoList"]
+            .as_array()
+            .and_then(|game_stream_info_list| game_stream_info_list.get(0))
+            .ok_or_else(|| {
+                crate::downloader::error::Error::Custom(format!("Not online: {game}"))
+            })?;
         let mut v_multi_stream_info = stream["vMultiStreamInfo"].take();
         // vec![1,2].iter().max()
         // println!("{}", v_multi_stream_info);

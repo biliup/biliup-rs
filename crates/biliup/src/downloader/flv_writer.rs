@@ -3,9 +3,9 @@ use crate::downloader::flv_parser::{
     SoundSize, SoundType, TagHeader,
 };
 use crate::downloader::util;
+use crate::downloader::util::{LifecycleFile, Segmentable};
 use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
-use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
@@ -22,24 +22,34 @@ const FLV_HEADER: [u8; 9] = [
 
 pub struct FlvFile {
     pub buf_writer: BufWriter<File>,
-    pub name: String,
+    pub file: LifecycleFile,
 }
 
 impl FlvFile {
-    pub fn new(file_name: &str) -> std::io::Result<Self> {
-        let file_name = util::format_filename(file_name);
-        let mut path = PathBuf::from(&file_name);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?
-        }
-        path.set_extension("flv.part");
-        let result = File::create(&path);
-        let out = match result {
+    pub fn new(mut file: LifecycleFile) -> std::io::Result<Self> {
+        // let file_name = util::format_filename(file_name);
+        let mut path = file.create()?;
+        Ok(Self {
+            buf_writer: Self::create(path)?,
+            file,
+        })
+    }
+
+    pub fn create_new(&mut self) -> std::io::Result<()> {
+        self.file.rename();
+        let mut path = self.file.create()?;
+        self.buf_writer = Self::create(path)?;
+        Ok(())
+    }
+
+    fn create<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<BufWriter<File>> {
+        let path = path.as_ref();
+        let out = match File::create(path) {
             Ok(o) => o,
             Err(e) => {
                 return Err(std::io::Error::new(
                     e.kind(),
-                    format!("Unable to create flv file {file_name}"),
+                    format!("Unable to create flv file {}", path.display()),
                 ))
             }
         };
@@ -47,10 +57,7 @@ impl FlvFile {
         let mut buf_writer = BufWriter::new(out);
         buf_writer.write_all(&FLV_HEADER)?;
         Self::write_previous_tag_size(&mut buf_writer, 0)?;
-        Ok(Self {
-            buf_writer,
-            name: file_name,
-        })
+        Ok(buf_writer)
     }
 
     pub fn write_tag(
@@ -85,17 +92,9 @@ impl FlvFile {
 
 impl Drop for FlvFile {
     fn drop(&mut self) {
-        std::fs::rename(
-            format!("{}.flv.part", self.name),
-            format!("{}.flv", self.name),
-        )
-        .unwrap_or_else(|e| error!("drop {} {e}", self.name))
+        self.file.rename()
     }
 }
-
-// pub fn create_flv_file(file_name: &str) -> std::io::Result<impl Write> {
-//
-// }
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct FlvTag<'a> {

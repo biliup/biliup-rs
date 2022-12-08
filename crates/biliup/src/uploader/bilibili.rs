@@ -9,9 +9,8 @@ use std::time::Duration;
 use tracing::info;
 use typed_builder::TypedBuilder;
 
-#[derive(Serialize, Deserialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
-#[derive(clap::Args)]
+#[derive(clap::Args, Serialize, Deserialize, Debug, TypedBuilder, sqlx::FromRow)]
 pub struct Studio {
     /// 是否转载, 1-自制 2-转载
     #[clap(long, default_value = "1")]
@@ -29,7 +28,6 @@ pub struct Studio {
 
     /// 视频封面
     #[clap(long, default_value_t)]
-    #[clap(long)]
     pub cover: String,
 
     /// 视频标题
@@ -172,8 +170,8 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
-    pub async fn submit(&self, studio: &Studio) -> Result<serde_json::Value> {
-        let ret: serde_json::Value = reqwest::Client::builder()
+    pub async fn submit(&self, studio: &Studio) -> Result<ResResult> {
+        let ret: ResResult = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -186,12 +184,12 @@ impl BiliBili {
             .await?
             .json()
             .await?;
-        info!("{}", ret);
-        if ret["code"] == 0 {
+        info!("{:?}", ret);
+        if ret.code == 0 {
             info!("投稿成功");
             Ok(ret)
         } else {
-            Err(Kind::Custom(ret.to_string()))
+            Err(Kind::Custom(format!("{:?}", ret)))
         }
     }
 
@@ -219,7 +217,7 @@ impl BiliBili {
     }
 
     /// 查询视频的 json 信息
-    pub async fn video_data(&self, vid: Vid) -> Result<Value> {
+    pub async fn video_data(&self, vid: &Vid) -> Result<Value> {
         let res: ResResult = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
@@ -246,7 +244,7 @@ impl BiliBili {
         }
     }
 
-    pub async fn studio_data(&self, vid: Vid) -> Result<Studio> {
+    pub async fn studio_data(&self, vid: &Vid) -> Result<Studio> {
         let mut video_info = self.video_data(vid).await?;
 
         let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;

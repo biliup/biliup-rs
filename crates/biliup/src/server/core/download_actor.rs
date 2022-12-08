@@ -1,6 +1,9 @@
 use crate::client::StatelessClient;
+use crate::downloader::error;
 use crate::downloader::extractor::{find_extractor, SiteDefinition};
+use crate::downloader::util::{LifecycleFile, Segmentable};
 use crate::server::core::live_streamers::LiveStreamerDto;
+use crate::server::core::upload_actor::UploadActorHandle;
 use crate::server::core::util::{AnyMap, Cycle};
 use crate::server::core::StreamStatus;
 use anyhow::anyhow;
@@ -8,11 +11,12 @@ use indexmap::indexmap;
 use std::any::Any;
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::error::Error;
 use std::ops::DerefMut;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::task::JoinHandle;
-use tracing::debug;
+use tracing::{debug, error, info};
 
 struct DownloadActor;
 
@@ -30,8 +34,32 @@ impl DownloadActor {
         loop {
             let (url, status) = task.get(n);
             match (extractor.get_site(&url, client.clone()).await, status) {
-                (Ok(site), StreamStatus::Idle) => {
+                (Ok(mut site), StreamStatus::Idle) => {
                     println!("Idle\n {url} \n{site}");
+                    let client = client.clone();
+                    tokio::spawn(async move {
+                        let mut file = LifecycleFile::new("./video/%Y-%m-%d/%H_%M_%S{title}");
+                        let handle = UploadActorHandle::new(client);
+                        file.hook = Box::new(move |file_name| {
+                            match std::fs::metadata(file_name) {
+                                Ok(metadata) => {
+                                    if metadata.len() > 10 * 1024 * 1024 {
+                                        println!("开始上传");
+                                        handle.send_file_path(file_name);
+                                    }
+                                }
+                                Err(error) => {
+                                    error!("{}", error)
+                                }
+                            }
+
+                            println!("tick{file_name}")
+                        });
+                        let segmentable = Segmentable::new(Some(Duration::from_secs(60)), None);
+                        // let segmentable = Segmentable::new( None, Some(16*1024*1024));
+                        site.download(file, segmentable).await?;
+                        Ok::<_, Box<dyn Error + Send + Sync>>(())
+                    });
                     task.write()
                         .entry(url)
                         .and_modify(|status| *status = StreamStatus::Downloading);
@@ -68,19 +96,23 @@ impl DownloadActor {
     }
 }
 
-fn add_streamer(map: &mut AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>, url: String, client: StatelessClient) {
+fn add_streamer(
+    map: &mut AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>,
+    url: String,
+    client: StatelessClient,
+) {
     let Some(extractor) = find_extractor(&url) else { return; };
-    let entry = map
-        .entry(extractor.as_any().type_id())
-        .and_modify(|(cy, _)| cy.insert(url.clone(), StreamStatus::Idle))
-        .or_insert_with(|| {
-            let cycle = Cycle::new(indexmap![url => StreamStatus::Idle]);
-            let task = cycle.clone();
-            let handle = tokio::spawn(
-                async move { DownloadActor::start_monitor(task, extractor, client).await },
-            );
-            (cycle, handle)
-        });
+    let entry =
+        map.entry(extractor.as_any().type_id())
+            .and_modify(|(cy, _)| cy.insert(url.clone(), StreamStatus::Idle))
+            .or_insert_with(|| {
+                let cycle = Cycle::new(indexmap![url => StreamStatus::Idle]);
+                let task = cycle.clone();
+                let handle = tokio::spawn(async move {
+                    DownloadActor::start_monitor(task, extractor, client).await
+                });
+                (cycle, handle)
+            });
 }
 
 pub struct DownloadActorHandle {

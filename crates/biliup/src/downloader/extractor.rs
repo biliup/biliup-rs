@@ -1,6 +1,6 @@
 use crate::downloader;
 use crate::downloader::httpflv::Connection;
-use crate::downloader::util::Segmentable;
+use crate::downloader::util::{LifecycleFile, Segmentable};
 use crate::downloader::{hls, httpflv};
 use async_trait::async_trait;
 use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
@@ -11,10 +11,14 @@ use std::path::Path;
 use crate::client::StatelessClient;
 
 mod bilibili;
+mod douyu;
 mod huya;
 
-const EXTRACTORS: [&(dyn SiteDefinition + Send + Sync); 2] =
-    [&bilibili::BiliLive {}, &huya::HuyaLive {}];
+const EXTRACTORS: [&(dyn SiteDefinition + Send + Sync); 3] = [
+    &bilibili::BiliLive {},
+    &huya::HuyaLive {},
+    &douyu::DouyuLive,
+];
 
 #[async_trait]
 pub trait SiteDefinition {
@@ -50,24 +54,24 @@ enum Extension {
 impl Site {
     pub async fn download(
         &mut self,
-        file_name: &str,
+        mut file: LifecycleFile,
         segment: Segmentable,
     ) -> downloader::error::Result<()> {
-        let file_name = file_name.replace("{title}", &self.title);
+        file.fmt_file_name = file.fmt_file_name.replace("{title}", &self.title);
         self.client
             .headers
             .append(ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate"));
-        println!("Save to {}", Path::new(&file_name).display());
         println!("{}", self);
         match self.extension {
             Extension::Flv => {
                 let response = self.client.retryable(&self.direct_url).await?;
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
-                httpflv::parse_flv(connection, &file_name, segment).await?
+                file.extension = "flv";
+                httpflv::parse_flv(connection, file, segment).await?
             }
             Extension::Ts => {
-                hls::download(&self.direct_url, &self.client, &file_name, segment).await?
+                hls::download(&self.direct_url, &self.client, &file.fmt_file_name, segment).await?
             }
         }
         Ok(())

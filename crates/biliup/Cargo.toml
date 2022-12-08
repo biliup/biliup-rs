@@ -62,7 +62,7 @@ indexmap = "1.9.2"
 regex = "1.6.0"
 async-trait = "0.1.57"
 humantime = "2.1.0"
-axum = "0.5.16"
+axum = "0.6.1"
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite" ] }
 #[features]
 #default = ["default-tls"]

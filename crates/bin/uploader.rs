@@ -123,7 +123,7 @@ pub async fn append(
 ) -> Result<()> {
     let bilibili = login_by_cookies(user_cookie).await?;
     let mut uploaded_videos = upload(&video_path, &bilibili, line, limit).await?;
-    let mut studio = bilibili.studio_data(vid).await?;
+    let mut studio = bilibili.studio_data(&vid).await?;
     studio.videos.append(&mut uploaded_videos);
     bilibili.edit(&studio).await?;
     // studio.edit(&login_info).await?;
@@ -132,7 +132,7 @@ pub async fn append(
 
 pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
     let bilibili = login_by_cookies(user_cookie).await?;
-    let video_info = bilibili.video_data(vid).await?;
+    let video_info = bilibili.video_data(&vid).await?;
     println!("{}", serde_json::to_string_pretty(&video_info)?);
     Ok(())
 }

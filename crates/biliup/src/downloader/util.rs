@@ -1,6 +1,10 @@
 use chrono::{DateTime, Local};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use std::time::Duration;
+use thiserror::__private::PathAsDisplay;
+use tracing::error;
 
 #[derive(Debug)]
 pub enum Segment {
@@ -92,85 +96,50 @@ impl Default for Segmentable {
     }
 }
 
-// impl Segment {
-//     pub fn increase_size(&mut self, size: u64, delta: Duration) {
-//         Duration::saturating_add()
-//         match self {
-//             Segment::Time(_, old) => {
-//                 *old = Duration::ZERO;
-//                 // seg
-//             }
-//             Segment::Size(_, old) => {
-//                 *old = 0;
-//                 // seg
-//             }
-//             Segment::Never => {}
-//         }
-//     }
-//
-//     pub fn increase_time(&mut self, size: u64, delta: Duration) {
-//         match self {
-//             Segment::Time(_, old) => {
-//                 *old = Duration::ZERO;
-//                 // seg
-//             }
-//             Segment::Size(_, old) => {
-//                 *old = 0;
-//                 // seg
-//             }
-//             Segment::Never => {}
-//         }
-//     }
-//
-//     pub fn reset(&mut self) {
-//         match self {
-//             Segment::Time(_, old) => {
-//                 *old = Duration::ZERO;
-//                 // seg
-//             }
-//             Segment::Size(_, old) => {
-//                 *old = 0;
-//                 // seg
-//             }
-//             Segment::Never => {}
-//         }
-//     }
-//
-//     pub fn needed(&mut self, actual_size: u64, actual_time: Duration) -> bool {
-//         match self {
-//             Segment::Time(expected, start_time) if *expected <= actual_time - *start_time => {
-//                 *start_time = actual_time;
-//                 true
-//             }
-//             Segment::Size(expected, _) if *expected <= actual_size => true,
-//             Segment::Time(_, _) => false,
-//             Segment::Size(_, _) => false,
-//             Segment::Never => {false}
-//         }
-//     }
-//
-//     pub fn needed_delta(&mut self, size: u64, delta: Duration) -> bool {
-//         match self {
-//             Segment::Time(expected, previous) if *expected <= *previous + delta => {
-//                 *previous = delta;
-//                 true
-//             }
-//             Segment::Size(expected, previous) if *expected <= *previous + size => {
-//                 *previous = 0;
-//                 true
-//             }
-//             Segment::Time(_, previous) => {
-//                 *previous += delta;
-//                 false
-//             }
-//             Segment::Size(_, previous) => {
-//                 *previous += size;
-//                 false
-//             }
-//             Segment::Never => {false}
-//         }
-//     }
-// }
+pub struct LifecycleFile {
+    pub fmt_file_name: String,
+    pub file_name: String,
+    pub path: PathBuf,
+    pub hook: Box<dyn Fn(&str) + Send>,
+    pub extension: &'static str,
+}
+
+impl LifecycleFile {
+    pub fn new(fmt_file_name: &str) -> Self {
+        Self {
+            fmt_file_name: fmt_file_name.to_string(),
+            file_name: "".to_string(),
+            path: Default::default(),
+            hook: Box::new(|_| {}),
+            extension: "",
+        }
+    }
+
+    pub fn create(&mut self) -> Result<&Path, std::io::Error> {
+        self.file_name = format!(
+            "{}.{}",
+            format_filename(&self.fmt_file_name),
+            self.extension
+        );
+        self.path = PathBuf::from(&self.file_name);
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?
+        }
+        // path.set_extension(&self.extension);
+        self.path.set_extension(format!("{}.part", self.extension));
+        println!("Save to {}", self.path.display());
+        Ok(self.path.as_path())
+    }
+
+    pub fn rename(&self) {
+        match fs::rename(&self.path, &self.file_name) {
+            Ok(_) => (self.hook)(&self.file_name),
+            Err(e) => {
+                error!("drop {} {e}", self.path.as_display())
+            }
+        }
+    }
+}
 
 pub fn format_filename(file_name: &str) -> String {
     let local: DateTime<Local> = Local::now();
@@ -178,4 +147,23 @@ pub fn format_filename(file_name: &str) -> String {
     let time_str = local.format(file_name);
     // format!("{file_name}{time_str}")
     time_str.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn it_works() -> Result<()> {
+        let mut p = PathBuf::from("/feel/the");
+
+        p.set_extension("force");
+        assert_eq!(Path::new("/feel/the.force"), p.as_path());
+
+        p.set_extension("");
+        assert_eq!(Path::new("/feel/the"), p.as_path());
+
+        Ok(())
+    }
 }
