@@ -7,7 +7,7 @@ use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
 use futures::StreamExt;
 use pyo3::pyclass;
-use serde_json::Value;
+
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;

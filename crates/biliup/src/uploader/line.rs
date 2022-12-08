@@ -86,7 +86,7 @@ impl Parcel {
             }
         };
 
-        if video.title == None {
+        if video.title.is_none() {
             video.title = self
                 .video_file
                 .filepath

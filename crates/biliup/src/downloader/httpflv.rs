@@ -12,7 +12,7 @@ use std::time::Duration;
 use tracing::{info, warn};
 
 pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
-    let mut file: LifecycleFile = LifecycleFile::new(file_name);
+    let file: LifecycleFile = LifecycleFile::new(file_name);
     match parse_flv(connection, file, segment).await {
         Ok(_) => {
             info!("Done... {file_name}");
@@ -144,7 +144,7 @@ pub(crate) async fn parse_flv(
                     },
                 ..
             } => {
-                let timestamp = (flv_tag.header.timestamp as u64);
+                let timestamp = flv_tag.header.timestamp as u64;
                 segment.set_time_position(Duration::from_millis(timestamp));
                 for (tag_header, flv_tag_data, previous_tag_size_bytes) in &flv_tags_cache {
                     if tag_header.timestamp < prev_timestamp {

@@ -9,8 +9,8 @@ use std::time::Duration;
 use tracing::info;
 use typed_builder::TypedBuilder;
 
-#[builder(field_defaults(default))]
 #[derive(clap::Args, Serialize, Deserialize, Debug, TypedBuilder, sqlx::FromRow)]
+#[builder(field_defaults(default))]
 pub struct Studio {
     /// 是否转载, 1-自制 2-转载
     #[clap(long, default_value = "1")]

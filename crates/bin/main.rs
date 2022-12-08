@@ -10,10 +10,10 @@ use crate::downloader::{download, generate_json};
 use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_config};
 
 use clap::Parser;
-use tracing::Level;
+
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::FmtSubscriber;
+
 
 #[tokio::main]
 async fn main() -> Result<()> {

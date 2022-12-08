@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
 use std::any::Any;
 use std::fmt::{Display, Formatter};
-use std::path::Path;
+
 
 use crate::client::StatelessClient;
 

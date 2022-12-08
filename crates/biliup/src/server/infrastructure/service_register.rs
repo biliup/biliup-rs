@@ -16,7 +16,7 @@ impl ServiceRegister {
         info!("initializing utility services...");
 
         info!("utility services initialized, building feature services...");
-        let streamers_repository = Arc::new(SqliteLiveStreamersRepository::new(pool.clone()))
+        let streamers_repository = Arc::new(SqliteLiveStreamersRepository::new(pool))
             as DynLiveStreamersRepository;
         let streamers_service = Arc::new(ConduitLiveStreamersService::new(
             streamers_repository.clone(),

@@ -3,7 +3,7 @@ use crate::downloader::error::Error;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use md5::{Digest, Md5};
-use serde_json::json;
+
 use std::any::Any;
 use std::time::{SystemTime, UNIX_EPOCH};
 

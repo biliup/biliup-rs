@@ -1,6 +1,6 @@
 use biliup::uploader::bilibili::{Studio, Vid};
 use clap::{Parser, Subcommand, ValueEnum};
-use std::net::IpAddr;
+
 use std::path::PathBuf;
 
 #[derive(Parser)]

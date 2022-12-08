@@ -6,9 +6,9 @@ use crate::uploader::line::Line;
 use crate::uploader::VideoFile;
 use futures::StreamExt;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
+
 use std::time::Instant;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc};
 use tracing::info;
 
 struct UploadActor {
@@ -40,10 +40,10 @@ impl UploadActor {
         for video_path in video_paths {
             println!("{:?}", video_path.canonicalize()?.to_str());
             info!("{line:?}");
-            let video_file = VideoFile::new(&video_path)?;
+            let video_file = VideoFile::new(video_path)?;
             let total_size = video_file.total_size;
             let file_name = video_file.file_name.clone();
-            let uploader = line.pre_upload(&bili, video_file).await?;
+            let uploader = line.pre_upload(bili, video_file).await?;
 
             let instant = Instant::now();
 

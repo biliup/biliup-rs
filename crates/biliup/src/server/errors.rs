@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug};
 use axum::response::Response;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 use thiserror::Error;
 use tracing::log::error;
 

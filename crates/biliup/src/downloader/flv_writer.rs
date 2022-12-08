@@ -2,14 +2,14 @@ use crate::downloader::flv_parser::{
     AACPacketType, AVCPacketType, CodecId, FrameType, ScriptData, SoundFormat, SoundRate,
     SoundSize, SoundType, TagHeader,
 };
-use crate::downloader::util;
-use crate::downloader::util::{LifecycleFile, Segmentable};
+
+use crate::downloader::util::{LifecycleFile};
 use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::path::PathBuf;
-use tracing::{error, info};
+
+use tracing::{info};
 
 const FLV_HEADER: [u8; 9] = [
     0x46, // 'F'
@@ -28,7 +28,7 @@ pub struct FlvFile {
 impl FlvFile {
     pub fn new(mut file: LifecycleFile) -> std::io::Result<Self> {
         // let file_name = util::format_filename(file_name);
-        let mut path = file.create()?;
+        let path = file.create()?;
         Ok(Self {
             buf_writer: Self::create(path)?,
             file,
@@ -37,7 +37,7 @@ impl FlvFile {
 
     pub fn create_new(&mut self) -> std::io::Result<()> {
         self.file.rename();
-        let mut path = self.file.create()?;
+        let path = self.file.create()?;
         self.buf_writer = Self::create(path)?;
         Ok(())
     }

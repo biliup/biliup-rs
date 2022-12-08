@@ -116,7 +116,7 @@ pub struct VideoFile {
 
 impl VideoFile {
     pub fn new(filepath: &std::path::Path) -> io::Result<Self> {
-        let file = std::fs::File::open(&filepath)?;
+        let file = std::fs::File::open(filepath)?;
         let total_size = file.metadata()?.len();
         let file_name = filepath
             .file_name()

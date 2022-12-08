@@ -1,8 +1,8 @@
-use indexmap::map::Entry;
+
 use indexmap::IndexMap;
 use std::any::TypeId;
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 use std::hash::{BuildHasherDefault, Hasher};
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 

@@ -1,22 +1,22 @@
 use crate::client::StatelessClient;
-use crate::downloader::error;
+
 use crate::downloader::extractor::{find_extractor, SiteDefinition};
 use crate::downloader::util::{LifecycleFile, Segmentable};
 use crate::server::core::live_streamers::LiveStreamerDto;
 use crate::server::core::upload_actor::UploadActorHandle;
 use crate::server::core::util::{AnyMap, Cycle};
 use crate::server::core::StreamStatus;
-use anyhow::anyhow;
+
 use indexmap::indexmap;
-use std::any::Any;
-use std::borrow::Borrow;
+
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::ops::DerefMut;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 struct DownloadActor;
 
@@ -64,13 +64,13 @@ impl DownloadActor {
                         .entry(url)
                         .and_modify(|status| *status = StreamStatus::Downloading);
                 }
-                (Ok(site), StreamStatus::Downloading) => {
+                (Ok(_site), StreamStatus::Downloading) => {
                     println!("Downloading {url}");
                 }
-                (Ok(site), StreamStatus::Pending) => {
+                (Ok(_site), StreamStatus::Pending) => {
                     println!("Pending");
                 }
-                (Ok(site), StreamStatus::Uploading) => {
+                (Ok(_site), StreamStatus::Uploading) => {
                     println!("Uploading");
                 }
                 (Err(e), _) => {
@@ -84,7 +84,7 @@ impl DownloadActor {
     fn run(
         &mut self,
         list: Vec<LiveStreamerDto>,
-        mut extensions: Arc<RwLock<AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>>>,
+        extensions: Arc<RwLock<AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>>>,
         client: StatelessClient,
     ) {
         for streamer in list {
@@ -102,7 +102,7 @@ fn add_streamer(
     client: StatelessClient,
 ) {
     let Some(extractor) = find_extractor(&url) else { return; };
-    let entry =
+    let _entry =
         map.entry(extractor.as_any().type_id())
             .and_modify(|(cy, _)| cy.insert(url.clone(), StreamStatus::Idle))
             .or_insert_with(|| {
@@ -142,7 +142,7 @@ impl DownloadActorHandle {
     }
 
     pub fn remove_streamer(&self, url: &str) {
-        find_extractor(&url).and_then(|extractor| {
+        find_extractor(url).and_then(|extractor| {
             self.platform_map
                 .read()
                 .unwrap()
