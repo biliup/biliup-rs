@@ -1,13 +1,9 @@
 use anyhow::{Context, Result};
 
-
 use biliup::server::api::router::ApplicationController;
 use biliup::server::infrastructure::connection_pool::ConnectionManager;
 use biliup::server::infrastructure::service_register::ServiceRegister;
-use std::net::{ToSocketAddrs};
-
-
-
+use std::net::ToSocketAddrs;
 
 pub async fn run(addr: (&str, u16)) -> Result<()> {
     // let config = Arc::new(AppConfig::parse());

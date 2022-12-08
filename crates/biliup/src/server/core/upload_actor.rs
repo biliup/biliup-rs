@@ -8,8 +8,8 @@ use futures::StreamExt;
 use std::path::{Path, PathBuf};
 
 use std::time::Instant;
-use tokio::sync::{mpsc};
-use tracing::info;
+use tokio::sync::mpsc;
+use tracing::{error, info};
 
 struct UploadActor {
     receiver: mpsc::UnboundedReceiver<ActorMessage>,
@@ -93,7 +93,7 @@ impl UploadActor {
                             .and_then(|data| data.get("bvid"))
                             .and_then(|vid| vid.as_str())
                             .map(|vid| Vid::Bvid(String::from(vid)))
-                            .ok_or(Kind::Custom(format!("{:?}", result)))?,
+                            .ok_or_else(|| Kind::Custom(format!("{:?}", result)))?,
                     );
                 }
             }
@@ -104,7 +104,12 @@ impl UploadActor {
 
 async fn run_download_actor(mut actor: UploadActor) {
     while let Some(msg) = actor.receiver.recv().await {
-        actor.handle_message(msg).await;
+        match actor.handle_message(msg).await {
+            Ok(_) => {}
+            Err(e) => {
+                error!("{}", e)
+            }
+        };
     }
 }
 

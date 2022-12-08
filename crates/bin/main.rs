@@ -14,7 +14,6 @@ use clap::Parser;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // a builder for `FmtSubscriber`.

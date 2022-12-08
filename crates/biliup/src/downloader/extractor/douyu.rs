@@ -36,7 +36,7 @@ impl SiteDefinition for DouyuLive {
             .map(|pat| regex::Regex::new(pat).unwrap())
             .find_map(|pat| pat.captures(&text))
             .map(|captures| captures[1].to_string())
-            .ok_or(Error::Custom(format!("Wrong url: {url}")))?;
+            .ok_or_else(|| Error::Custom(format!("Wrong url: {url}")))?;
 
         let room_info: serde_json::Value = client
             .client

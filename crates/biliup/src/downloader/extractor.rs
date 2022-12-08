@@ -7,7 +7,6 @@ use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 
-
 use crate::client::StatelessClient;
 
 mod bilibili;

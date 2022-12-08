@@ -9,7 +9,6 @@ use crate::server::core::StreamStatus;
 
 use indexmap::indexmap;
 
-
 use std::collections::HashMap;
 use std::error::Error;
 use std::ops::DerefMut;
@@ -84,7 +83,7 @@ impl DownloadActor {
     fn run(
         &mut self,
         list: Vec<LiveStreamerDto>,
-        extensions: Arc<RwLock<AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>>>,
+        extensions: StreamActorMap,
         client: StatelessClient,
     ) {
         for streamer in list {
@@ -115,8 +114,10 @@ fn add_streamer(
             });
 }
 
+type StreamActorMap = Arc<RwLock<AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>>>;
+
 pub struct DownloadActorHandle {
-    platform_map: Arc<RwLock<AnyMap<(Cycle<StreamStatus>, JoinHandle<()>)>>>,
+    platform_map: StreamActorMap,
     client: StatelessClient,
 }
 

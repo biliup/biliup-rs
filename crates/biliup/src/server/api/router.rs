@@ -3,19 +3,15 @@ use crate::client::StatelessClient;
 use crate::server::api::endpoints::{add_streamer_endpoint, get_streamers_endpoint, root};
 use crate::server::core::download_actor::DownloadActorHandle;
 
-
 use crate::server::infrastructure::service_register::ServiceRegister;
 use anyhow::Context;
 
 use axum::routing::{get, post};
 use axum::{Extension, Router};
 
-
-
-
 use std::net::SocketAddr;
 use std::time::Duration;
-use tracing::{info};
+use tracing::info;
 
 pub struct ApplicationController;
 

@@ -3,13 +3,13 @@ use crate::downloader::flv_parser::{
     SoundSize, SoundType, TagHeader,
 };
 
-use crate::downloader::util::{LifecycleFile};
+use crate::downloader::util::LifecycleFile;
 use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
-use tracing::{info};
+use tracing::info;
 
 const FLV_HEADER: [u8; 9] = [
     0x46, // 'F'
