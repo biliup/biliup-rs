@@ -23,7 +23,7 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
             r#"
         insert into live_streamers (url, remark)
         values ($1 , $2 )
-        returning id, url as "url!", remark as "remark!"
+        returning id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32"
             "#,
             url,
             remark
@@ -37,11 +37,29 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         query_as!(
             LiveStreamerEntity,
             r#"
-       select * from live_streamers
+       select id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32" from live_streamers
             "#
         )
         .fetch_all(&self.pool)
         .await
         .context("an unexpected error occurred retrieving streamers")
+    }
+
+    async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerEntity> {
+        query_as!(
+            LiveStreamerEntity,
+            r#"
+        select
+            id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32"
+        from
+            live_streamers
+        where
+            url=$1
+            "#,
+            url
+        )
+        .fetch_one(&self.pool)
+        .await
+        .context("an unexpected error occurred while creating the streamer")
     }
 }

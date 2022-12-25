@@ -21,9 +21,9 @@ B 站命令行投稿工具，支持 **短信登录**，**账号密码登录**，
 - [x] bilibili
 - [ ] 小红书（work-in-process）
 ### download
-- [ ] 斗鱼live (coming soon)
-- [x] 虎牙live 
-- [x] B站live 
+- [x] 斗鱼直播
+- [x] 虎牙直播 
+- [x] B站直播 
 - [ ] 抖音live (coming soon)
 - [ ] 快手live (coming soon)
 

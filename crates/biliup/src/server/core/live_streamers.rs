@@ -1,3 +1,4 @@
+use crate::uploader::bilibili::Studio;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -10,13 +11,15 @@ pub type DynLiveStreamersRepository = Arc<dyn LiveStreamersRepository + Send + S
 pub trait LiveStreamersRepository {
     async fn create_streamer(&self, url: &str, remark: &str) -> anyhow::Result<LiveStreamerEntity>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerEntity>>;
+    async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerEntity>;
 }
 
 #[derive(FromRow)]
 pub struct LiveStreamerEntity {
-    pub id: i64,
+    pub id: u32,
     pub url: String,
     pub remark: String,
+    pub upload_id: Option<u32>,
 }
 
 impl LiveStreamerEntity {
@@ -27,15 +30,6 @@ impl LiveStreamerEntity {
             remark: self.remark,
         }
     }
-
-    // pub fn into_profile(self, following: bool) -> ProfileDto {
-    //     ProfileDto {
-    //         username: self.username,
-    //         bio: self.bio,
-    //         image: self.image,
-    //         following,
-    //     }
-    // }
 }
 
 /// A reference counter for our user service allows us safely pass instances user utils
@@ -46,6 +40,7 @@ pub type DynLiveStreamersService = Arc<dyn LiveStreamersService + Send + Sync>;
 pub trait LiveStreamersService {
     async fn add_streamer(&self, request: AddLiveStreamerDto) -> anyhow::Result<LiveStreamerDto>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerDto>>;
+    async fn get_studio_by_url(&self, url: &str) -> anyhow::Result<Option<Studio>>;
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -56,7 +51,7 @@ pub struct AddLiveStreamerDto {
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct LiveStreamerDto {
-    pub id: i64,
+    pub id: u32,
     pub url: String,
     pub remark: String,
 }

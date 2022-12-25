@@ -1,6 +1,7 @@
 pub mod download_actor;
 pub mod live_streamers;
 pub mod upload_actor;
+pub mod upload_streamers;
 pub mod util;
 
 /// Status of the live stream

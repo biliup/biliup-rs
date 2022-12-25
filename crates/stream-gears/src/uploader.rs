@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
-use biliup::uploader::bilibili::{ResResult, Studio};
+use biliup::uploader::bilibili::{ResponseData, Studio};
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
@@ -37,7 +37,7 @@ pub async fn upload(
     dynamic: String,
     cover: String,
     dtime: Option<u32>,
-) -> Result<ResResult> {
+) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
     //     .write(true)

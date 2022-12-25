@@ -38,6 +38,8 @@ pub enum AppError {
     AxumJsonRejection(#[from] axum::extract::rejection::JsonRejection),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
+    #[error(transparent)]
+    DownloadError(#[from] crate::downloader::error::Error),
 }
 
 impl IntoResponse for AppError {

@@ -1,9 +1,13 @@
 use indexmap::IndexMap;
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::{Debug, Formatter};
+use std::future::Future;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use tokio::task::JoinHandle;
+use tracing::error;
 
 pub type AnyMap<T> = HashMap<TypeId, T, BuildHasherDefault<IdHasher>>;
 
@@ -83,4 +87,17 @@ impl<T: Debug> Debug for Cycle<T> {
         write!(f, "{}", temp.join(","))?;
         write!(f, " }}")
     }
+}
+
+pub fn logging_spawn<T, O: 'static>(future: T) -> JoinHandle<T::Output>
+where
+    T: Future<Output = Result<O, Box<dyn Error + Send + Sync>>> + Send + 'static,
+    T::Output: Send + 'static,
+{
+    tokio::spawn(async move {
+        future.await.map_err(|e| {
+            error!("spawn error: {}", e);
+            e
+        })
+    })
 }

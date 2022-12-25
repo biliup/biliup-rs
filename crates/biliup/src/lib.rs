@@ -23,6 +23,7 @@ pub mod server {
     pub mod infrastructure {
         pub mod repositories {
             pub mod live_streamers_repository;
+            pub mod upload_streamers_repository;
         }
 
         pub mod connection_pool;

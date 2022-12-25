@@ -1,5 +1,6 @@
 use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
+use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
@@ -9,7 +10,7 @@ use std::time::Duration;
 use tracing::info;
 use typed_builder::TypedBuilder;
 
-#[derive(clap::Args, Serialize, Deserialize, Debug, TypedBuilder, sqlx::FromRow)]
+#[derive(clap::Args, Serialize, Deserialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
 pub struct Studio {
     /// 是否转载, 1-自制 2-转载
@@ -156,22 +157,14 @@ impl Display for Vid {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ResResult {
-    pub code: i32,
-    pub data: Option<Value>,
-    message: String,
-    ttl: u8,
-}
-
 pub struct BiliBili {
     pub client: reqwest::Client,
     pub login_info: LoginInfo,
 }
 
 impl BiliBili {
-    pub async fn submit(&self, studio: &Studio) -> Result<ResResult> {
-        let ret: ResResult = reqwest::Client::builder()
+    pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
+        let ret: ResponseData = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -218,7 +211,7 @@ impl BiliBili {
 
     /// 查询视频的 json 信息
     pub async fn video_data(&self, vid: &Vid) -> Result<Value> {
-        let res: ResResult = reqwest::Client::builder()
+        let res: ResponseData = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -231,12 +224,12 @@ impl BiliBili {
             .json()
             .await?;
         match res {
-            res @ ResResult {
+            res @ ResponseData {
                 code: _,
                 data: None,
                 ..
             } => Err(Kind::Custom(format!("{res:?}"))),
-            ResResult {
+            ResponseData {
                 code: _,
                 data: Some(v),
                 ..
@@ -294,13 +287,13 @@ impl BiliBili {
             }))
             .send()
             .await?;
-        let res: ResResult = if !response.status().is_success() {
+        let res: ResponseData = if !response.status().is_success() {
             return Err(Kind::Custom(response.text().await?));
         } else {
             response.json().await?
         };
 
-        if let ResResult {
+        if let ResponseData {
             code: _,
             data: Some(value),
             ..
@@ -310,5 +303,23 @@ impl BiliBili {
         } else {
             Err(Kind::Custom(format!("{res:?}")))
         }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ResponseData<T = Value> {
+    pub code: i32,
+    pub data: Option<T>,
+    message: String,
+    ttl: u8,
+}
+
+impl<T: Serialize> Display for ResponseData<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_string(self).map_err(std::fmt::Error::custom)?
+        )
     }
 }

@@ -1,6 +1,6 @@
 use crate::client::StatelessClient;
 
-use crate::server::api::endpoints::{add_streamer_endpoint, get_streamers_endpoint, root};
+use crate::server::api::endpoints::{add_streamer_endpoint, add_upload_streamer_endpoint, get_streamers_endpoint, get_upload_streamers_endpoint, root};
 use crate::server::core::download_actor::DownloadActorHandle;
 
 use crate::server::infrastructure::service_register::ServiceRegister;
@@ -22,8 +22,13 @@ impl ApplicationController {
             // `GET /` goes to `root`
             .route("/streamers", get(get_streamers_endpoint))
             .route("/streamers", post(add_streamer_endpoint))
+            .route("/upload/streamers", get(get_upload_streamers_endpoint))
+            .route("/upload/streamers", post(add_upload_streamer_endpoint))
             .route("/", get(root))
-            .layer(Extension(service_register.streamers_service.clone()));
+            .layer(Extension(service_register.streamers_service.clone()))
+            .layer(Extension(
+                service_register.upload_streamers_repository.clone(),
+            ));
         // `POST /users` goes to `create_user`
         // .route("/users", post(create_user));
         // let mut test = Cycle::new(indexmap![
@@ -35,12 +40,13 @@ impl ApplicationController {
         // let testget = test.clone();
         let client = StatelessClient::default();
         let vec = service_register.streamers_service.get_streamers().await?;
-        let actor_handle = DownloadActorHandle::new(vec, client);
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(31)).await;
-            actor_handle.remove_streamer("https://www.huya.com/superrabbit");
-            println!("yesssss")
-        });
+        let actor_handle =
+            DownloadActorHandle::new(vec, client, service_register.streamers_service.clone());
+        // tokio::spawn(async move {
+        //     tokio::time::sleep(Duration::from_secs(31)).await;
+        //     actor_handle.remove_streamer("https://www.huya.com/superrabbit");
+        //     println!("yesssss")
+        // });
         // let mut n = 0;
         // loop {
         //     let string = testget.get(&mut n);

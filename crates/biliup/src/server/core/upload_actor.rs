@@ -7,6 +7,7 @@ use crate::uploader::VideoFile;
 use futures::StreamExt;
 use std::path::{Path, PathBuf};
 
+use crate::server::core::upload_streamers::DynUploadStreamersRepository;
 use std::time::Instant;
 use tokio::sync::mpsc;
 use tracing::{error, info};
@@ -14,6 +15,7 @@ use tracing::{error, info};
 struct UploadActor {
     receiver: mpsc::UnboundedReceiver<ActorMessage>,
     client: StatelessClient,
+    studio: Studio,
     vid: Option<Vid>,
 }
 enum ActorMessage {
@@ -21,10 +23,15 @@ enum ActorMessage {
 }
 
 impl UploadActor {
-    fn new(client: StatelessClient, receiver: mpsc::UnboundedReceiver<ActorMessage>) -> Self {
+    fn new(
+        studio: Studio,
+        client: StatelessClient,
+        receiver: mpsc::UnboundedReceiver<ActorMessage>,
+    ) -> Self {
         UploadActor {
             receiver,
             client,
+            studio,
             vid: None,
         }
     }
@@ -78,14 +85,9 @@ impl UploadActor {
                     studio.videos.extend(videos);
                     bili.edit(&studio).await?;
                 } else {
-                    let studio = Studio::builder()
-                        .desc("desc".to_string())
-                        .tag("tag".to_string())
-                        .title("test")
-                        .videos(videos)
-                        .build();
+                    // let studio = self.studio;
 
-                    let result = bili.submit(&studio).await?;
+                    let result = bili.submit(&self.studio).await?;
                     self.vid = Some(
                         result
                             .data
@@ -119,9 +121,9 @@ pub struct UploadActorHandle {
 }
 
 impl UploadActorHandle {
-    pub fn new(client: StatelessClient) -> Self {
+    pub fn new(client: StatelessClient, studio: Studio) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
-        let actor = UploadActor::new(client, receiver);
+        let actor = UploadActor::new(studio, client, receiver);
         tokio::spawn(run_download_actor(actor));
 
         Self { sender }

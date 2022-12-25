@@ -1,12 +1,10 @@
 use crate::client::StatefulClient;
 use reqwest::header;
-use serde::ser::Error;
-use std::fmt::{Display, Formatter};
 use std::io::Seek;
 use std::path::Path;
 
 use crate::error::{Kind, Result};
-use crate::uploader::bilibili::{BiliBili, ResResult};
+use crate::uploader::bilibili::{BiliBili, ResponseData};
 use base64::encode;
 use cookie::Cookie;
 use md5::{Digest, Md5};
@@ -66,7 +64,7 @@ pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
     // }
     let login_info = match response {
         ResponseData {
-            data: ResponseValue::OAuth(OAuthInfo { refresh: true, .. }),
+            data: Some(ResponseValue::OAuth(OAuthInfo { refresh: true, .. })),
             ..
         } => {
             let new_info = client.renew_tokens(login_info).await?;
@@ -76,7 +74,7 @@ pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
             new_info
         }
         ResponseData {
-            data: ResponseValue::OAuth(OAuthInfo { refresh: false, .. }),
+            data: Some(ResponseValue::OAuth(OAuthInfo { refresh: false, .. })),
             ..
         } => {
             info!("无需更新cookie");
@@ -88,24 +86,6 @@ pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
         client: client.0.client,
         login_info,
     })
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ResponseData {
-    pub code: i32,
-    pub data: ResponseValue,
-    message: String,
-    ttl: u8,
-}
-
-impl Display for ResponseData {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            serde_json::to_string(self).map_err(std::fmt::Error::custom)?
-        )
-    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -156,7 +136,7 @@ impl Credential {
         Self(StatefulClient::new(headers))
     }
 
-    async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData> {
+    async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData<ResponseValue>> {
         let payload = {
             let mut payload = json!({
                 "access_key": login_info.token_info.access_token,
@@ -171,7 +151,7 @@ impl Credential {
             payload
         };
 
-        let response: ResponseData = self
+        let response = self
             .0
             .client
             .get("https://passport.bilibili.com/x/passport-login/oauth2/info")
@@ -205,7 +185,7 @@ impl Credential {
             payload["sign"] = Value::from(sign);
             payload
         };
-        let response: ResponseData = self
+        let response: ResponseData<ResponseValue> = self
             .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/oauth2/refresh_token")
@@ -216,7 +196,7 @@ impl Credential {
             .await?;
         info!("更新cookie");
         match response.data {
-            ResponseValue::Login(info) if !info.cookie_info.is_null() => {
+            Some(ResponseValue::Login(info)) if !info.cookie_info.is_null() => {
                 self.set_cookie(&info.cookie_info);
                 Ok(LoginInfo {
                     platform: login_info.platform,
@@ -261,7 +241,7 @@ impl Credential {
         let urlencoded = serde_urlencoded::to_string(&payload)?;
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
-        let response: ResponseData = self
+        let response: ResponseData<ResponseValue> = self
             .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/oauth2/login")
@@ -272,7 +252,7 @@ impl Credential {
             .await?;
         info!("通过密码登录");
         match response.data {
-            ResponseValue::Login(info) if !info.cookie_info.is_null() => {
+            Some(ResponseValue::Login(info)) if !info.cookie_info.is_null() => {
                 self.set_cookie(&info.cookie_info);
                 Ok(LoginInfo {
                     platform: Some("Android".to_string()),
@@ -292,7 +272,7 @@ impl Credential {
         let urlencoded = serde_urlencoded::to_string(&payload)?;
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
         payload["sign"] = Value::from(sign);
-        let res: ResponseData = self
+        let res: ResponseData<ResponseValue> = self
             .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/login/sms")
@@ -302,7 +282,7 @@ impl Credential {
             .json()
             .await?;
         match res.data {
-            ResponseValue::Login(info) => Ok(LoginInfo {
+            Some(ResponseValue::Login(info)) => Ok(LoginInfo {
                 platform: Some("Android".to_string()),
                 ..info
             }),
@@ -334,7 +314,7 @@ impl Credential {
         let urlencoded = format!("{}&sign={}", urlencoded, sign);
         // let mut form = payload.clone();
         // form["sign"] = Value::from(sign);
-        let res: ResponseData = self
+        let res: ResponseData<ResponseValue> = self
             .0
             .client
             .post("https://passport.bilibili.com/x/passport-login/sms/send")
@@ -346,7 +326,7 @@ impl Credential {
             .await?;
         // println!("{}", res);
         match res.data {
-            ResponseValue::Value(mut data)
+            Some(ResponseValue::Value(mut data))
                 if !data["captcha_key"]
                     .as_str()
                     .ok_or("send sms error")?
@@ -371,7 +351,7 @@ impl Credential {
         form["sign"] = Value::from(sign);
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let res: ResponseData = self
+            let res: ResponseData<ResponseValue> = self
                 .0
                 .client
                 .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll")
@@ -383,7 +363,7 @@ impl Credential {
             match res {
                 ResponseData {
                     code: 0,
-                    data: ResponseValue::Login(info),
+                    data: Some(ResponseValue::Login(info)),
                     ..
                 } => {
                     break Ok(LoginInfo {
@@ -519,7 +499,7 @@ impl Credential {
         if !response.status().is_success() {
             return Err(Kind::Custom(response.text().await?));
         }
-        let res: ResResult = response.json().await?;
+        let res: ResponseData = response.json().await?;
         if res.code != 0 {
             return Err(Kind::Custom(format!("{res:#?}")));
         }

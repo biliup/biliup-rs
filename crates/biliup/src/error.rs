@@ -33,6 +33,8 @@ pub enum Kind {
     #[error(transparent)]
     SerdeUrl(#[from] serde_urlencoded::ser::Error),
     // source and Display delegate to anyhow::Error
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
 }
 
 impl From<&str> for Kind {

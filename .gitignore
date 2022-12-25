@@ -7,3 +7,4 @@
 *.png
 *.part
 data.db
+!sqlx-data.json
