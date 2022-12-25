@@ -13,7 +13,7 @@ jobs:
       with:
         manylinux: auto
         command: build
-        container: messense/manylinux2014-cross:x86_64
+        container: ghcr.io/biliup/manylinux2014-cross:x86_64
         args: --release --sdist -o dist -m crates/stream-gears/Cargo.toml --find-interpreter
 #    - name: aarch64
 #      uses: messense/maturin-action@v1
