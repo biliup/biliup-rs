@@ -9,7 +9,7 @@ name = "stream_gears"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-pyo3 = { version = "0.16.3", features = ["extension-module"] }
+pyo3 = { version = "0.17.3", features = ["extension-module"] }
 serde = "1"
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
