@@ -2517,8 +2517,10 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24c5b2d25fa654cc5f841750b8e1cdedbe21189bf9a9382ee90bfa9dd3562396"
 dependencies = [
+ "native-tls",
  "once_cell",
  "tokio",
+ "tokio-native-tls",
  "tokio-rustls",
 ]
 

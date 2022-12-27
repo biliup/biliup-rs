@@ -63,7 +63,6 @@ regex = "1.6.0"
 async-trait = "0.1.57"
 humantime = "2.1.0"
 axum = "0.6.1"
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offline" ] }
 #[features]
 #default = ["default-tls"]
 #rustls-tls = ["reqwest/rustls-tls"]
@@ -73,6 +72,8 @@ sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offlin
 
 [target.'cfg(any(target_arch="aarch64", target_arch="arm", target_env="musl"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offline" ] }
 
 [target.'cfg(not(any(target_arch="aarch64", target_arch="arm", target_env="musl")))'.dependencies]
 reqwest = { version = "0.11", features = ["json", "stream", "blocking", "deflate", "gzip"] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "sqlite", "offline" ] }
