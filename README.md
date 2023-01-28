@@ -144,3 +144,10 @@ B 站在上传前会通过 probe 来返回几条线路，并发包测试从中�
 用户等级大于 3 ，且粉丝数 > 1000 ，Web 端投稿不限制分 P 数量。B 站 Web 端将替换为[合集](https://www.bilibili.com/read/cv14762048) 。
 
 对于不满足条件的账号，多 P 投稿只能依靠 B 站的投稿客户端，但是投稿客户端使用的线路与 Web 端不同，质量低于 Web 端的线路，在国外机器会放大这一差距。所以本项目使用 client 的提交接口配合 Web 端的上传线路，弥补两者各自的不足。既可以多 P 上传，又提供了质量（速度和稳定性）较高的线路，且提供了 Web 端不具备的手动切换线路功能。
+
+## For Developers
+```shell
+cargo sqlx migrate run --source .\crates\biliup\migrations\
+cargo sqlx prepare  --merged 
+cargo run -- server -b localhost
+```

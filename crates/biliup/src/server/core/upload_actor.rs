@@ -38,7 +38,7 @@ impl UploadActor {
 
     async fn upload(
         &self,
-        video_paths: &[PathBuf],
+        video_paths: &[&Path],
         bili: &BiliBili,
         line: Line,
         limit: usize,
@@ -78,16 +78,35 @@ impl UploadActor {
         match msg {
             ActorMessage::Upload { path } => {
                 let bili = login_by_cookies("cookies.json").await?;
-                let videos = self.upload(&[path], &bili, Default::default(), 3).await?;
+                let videos = self
+                    .upload(&[path.as_path()], &bili, Default::default(), 3)
+                    .await?;
 
                 if let Some(vid) = &self.vid {
                     let mut studio = bili.studio_data(vid).await?;
                     studio.videos.extend(videos);
                     bili.edit(&studio).await?;
                 } else {
-                    // let studio = self.studio;
-
-                    let result = bili.submit(&self.studio).await?;
+                    let studio = &mut self.studio;
+                    studio.videos.extend(videos);
+                    if studio.title.is_empty() {
+                        studio.title = path
+                            .file_stem()
+                            .and_then(|fname| fname.to_str())
+                            .unwrap_or_default()
+                            .to_string();
+                    }
+                    if studio.tag.is_empty() {
+                        studio.tag = bili
+                            .recommend_tag(studio.tid, &studio.title, "")
+                            .await?
+                            .get(0)
+                            .and_then(|tag| tag.get("tag"))
+                            .and_then(|tag| tag.as_str())
+                            .unwrap_or("录播")
+                            .to_string();
+                    }
+                    let result = bili.submit(studio).await?;
                     self.vid = Some(
                         result
                             .data

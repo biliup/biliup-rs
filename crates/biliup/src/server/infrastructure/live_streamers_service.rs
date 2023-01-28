@@ -27,11 +27,11 @@ impl ConduitLiveStreamersService {
 #[async_trait]
 impl LiveStreamersService for ConduitLiveStreamersService {
     async fn add_streamer(&self, request: AddLiveStreamerDto) -> anyhow::Result<LiveStreamerDto> {
-        Ok(self
-            .repository
-            .create_streamer(&request.url, &request.remark)
-            .await?
-            .into_dto())
+        Ok(self.repository.create_streamer(request).await?.into_dto())
+    }
+
+    async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerDto> {
+        Ok(self.repository.get_streamer_by_url(url).await?.into_dto())
     }
 
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerDto>> {

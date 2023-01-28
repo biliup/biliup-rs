@@ -18,16 +18,17 @@ impl SqliteUploadStreamersRepository {
 
 #[async_trait]
 impl UploadStreamersRepository for SqliteUploadStreamersRepository {
-    async fn create_streamer(&self, studio: Studio) -> anyhow::Result<StudioEntity> {
+    async fn create_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity> {
         query_as!(
             StudioEntity,
             r#"
         insert into
-            upload_streamers(copyright, source, tid, cover, title, desc, dynamic, tag, dtime, interactive, mission_id, dolby, lossless_music, no_reprint, up_selection_reply, up_close_reply, up_close_danmu, open_elec)
+            upload_streamers(template_name, copyright, source, tid, cover, title, desc, dynamic, tag, dtime, interactive, mission_id, dolby, lossless_music, no_reprint, up_selection_reply, up_close_reply, up_close_danmu, open_elec)
         VALUES
-            ($1 , $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18 )
-        returning id as "id: u32", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8"
+            ($1 , $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19 )
+        returning id as "id: u32", template_name as "template_name!", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8"
             "#,
+            studio.template_name,
             studio.copyright,
             studio.source,
             studio.tid,
@@ -56,7 +57,7 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
         query_as!(
             StudioEntity,
             r#"
-       select id as "id: u32", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8" from upload_streamers
+       select id as "id: u32",  template_name as "template_name!", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8" from upload_streamers
             "#
         )
             .fetch_all(&self.pool)
@@ -69,7 +70,7 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
             StudioEntity,
             r#"
        select
-            id as "id: u32", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8"
+            id as "id: u32", template_name as "template_name!", copyright as "copyright!: u8", source as "source!", tid as "tid!: u16", cover as "cover!", title as "title!", desc as "desc!", dynamic as "dynamic!", tag as "tag!", dtime as "dtime: u32", interactive as "interactive!: u8", mission_id as "mission_id: u32", dolby as "dolby!: u8", lossless_music as "lossless_music!: u8", no_reprint as "no_reprint: u8", up_selection_reply as "up_selection_reply!: bool", up_close_reply as "up_close_reply!: bool", up_close_danmu as "up_close_danmu!: bool", open_elec as "open_elec: u8"
        from upload_streamers
        where
             id = $1

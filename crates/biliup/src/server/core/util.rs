@@ -61,6 +61,11 @@ impl<T: Copy> Cycle<T> {
         }
     }
 
+    pub fn get_all(&self) -> IndexMap<String, T> {
+        let read_guard = self.map.read().unwrap();
+        read_guard.clone()
+    }
+
     pub fn replace(&mut self, map: IndexMap<String, T>) {
         if map.is_empty() {
             unreachable!("list must not be empty")
@@ -70,6 +75,12 @@ impl<T: Copy> Cycle<T> {
 
     pub fn write(&self) -> RwLockWriteGuard<'_, IndexMap<String, T>> {
         self.map.write().unwrap()
+    }
+
+    pub fn change(&self, key: &str, value: T) {
+        self.write()
+            .entry(String::from(key))
+            .and_modify(|mt| *mt = value);
     }
 
     pub fn insert(&self, key: String, value: T) {

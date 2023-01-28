@@ -9,28 +9,8 @@ use tracing::info;
 pub mod client;
 pub mod downloader;
 pub mod error;
+pub mod server;
 pub mod uploader;
-pub mod server {
-    pub mod errors;
-
-    pub mod api {
-        pub mod endpoints;
-        pub mod router;
-    }
-
-    pub mod core;
-
-    pub mod infrastructure {
-        pub mod repositories {
-            pub mod live_streamers_repository;
-            pub mod upload_streamers_repository;
-        }
-
-        pub mod connection_pool;
-        pub mod live_streamers_service;
-        pub mod service_register;
-    }
-}
 
 pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F) -> Result<O, E>
 where

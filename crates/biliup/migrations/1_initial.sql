@@ -1,14 +1,18 @@
 create table if not exists live_streamers
 (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    url       TEXT                              not null UNIQUE default '',
-    remark    TEXT                              not null default '',
-    upload_id INTEGER
+    id         INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    url        TEXT                              not null UNIQUE default '',
+    remark     TEXT                              not null        default '',
+    filename   TEXT                              not null        default './video/%Y-%m-%d/%H_%M_%S{title}',
+    split_time INTEGER,
+    split_size INTEGER,
+    upload_id  INTEGER
 );
 
 create table if not exists upload_streamers
 (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    template_name      TEXT                              NOT NULL UNIQUE,
     copyright          INTEGER                           not null default 1,
     source             TEXT                              not null default '',
     tid                INTEGER                           not null default 171,
@@ -33,3 +37,7 @@ create table if not exists upload_streamers
 --     add constraint users_id_pk primary key (id);
 --
 -- create index if not exists users_email_idx on users (email);
+insert or ignore into upload_streamers (template_name, copyright, source, cover, title, desc, dynamic, tag, dtime,
+                                        interactive, mission_id, dolby, lossless_music, no_reprint, up_selection_reply,
+                                        up_close_reply, up_close_danmu, open_elec)
+values ('空模板', 1, '', '', '', '', '', '', null, 0, null, 0, 0, null, 0, 0, 0, null);

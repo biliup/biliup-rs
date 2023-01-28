@@ -1,21 +1,24 @@
 use crate::uploader::bilibili::Studio;
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 
 pub type DynUploadStreamersRepository = Arc<dyn UploadStreamersRepository + Send + Sync>;
 
 #[async_trait]
 pub trait UploadStreamersRepository {
-    async fn create_streamer(&self, studio: Studio) -> anyhow::Result<StudioEntity>;
+    async fn create_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<StudioEntity>>;
     async fn get_streamer_by_id(&self, id: u32) -> anyhow::Result<StudioEntity>;
 }
 
-#[derive(FromRow,Serialize, Deserialize)]
+// #[serde(default)]
+#[derive(FromRow, Serialize, Deserialize)]
 pub struct StudioEntity {
+    #[serde(default)]
     pub id: u32,
+    pub template_name: String,
     pub copyright: u8,
     pub source: String,
     pub tid: u16,
@@ -73,4 +76,31 @@ impl StudioEntity {
     //         following,
     //     }
     // }
+}
+
+impl Default for StudioEntity {
+    fn default() -> Self {
+        StudioEntity {
+            id: 0,
+            template_name: "".to_string(),
+            copyright: 1,
+            source: "".to_string(),
+            tid: 0,
+            cover: "".to_string(),
+            title: "".to_string(),
+            desc: "".to_string(),
+            dynamic: "".to_string(),
+            tag: "".to_string(),
+            dtime: None,
+            interactive: 0,
+            mission_id: None,
+            dolby: 0,
+            lossless_music: 0,
+            no_reprint: None,
+            up_selection_reply: false,
+            up_close_reply: false,
+            up_close_danmu: false,
+            open_elec: None,
+        }
+    }
 }

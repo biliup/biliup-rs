@@ -40,6 +40,8 @@ pub enum AppError {
     AnyhowError(#[from] anyhow::Error),
     #[error(transparent)]
     DownloadError(#[from] crate::downloader::error::Error),
+    #[error(transparent)]
+    UploadError(#[from] crate::error::Kind),
 }
 
 impl IntoResponse for AppError {
@@ -53,6 +55,17 @@ impl IntoResponse for AppError {
                 Self::InvalidLoginAttempt.to_string(),
             ),
             Self::Unauthorized => (StatusCode::UNAUTHORIZED, Self::Unauthorized.to_string()),
+            Self::AnyhowError(err) => 'e: {
+                for cause in err.chain() {
+                    if let Some(error) = cause.downcast_ref::<Box<dyn sqlx::error::DatabaseError>>()
+                    {
+                        println!("121212cause: {}", error.message());
+                        break 'e (StatusCode::BAD_REQUEST, error.to_string());
+                    }
+                    println!("{}", cause);
+                }
+                (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+            }
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 String::from("unexpected error occurred"),
@@ -69,13 +82,22 @@ impl IntoResponse for AppError {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ApiError {
-    pub errors: HashMap<String, Vec<String>>,
+    pub errors: Vec<HashMap<String, String>>,
+    pub message: String,
 }
 
 impl ApiError {
-    pub fn new(error: String) -> Self {
-        let mut error_map: HashMap<String, Vec<String>> = HashMap::new();
-        error_map.insert("message".to_owned(), vec![error]);
-        Self { errors: error_map }
+    pub fn new(message: String) -> Self {
+        let mut errors: Vec<HashMap<String, String>> = Vec::new();
+        // errors.push(HashMap::from([
+        //     (String::from("resource"), "Issue".to_string()),
+        //     (String::from("field"), "title".to_string()),
+        //     (String::from("code"), "missing_field".to_string()),
+        //     (String::from("code"), "unprocessable".to_string()),
+        //     (String::from("code"), "already_exists".to_string()),
+        //     (String::from("code"), "invalid".to_string()),
+        //     (String::from("code"), "missing".to_string()),
+        // ]));
+        Self { errors, message }
     }
 }

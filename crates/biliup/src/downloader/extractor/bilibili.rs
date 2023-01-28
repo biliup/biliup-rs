@@ -37,7 +37,7 @@ impl SiteDefinition for BiliLive {
         } else {
             return Err(Error::Custom(format!("{}", room_info["message"])));
         };
-        println!("Vid: {}", vid);
+
         if room_info["data"]["room_info"]["live_status"] != 1 {
             return Err(Error::Custom(format!("Not online: {url}")));
         }

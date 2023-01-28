@@ -267,6 +267,20 @@ impl BiliBili {
             .await?)
     }
 
+    pub async fn recommend_tag(&self, subtype_id: u16, title: &str, key: &str) -> Result<Value> {
+        let result: ResponseData = self
+            .client
+            .get(format!("https://member.bilibili.com/x/vupre/web/tag/recommend?upload_id=&subtype_id={subtype_id}&title={title}&filename={key}&description=&cover_url=&t="))
+            .send()
+            .await?
+            .json()
+            .await?;
+        if result.code == 0 {
+            return Ok(result.data.unwrap_or_default());
+        }
+        Err(Kind::Custom(result.message))
+    }
+
     pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
         let csrf = self
             .login_info
@@ -311,7 +325,7 @@ pub struct ResponseData<T = Value> {
     pub code: i32,
     pub data: Option<T>,
     message: String,
-    ttl: u8,
+    ttl: Option<u8>,
 }
 
 impl<T: Serialize> Display for ResponseData<T> {

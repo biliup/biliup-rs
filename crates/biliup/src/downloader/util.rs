@@ -3,7 +3,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use std::time::Duration;
-use thiserror::__private::PathAsDisplay;
 use tracing::error;
 
 #[derive(Debug)]
@@ -135,7 +134,7 @@ impl LifecycleFile {
         match fs::rename(&self.path, &self.file_name) {
             Ok(_) => (self.hook)(&self.file_name),
             Err(e) => {
-                error!("drop {} {e}", self.path.as_display())
+                error!("drop {} {e}", self.path.display())
             }
         }
     }

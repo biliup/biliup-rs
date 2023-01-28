@@ -1,4 +1,6 @@
-use crate::server::core::live_streamers::{LiveStreamerEntity, LiveStreamersRepository};
+use crate::server::core::live_streamers::{
+    AddLiveStreamerDto, LiveStreamerEntity, LiveStreamersRepository,
+};
 use crate::server::infrastructure::connection_pool::ConnectionPool;
 use anyhow::Context;
 use async_trait::async_trait;
@@ -17,16 +19,22 @@ impl SqliteLiveStreamersRepository {
 
 #[async_trait]
 impl LiveStreamersRepository for SqliteLiveStreamersRepository {
-    async fn create_streamer(&self, url: &str, remark: &str) -> anyhow::Result<LiveStreamerEntity> {
+    async fn create_streamer(&self, dto: AddLiveStreamerDto) -> anyhow::Result<LiveStreamerEntity> {
+        let split_time = dto.split_time.map(|t| t as i64);
+        let split_size = dto.split_size.map(|s| s as i64);
         query_as!(
             LiveStreamerEntity,
             r#"
-        insert into live_streamers (url, remark)
-        values ($1 , $2 )
-        returning id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32"
+        insert into live_streamers (url, remark, filename, split_time, split_size, upload_id)
+        values ($1 , $2 , $3, $4 , $5, $6)
+        returning id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32"
             "#,
-            url,
-            remark
+            dto.url,
+            dto.remark,
+            dto.filename,
+            split_time,
+            split_size,
+            dto.upload_id
         )
         .fetch_one(&self.pool)
         .await
@@ -37,7 +45,7 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         query_as!(
             LiveStreamerEntity,
             r#"
-       select id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32" from live_streamers
+       select id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32" from live_streamers
             "#
         )
         .fetch_all(&self.pool)
@@ -50,7 +58,7 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
             LiveStreamerEntity,
             r#"
         select
-            id as "id: u32", url as "url!", remark as "remark!", upload_id as "upload_id: u32"
+            id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32"
         from
             live_streamers
         where
