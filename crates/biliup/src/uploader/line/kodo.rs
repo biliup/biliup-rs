@@ -1,9 +1,8 @@
 use crate::error::{Kind, Result};
-use base64::URL_SAFE;
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
 use reqwest::{header, Body};
-
+use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -85,7 +84,7 @@ impl Kodo {
             parts.push(part);
         }
         parts.sort_by_key(|x| x.index);
-        let key = base64::encode_config(self.bucket.key, URL_SAFE);
+        let key = general_purpose::URL_SAFE_NO_PAD.encode(self.bucket.key);
         self.client
             .client_with_middleware
             .post(format!(

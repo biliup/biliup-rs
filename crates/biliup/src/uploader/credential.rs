@@ -5,13 +5,13 @@ use std::path::Path;
 
 use crate::error::{Kind, Result};
 use crate::uploader::bilibili::{BiliBili, ResponseData};
-use base64::encode;
+use base64::{Engine as _, engine::general_purpose};
 use cookie::Cookie;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 
-use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
+use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey, Pkcs1v15Encrypt};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -209,17 +209,17 @@ impl Credential {
 
     pub async fn login_by_password(&self, username: &str, password: &str) -> Result<LoginInfo> {
         // The type of `payload` is `serde_json::Value`
+        let mut rng = rand::thread_rng();
         let (key_hash, pub_key) = self.get_key().await?;
         let pub_key = RsaPublicKey::from_public_key_pem(&pub_key).unwrap();
-        let padding = PaddingScheme::new_pkcs1v15_encrypt();
         let enc_data = pub_key
             .encrypt(
-                &mut OsRng,
-                padding,
-                format!("{}{}", key_hash, password).as_bytes(),
+                &mut rng,
+                Pkcs1v15Encrypt,
+                (key_hash+password).as_bytes(),
             )
             .expect("failed to encrypt");
-        let encrypt_password = encode(enc_data);
+        let encrypt_password = general_purpose::STANDARD_NO_PAD.encode(enc_data);
         let mut payload = json!({
             "actionKey": "appkey",
             "appkey": AppKeyStore::Android.app_key(),
