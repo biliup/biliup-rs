@@ -104,13 +104,22 @@ pub struct LifecycleFile {
 }
 
 impl LifecycleFile {
-    pub fn new(fmt_file_name: &str) -> Self {
+    pub fn new(
+        fmt_file_name: &str,
+        extension: &'static str,
+        hook: Option<Box<dyn Fn(&str) + Send>>,
+    ) -> Self {
+        let hook: Box<dyn Fn(&str) + Send> = if let Some(hook) = hook {
+            hook
+        } else {
+            Box::new(|_| {})
+        };
         Self {
             fmt_file_name: fmt_file_name.to_string(),
             file_name: "".to_string(),
             path: Default::default(),
-            hook: Box::new(|_| {}),
-            extension: "",
+            hook,
+            extension,
         }
     }
 

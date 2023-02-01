@@ -53,23 +53,25 @@ enum Extension {
 impl Site {
     pub async fn download(
         &mut self,
-        mut file: LifecycleFile,
+        fmt_file_name: &str,
         segment: Segmentable,
+        hook: Option<Box<dyn Fn(&str) + Send>>,
     ) -> downloader::error::Result<()> {
-        file.fmt_file_name = file.fmt_file_name.replace("{title}", &self.title);
+        let fmt_file_name = fmt_file_name.replace("{title}", &self.title);
         self.client
             .headers
             .append(ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate"));
         println!("{}", self);
         match self.extension {
             Extension::Flv => {
+                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "flv", hook);
                 let response = self.client.retryable(&self.direct_url).await?;
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
-                file.extension = "flv";
                 httpflv::parse_flv(connection, file, segment).await?
             }
             Extension::Ts => {
+                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "ts", hook);
                 hls::download(&self.direct_url, &self.client, &file.fmt_file_name, segment).await?
             }
         }

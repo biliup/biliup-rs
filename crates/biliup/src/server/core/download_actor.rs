@@ -16,8 +16,8 @@ use std::ops::DerefMut;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::task::JoinHandle;
-use tracing::{debug, error};
 use tracing::log::info;
+use tracing::{debug, error};
 
 async fn start_monitor(
     task: Cycle<StreamStatus>,
@@ -55,28 +55,30 @@ async fn start_monitor(
                 };
                 let live_streamers_service = live_streamers_service.clone();
                 logging_spawn(async move {
-                    let mut file = LifecycleFile::new(&filename);
-                    if let Some(studio) = live_streamers_service.get_studio_by_url(&url_c).await.unwrap_or_default() {
-                        let handle = UploadActorHandle::new(client, studio);
-                        file.hook = Box::new(move |file_name| {
-                            match std::fs::metadata(file_name) {
-                                Ok(metadata) => {
+                    let hook = live_streamers_service
+                        .get_studio_by_url(&url_c)
+                        .await
+                        .unwrap_or_default()
+                        .map(|studio| -> Box<dyn Fn(&str) + Send> {
+                            let handle = UploadActorHandle::new(client, studio);
+                            Box::new(move |file_name| {
+                                if let Ok(metadata) =
+                                    std::fs::metadata(file_name).map_err(|err| error!("{}", err))
+                                {
                                     if metadata.len() > 10 * 1024 * 1024 {
                                         info!("开始上传: {}", file_name);
                                         handle.send_file_path(file_name);
                                     }
                                 }
-                                Err(error) => {
-                                    error!("{}", error)
-                                }
-                            }
+                            })
                         });
-                    } else {
-                        debug!(url = %url_c, "upload template not set.")
+                    if hook.is_none() {
+                        debug!(url = %url_c, "upload template not set.");
                     }
+
                     let segmentable = Segmentable::new(split_time, split_size);
                     // let segmentable = Segmentable::new( None, Some(16*1024*1024));
-                    site.download(file, segmentable).await?;
+                    site.download(&filename, segmentable, hook).await?;
                     task_c.change(&url_c, StreamStatus::Idle);
                     Ok::<_, Box<dyn Error + Send + Sync>>(())
                 });

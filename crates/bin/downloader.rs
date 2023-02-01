@@ -24,8 +24,7 @@ pub async fn download(
     let client = Default::default();
     if let Some(extractor) = find_extractor(url) {
         let mut site = extractor.get_site(url, client).await?;
-        let file: LifecycleFile = LifecycleFile::new(&output);
-        site.download(file, segmentable).await?;
+        site.download(&output, segmentable, None).await?;
     } else {
         warn!("not find extractor for {url}")
     }

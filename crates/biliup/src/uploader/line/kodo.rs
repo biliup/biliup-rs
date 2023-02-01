@@ -1,8 +1,8 @@
 use crate::error::{Kind, Result};
+use base64::{engine::general_purpose, Engine as _};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::header::{HeaderMap, HeaderName, CONTENT_LENGTH};
 use reqwest::{header, Body};
-use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

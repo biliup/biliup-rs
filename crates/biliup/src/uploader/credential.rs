@@ -5,13 +5,13 @@ use std::path::Path;
 
 use crate::error::{Kind, Result};
 use crate::uploader::bilibili::{BiliBili, ResponseData};
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use cookie::Cookie;
 use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 
-use rsa::{pkcs8::DecodePublicKey, PaddingScheme, PublicKey, RsaPublicKey, Pkcs1v15Encrypt};
+use rsa::{pkcs8::DecodePublicKey, PaddingScheme, Pkcs1v15Encrypt, PublicKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -213,11 +213,7 @@ impl Credential {
         let (key_hash, pub_key) = self.get_key().await?;
         let pub_key = RsaPublicKey::from_public_key_pem(&pub_key).unwrap();
         let enc_data = pub_key
-            .encrypt(
-                &mut rng,
-                Pkcs1v15Encrypt,
-                (key_hash+password).as_bytes(),
-            )
+            .encrypt(&mut rng, Pkcs1v15Encrypt, (key_hash + password).as_bytes())
             .expect("failed to encrypt");
         let encrypt_password = general_purpose::STANDARD_NO_PAD.encode(enc_data);
         let mut payload = json!({

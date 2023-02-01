@@ -12,7 +12,7 @@ use std::time::Duration;
 use tracing::{info, warn};
 
 pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
-    let file: LifecycleFile = LifecycleFile::new(file_name);
+    let file: LifecycleFile = LifecycleFile::new(file_name, "flv", None);
     match parse_flv(connection, file, segment).await {
         Ok(_) => {
             info!("Done... {file_name}");
