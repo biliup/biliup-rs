@@ -1,12 +1,15 @@
 use crate::server::core::StreamStatus;
 use crate::uploader::bilibili::Studio;
 use async_trait::async_trait;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::sync::Arc;
 
 /// Similar to above, we want to keep a reference count across threads so we can manage our connection pool.
 pub type DynLiveStreamersRepository = Arc<dyn LiveStreamersRepository + Send + Sync>;
+pub type DynDownloadRecordsRepository = Arc<dyn DownloadRecordsRepository + Send + Sync>;
+pub type DynVideosRepository = Arc<dyn VideosRepository + Send + Sync>;
 
 #[async_trait]
 pub trait LiveStreamersRepository {
@@ -14,19 +17,59 @@ pub trait LiveStreamersRepository {
         &self,
         entity: AddLiveStreamerDto,
     ) -> anyhow::Result<LiveStreamerEntity>;
+    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()>;
+    async fn update_streamer(&self, entity: LiveStreamerEntity) -> anyhow::Result<LiveStreamerEntity>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerEntity>>;
     async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerEntity>;
+    async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<LiveStreamerEntity>;
 }
-// #[typeshare]
-#[derive(FromRow)]
+
+#[async_trait]
+pub trait DownloadRecordsRepository {
+    async fn create(&self, entity: DownloadRecords) -> anyhow::Result<DownloadRecords>;
+    // async fn delete(&self, id: i64) -> anyhow::Result<()>;
+    // async fn update(&self, entity: DownloadRecords) -> anyhow::Result<DownloadRecords>;
+    async fn get_all(&self) -> anyhow::Result<Vec<DownloadRecords>>;
+    // async fn get_by_id(&self, id: i64) -> anyhow::Result<DownloadRecords>;
+}
+
+#[async_trait]
+pub trait VideosRepository {
+    async fn create(&self, entity: Videos) -> anyhow::Result<Videos>;
+    // async fn delete(&self, id: i64) -> anyhow::Result<()>;
+    async fn update(&self, entity: Videos) -> anyhow::Result<Videos>;
+    // async fn get_all(&self) -> anyhow::Result<Vec<Videos>>;
+    async fn get_by_id(&self, id: i64) -> anyhow::Result<Videos>;
+}
+
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct LiveStreamerEntity {
-    pub id: u32,
+    pub id: i64,
     pub url: String,
     pub remark: String,
     pub filename: String,
     pub split_time: Option<i64>,
     pub split_size: Option<i64>,
-    pub upload_id: Option<u32>,
+    pub upload_id: Option<i64>,
+}
+
+#[derive(FromRow)]
+pub struct DownloadRecords {
+    pub id: i64,
+    pub title: String,
+    pub live_id: i64,
+    pub upload_id: Option<i64>,
+    pub status: String,
+}
+
+#[derive(FromRow)]
+pub struct Videos {
+    pub id: i64,
+    pub start_time: chrono::DateTime<Utc>,
+    pub end_time: chrono::DateTime<Utc>,
+    pub path: String,
+    pub record_id: i64,
+    pub status: String,
 }
 
 impl LiveStreamerEntity {
@@ -51,6 +94,7 @@ pub type DynLiveStreamersService = Arc<dyn LiveStreamersService + Send + Sync>;
 pub trait LiveStreamersService {
     async fn add_streamer(&self, request: AddLiveStreamerDto) -> anyhow::Result<LiveStreamerDto>;
     async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerDto>;
+    async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<LiveStreamerDto>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerDto>>;
     async fn get_studio_by_url(&self, url: &str) -> anyhow::Result<Option<Studio>>;
 }
@@ -62,12 +106,12 @@ pub struct AddLiveStreamerDto {
     pub filename: String,
     pub split_time: Option<u64>,
     pub split_size: Option<u64>,
-    pub upload_id: u32,
+    pub upload_id: i64,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct LiveStreamerDto {
-    pub id: u32,
+    pub id: i64,
     pub url: String,
     pub remark: String,
     pub filename: String,

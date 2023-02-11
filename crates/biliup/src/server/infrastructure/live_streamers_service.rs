@@ -34,6 +34,10 @@ impl LiveStreamersService for ConduitLiveStreamersService {
         Ok(self.repository.get_streamer_by_url(url).await?.into_dto())
     }
 
+    async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<LiveStreamerDto> {
+        Ok(self.repository.get_streamer_by_id(id).await?.into_dto())
+    }
+
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerDto>> {
         Ok(self
             .repository

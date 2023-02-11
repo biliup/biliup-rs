@@ -5,6 +5,7 @@ pub mod live_streamers;
 pub mod upload_actor;
 pub mod upload_streamers;
 pub mod util;
+pub mod users;
 
 /// Status of the live stream
 pub enum LiveStatus {

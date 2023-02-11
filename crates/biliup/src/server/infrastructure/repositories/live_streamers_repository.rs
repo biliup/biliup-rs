@@ -27,7 +27,7 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
             r#"
         insert into live_streamers (url, remark, filename, split_time, split_size, upload_id)
         values ($1 , $2 , $3, $4 , $5, $6)
-        returning id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32"
+        returning id, url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id
             "#,
             dto.url,
             dto.remark,
@@ -41,11 +41,19 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         .context("an unexpected error occurred while creating the streamer")
     }
 
+    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    async fn update_streamer(&self, entity: LiveStreamerEntity) -> anyhow::Result<LiveStreamerEntity> {
+        todo!()
+    }
+
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerEntity>> {
         query_as!(
             LiveStreamerEntity,
             r#"
-       select id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32" from live_streamers
+       select id, url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id from live_streamers
             "#
         )
         .fetch_all(&self.pool)
@@ -58,7 +66,7 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
             LiveStreamerEntity,
             r#"
         select
-            id as "id: u32", url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id as "upload_id: u32"
+            id, url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id
         from
             live_streamers
         where
@@ -69,5 +77,23 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         .fetch_one(&self.pool)
         .await
         .context("an unexpected error occurred while creating the streamer")
+    }
+
+    async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<LiveStreamerEntity> {
+        query_as!(
+            LiveStreamerEntity,
+            r#"
+        select
+            id, url as "url!", remark as "remark!", filename as "filename!", split_time, split_size, upload_id
+        from
+            live_streamers
+        where
+            id=$1
+            "#,
+            id
+        )
+            .fetch_one(&self.pool)
+            .await
+            .context("an unexpected error occurred while creating the streamer")
     }
 }

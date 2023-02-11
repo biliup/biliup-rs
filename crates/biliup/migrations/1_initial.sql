@@ -13,6 +13,7 @@ create table if not exists upload_streamers
 (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     template_name      TEXT                              NOT NULL UNIQUE,
+    user               INTEGER                           NOT NULL,
     copyright          INTEGER                           not null default 1,
     source             TEXT                              not null default '',
     tid                INTEGER                           not null default 171,
@@ -33,11 +34,48 @@ create table if not exists upload_streamers
     open_elec          INTEGER
 );
 
+create table if not exists upload_records
+(
+    id       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    identity TEXT                              not null,
+    status   TEXT
+);
+
+
+create table if not exists users
+(
+    id       INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name     TEXT                              not null UNIQUE,
+    value    TEXT                              not null,
+    platform TEXT                              not null
+);
+
+create table if not exists download_records
+(
+    id        INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    title     TEXT                              not null,
+    live_id   INTEGER                           not null,
+    upload_id INTEGER,
+    status    TEXT
+);
+
+
+create table if not exists videos
+(
+    id         INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    start_time INTEGER                           not null,
+    end_time   INTEGER                           not null,
+    path       TEXT                              not null,
+    record_id  INTEGER                           not null,
+    status     TEXT
+);
+
+
 -- alter table users
 --     add constraint users_id_pk primary key (id);
 --
 -- create index if not exists users_email_idx on users (email);
-insert or ignore into upload_streamers (template_name, copyright, source, cover, title, desc, dynamic, tag, dtime,
-                                        interactive, mission_id, dolby, lossless_music, no_reprint, up_selection_reply,
-                                        up_close_reply, up_close_danmu, open_elec)
-values ('空模板', 1, '', '', '', '', '', '', null, 0, null, 0, 0, null, 0, 0, 0, null);
+-- insert or ignore into upload_streamers (template_name, copyright, source, cover, title, desc, dynamic, tag, dtime,
+--                                         interactive, mission_id, dolby, lossless_music, no_reprint, up_selection_reply,
+--                                         up_close_reply, up_close_danmu, open_elec)
+-- values ('空模板', 1, '', '', '', '', '', '', null, 0, null, 0, 0, null, 0, 0, 0, null);

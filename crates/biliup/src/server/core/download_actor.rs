@@ -193,6 +193,11 @@ impl DownloadActorHandle {
         map
     }
 
+    pub fn update_streamer(&self, url: &str) {
+        self.remove_streamer(url);
+        self.add_streamer(url);
+    }
+
     pub fn remove_streamer(&self, url: &str) {
         find_extractor(url).and_then(|extractor| {
             self.platform_map

@@ -5,20 +5,33 @@ use sqlx::FromRow;
 use std::sync::Arc;
 
 pub type DynUploadStreamersRepository = Arc<dyn UploadStreamersRepository + Send + Sync>;
+pub type DynUploadRecordsRepository = Arc<dyn UploadRecordsRepository + Send + Sync>;
 
 #[async_trait]
 pub trait UploadStreamersRepository {
     async fn create_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity>;
+    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()>;
+    async fn update_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<StudioEntity>>;
-    async fn get_streamer_by_id(&self, id: u32) -> anyhow::Result<StudioEntity>;
+    async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<StudioEntity>;
+}
+
+#[async_trait]
+pub trait UploadRecordsRepository {
+    async fn create(&self, entity: UploadRecords) -> anyhow::Result<UploadRecords>;
+    async fn delete(&self, id: i64) -> anyhow::Result<()>;
+    // async fn update(&self, entity: UploadRecords) -> anyhow::Result<UploadRecords>;
+    async fn get_all(&self) -> anyhow::Result<Vec<UploadRecords>>;
+    async fn get_by_id(&self, id: i64) -> anyhow::Result<UploadRecords>;
 }
 
 // #[serde(default)]
 #[derive(FromRow, Serialize, Deserialize)]
 pub struct StudioEntity {
     #[serde(default)]
-    pub id: u32,
+    pub id: i64,
     pub template_name: String,
+    pub user: i64,
     pub copyright: u8,
     pub source: String,
     pub tid: u16,
@@ -78,11 +91,19 @@ impl StudioEntity {
     // }
 }
 
+#[derive(FromRow, Serialize, Deserialize)]
+pub struct UploadRecords {
+    pub id: i64,
+    pub identity: String,
+    pub status: String,
+}
+
 impl Default for StudioEntity {
     fn default() -> Self {
         StudioEntity {
             id: 0,
             template_name: "".to_string(),
+            user: 0,
             copyright: 1,
             source: "".to_string(),
             tid: 0,

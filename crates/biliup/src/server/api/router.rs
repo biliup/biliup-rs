@@ -1,15 +1,12 @@
 use crate::client::StatelessClient;
 
-use crate::server::api::endpoints::{
-    add_streamer_endpoint, add_upload_streamer_endpoint, get_streamers_endpoint,
-    get_upload_streamers_endpoint, root,
-};
+use crate::server::api::endpoints::{add_streamer_endpoint, add_upload_streamer_endpoint, delete_streamer_endpoint, delete_template_endpoint, get_streamer_endpoint, get_streamers_endpoint, get_upload_streamer_endpoint, get_upload_streamers_endpoint, update_streamer_endpoint, update_template_endpoint};
 use crate::server::core::download_actor::DownloadActorHandle;
 
 use crate::server::infrastructure::service_register::ServiceRegister;
 use anyhow::Context;
 
-use axum::routing::{get, post};
+use axum::routing::{get, post, delete, put};
 use axum::{http, Extension, Router};
 
 use crate::server::api::bilibili_endpoints::archive_pre_endpoint;
@@ -31,11 +28,24 @@ impl ApplicationController {
         let app = Router::new()
             // `GET /` goes to `root`
             .route("/v1/streamers", get(get_streamers_endpoint))
+            .route("/v1/streamers/:id", get(get_streamer_endpoint))
+            .route("/v1/streamers/:id", delete(delete_streamer_endpoint))
+            .route("/v1/streamers/:id", put(update_streamer_endpoint))
             .route("/v1/streamers", post(add_streamer_endpoint))
             .route("/v1/upload/streamers", get(get_upload_streamers_endpoint))
+            .route(
+                "/v1/upload/streamers/:id",
+                get(get_upload_streamer_endpoint),
+            ).route(
+                "/v1/upload/streamers/:id",
+                delete(delete_template_endpoint),
+            ).route(
+                "/v1/upload/streamers/:id",
+                put(update_template_endpoint),
+            )
             .route("/v1/upload/streamers", post(add_upload_streamer_endpoint))
             .route("/bili/archive/pre", get(archive_pre_endpoint))
-            .route("/", get(root))
+            // .route("/", get(root))
             .layer(
                 // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
                 // for more details
@@ -53,7 +63,8 @@ impl ApplicationController {
             // .layer(Extension(client.clone()))
             .layer(Extension(
                 service_register.upload_streamers_repository.clone(),
-            ));
+            ))
+            .with_state(service_register);
         // `POST /users` goes to `create_user`
         // .route("/users", post(create_user));
         // let mut test = Cycle::new(indexmap![
