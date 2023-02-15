@@ -162,5 +162,5 @@ B 站在上传前会通过 probe 来返回几条线路，并发包测试从中�
 ```shell
 cargo sqlx migrate run --source .\crates\biliup\migrations\
 cargo sqlx prepare  --merged 
-cargo run -- server r-b localhost
+cargo run -- server -b localhost
 ```
