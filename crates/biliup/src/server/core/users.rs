@@ -1,10 +1,9 @@
-use std::sync::Arc;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::sync::Arc;
 
 pub type DynUsersRepository = Arc<dyn UsersRepository + Send + Sync>;
-
 
 #[derive(FromRow, Serialize, Deserialize)]
 pub struct User {

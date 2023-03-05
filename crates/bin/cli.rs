@@ -17,7 +17,8 @@ pub struct Cli {
     #[arg(short, long, default_value = "cookies.json")]
     pub user_cookie: PathBuf,
 
-    #[arg(long, default_value = "sqlx=debug,tower_http=debug,info")]
+    // #[arg(long, default_value = "sqlx=debug,tower_http=debug,info")]
+    #[arg(long, default_value = "tower_http=debug,info")]
     pub rust_log: String,
 }
 

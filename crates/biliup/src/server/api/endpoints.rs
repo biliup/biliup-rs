@@ -1,6 +1,10 @@
 use crate::server::core::download_actor::DownloadActorHandle;
-use crate::server::core::live_streamers::{AddLiveStreamerDto, DynLiveStreamersRepository, DynLiveStreamersService, LiveStreamerDto, LiveStreamerEntity};
+use crate::server::core::live_streamers::{
+    AddLiveStreamerDto, DynLiveStreamersRepository, DynLiveStreamersService, LiveStreamerDto,
+    LiveStreamerEntity,
+};
 use crate::server::core::upload_streamers::{DynUploadStreamersRepository, StudioEntity};
+use crate::server::core::users::{DynUsersRepository, User};
 use crate::server::errors::AppResult;
 use crate::uploader::bilibili::Studio;
 use axum::extract::{Path, State};
@@ -85,4 +89,24 @@ pub async fn get_upload_streamer_endpoint(
     Path(id): Path<i64>,
 ) -> AppResult<Json<StudioEntity>> {
     Ok(Json(streamers_service.get_streamer_by_id(id).await?))
+}
+
+pub async fn get_users_endpoint(
+    State(state): State<DynUsersRepository>,
+) -> AppResult<Json<Vec<User>>> {
+    Ok(Json(state.get_users().await?))
+}
+
+pub async fn add_user_endpoint(
+    State(state): State<DynUsersRepository>,
+    Json(request): Json<User>,
+) -> AppResult<Json<User>> {
+    Ok(Json(state.create_user(request).await?))
+}
+
+pub async fn delete_user_endpoint(
+    State(state): State<DynUsersRepository>,
+    Path(id): Path<i64>,
+) -> AppResult<Json<()>> {
+    Ok(Json(state.delete_user(id).await?))
 }

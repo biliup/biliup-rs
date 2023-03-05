@@ -384,6 +384,52 @@
     },
     "query": "\n        select\n            id, url as \"url!\", remark as \"remark!\", filename as \"filename!\", split_time, split_size, upload_id\n        from\n            live_streamers\n        where\n            id=$1\n            "
   },
+  "495927728f70e22287a0d8290c4f1c12390a6c999bf07fc012aa15f267241d3b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n       delete from users\n       where id = $1\n            "
+  },
+  "af3fa362cf5b5cb5947ed9293a285e206139375fd36cdfbd3680975c775878ad": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name!",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "value!",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "platform!",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "\n        insert into users (name, value, platform)\n        values ($1, $2, $3)\n        returning id, name as \"name!\", value as \"value!\", platform as \"platform!\"\n            "
+  },
   "c285bb895810306ffb0858fee4f18efb55d357c383329b748c63310e114e6f43": {
     "describe": {
       "columns": [
@@ -629,5 +675,41 @@
       }
     },
     "query": "\n        insert into live_streamers (url, remark, filename, split_time, split_size, upload_id)\n        values ($1 , $2 , $3, $4 , $5, $6)\n        returning id, url as \"url!\", remark as \"remark!\", filename as \"filename!\", split_time, split_size, upload_id\n            "
+  },
+  "fdcd73e1871f34a1d168c12607af22a5031955df6288b09f2f055b3d3e004093": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "value",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "platform",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "\n        select *\n        from users\n            "
   }
 }

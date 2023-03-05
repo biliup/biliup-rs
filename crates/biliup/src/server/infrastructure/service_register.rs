@@ -1,17 +1,22 @@
-use crate::server::core::live_streamers::{DynDownloadRecordsRepository, DynLiveStreamersRepository, DynLiveStreamersService, DynVideosRepository};
-use crate::server::core::upload_streamers::{DynUploadRecordsRepository, DynUploadStreamersRepository};
+use crate::server::core::live_streamers::{
+    DynDownloadRecordsRepository, DynLiveStreamersRepository, DynLiveStreamersService,
+    DynVideosRepository,
+};
+use crate::server::core::upload_streamers::{
+    DynUploadRecordsRepository, DynUploadStreamersRepository,
+};
+use crate::server::core::users::DynUsersRepository;
 use crate::server::infrastructure::connection_pool::ConnectionPool;
 use crate::server::infrastructure::live_streamers_service::ConduitLiveStreamersService;
-use crate::server::infrastructure::repositories::live_streamers_repository::SqliteLiveStreamersRepository;
-use crate::server::infrastructure::repositories::upload_streamers_repository::SqliteUploadStreamersRepository;
-use std::sync::Arc;
-use axum::extract::FromRef;
-use tracing::info;
-use crate::server::core::users::DynUsersRepository;
 use crate::server::infrastructure::repositories::download_records_repository::SqliteDownloadRecordsRepository;
+use crate::server::infrastructure::repositories::live_streamers_repository::SqliteLiveStreamersRepository;
 use crate::server::infrastructure::repositories::upload_records_repository::SqliteUploadRecordsRepository;
+use crate::server::infrastructure::repositories::upload_streamers_repository::SqliteUploadStreamersRepository;
 use crate::server::infrastructure::repositories::users_repository::SqliteUsersStreamersRepository;
 use crate::server::infrastructure::repositories::videos_repository::SqliteVideosRepository;
+use axum::extract::FromRef;
+use std::sync::Arc;
+use tracing::info;
 
 #[derive(Clone)]
 pub struct ServiceRegister {
@@ -33,13 +38,14 @@ impl ServiceRegister {
         let streamers_repository = Arc::new(SqliteLiveStreamersRepository::new(pool.clone()))
             as DynLiveStreamersRepository;
         let upload_streamers_repository =
-            Arc::new(SqliteUploadStreamersRepository::new(pool.clone())) as DynUploadStreamersRepository;
+            Arc::new(SqliteUploadStreamersRepository::new(pool.clone()))
+                as DynUploadStreamersRepository;
 
         let users_repository =
             Arc::new(SqliteUsersStreamersRepository::new(pool.clone())) as DynUsersRepository;
 
-        let upload_records_repository =
-            Arc::new(SqliteUploadRecordsRepository::new(pool.clone())) as DynUploadRecordsRepository;
+        let upload_records_repository = Arc::new(SqliteUploadRecordsRepository::new(pool.clone()))
+            as DynUploadRecordsRepository;
 
         let videos_repository =
             Arc::new(SqliteVideosRepository::new(pool.clone())) as DynVideosRepository;
@@ -65,9 +71,14 @@ impl ServiceRegister {
     }
 }
 
-
 impl FromRef<ServiceRegister> for DynLiveStreamersRepository {
     fn from_ref(app_state: &ServiceRegister) -> DynLiveStreamersRepository {
         app_state.live_streamers_repository.clone()
+    }
+}
+
+impl FromRef<ServiceRegister> for DynUsersRepository {
+    fn from_ref(app_state: &ServiceRegister) -> DynUsersRepository {
+        app_state.users_repository.clone()
     }
 }

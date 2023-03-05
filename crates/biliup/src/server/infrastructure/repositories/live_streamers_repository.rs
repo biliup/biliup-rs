@@ -45,7 +45,10 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         todo!()
     }
 
-    async fn update_streamer(&self, entity: LiveStreamerEntity) -> anyhow::Result<LiveStreamerEntity> {
+    async fn update_streamer(
+        &self,
+        entity: LiveStreamerEntity,
+    ) -> anyhow::Result<LiveStreamerEntity> {
         todo!()
     }
 

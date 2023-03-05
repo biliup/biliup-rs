@@ -18,7 +18,10 @@ pub trait LiveStreamersRepository {
         entity: AddLiveStreamerDto,
     ) -> anyhow::Result<LiveStreamerEntity>;
     async fn delete_streamer(&self, id: i64) -> anyhow::Result<()>;
-    async fn update_streamer(&self, entity: LiveStreamerEntity) -> anyhow::Result<LiveStreamerEntity>;
+    async fn update_streamer(
+        &self,
+        entity: LiveStreamerEntity,
+    ) -> anyhow::Result<LiveStreamerEntity>;
     async fn get_streamers(&self) -> anyhow::Result<Vec<LiveStreamerEntity>>;
     async fn get_streamer_by_url(&self, url: &str) -> anyhow::Result<LiveStreamerEntity>;
     async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<LiveStreamerEntity>;
@@ -106,7 +109,7 @@ pub struct AddLiveStreamerDto {
     pub filename: String,
     pub split_time: Option<u64>,
     pub split_size: Option<u64>,
-    pub upload_id: i64,
+    pub upload_id: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

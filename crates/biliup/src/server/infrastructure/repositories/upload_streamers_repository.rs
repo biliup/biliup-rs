@@ -19,7 +19,9 @@ impl SqliteUploadStreamersRepository {
 #[async_trait]
 impl UploadStreamersRepository for SqliteUploadStreamersRepository {
     async fn create_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity> {
-        query_file_as!(StudioEntity, "queries/insert_streamer.sql",
+        query_file_as!(
+            StudioEntity,
+            "queries/insert_streamer.sql",
             studio.template_name,
             studio.user,
             studio.copyright,
@@ -41,9 +43,9 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
             studio.up_close_danmu,
             studio.open_elec
         )
-            .fetch_one(&self.pool)
-            .await
-            .context("an unexpected error occurred while creating the streamer")
+        .fetch_one(&self.pool)
+        .await
+        .context("an unexpected error occurred while creating the streamer")
     }
 
     async fn delete_streamer(&self, id: i64) -> anyhow::Result<()> {
@@ -55,10 +57,7 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
     }
 
     async fn get_streamers(&self) -> anyhow::Result<Vec<StudioEntity>> {
-        query_file_as!(
-            StudioEntity,
-             "queries/get_streamers.sql"
-        )
+        query_file_as!(StudioEntity, "queries/get_streamers.sql")
             .fetch_all(&self.pool)
             .await
             .context("an unexpected error occurred retrieving streamers")

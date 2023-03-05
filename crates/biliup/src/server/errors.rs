@@ -42,6 +42,8 @@ pub enum AppError {
     DownloadError(#[from] crate::downloader::error::Error),
     #[error(transparent)]
     UploadError(#[from] crate::error::Kind),
+    #[error(transparent)]
+    ReqwestError(#[from] reqwest::Error),
 }
 
 impl IntoResponse for AppError {

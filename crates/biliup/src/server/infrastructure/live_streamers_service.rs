@@ -1,6 +1,6 @@
 use crate::server::core::live_streamers::{
-    AddLiveStreamerDto, DynLiveStreamersRepository, LiveStreamerDto, LiveStreamerEntity,
-    LiveStreamersService,
+    AddLiveStreamerDto, DynDownloadRecordsRepository, DynLiveStreamersRepository, LiveStreamerDto,
+    LiveStreamerEntity, LiveStreamersService,
 };
 use crate::server::core::upload_streamers::DynUploadStreamersRepository;
 use crate::uploader::bilibili::Studio;

@@ -1,7 +1,7 @@
+use crate::server::core::live_streamers::{DownloadRecords, DownloadRecordsRepository};
 use crate::server::core::users::{User, UsersRepository};
 use crate::server::infrastructure::connection_pool::ConnectionPool;
 use async_trait::async_trait;
-use crate::server::core::live_streamers::{DownloadRecords, DownloadRecordsRepository};
 
 #[derive(Clone)]
 pub struct SqliteDownloadRecordsRepository {

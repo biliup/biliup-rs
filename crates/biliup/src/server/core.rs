@@ -2,10 +2,11 @@ use serde::{Deserialize, Serialize};
 
 pub mod download_actor;
 pub mod live_streamers;
+pub mod main_loop;
 pub mod upload_actor;
 pub mod upload_streamers;
-pub mod util;
 pub mod users;
+pub mod util;
 
 /// Status of the live stream
 pub enum LiveStatus {

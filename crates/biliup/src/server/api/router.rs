@@ -1,15 +1,24 @@
 use crate::client::StatelessClient;
 
-use crate::server::api::endpoints::{add_streamer_endpoint, add_upload_streamer_endpoint, delete_streamer_endpoint, delete_template_endpoint, get_streamer_endpoint, get_streamers_endpoint, get_upload_streamer_endpoint, get_upload_streamers_endpoint, update_streamer_endpoint, update_template_endpoint};
+use crate::server::api::endpoints::{
+    add_streamer_endpoint, add_upload_streamer_endpoint, add_user_endpoint,
+    delete_streamer_endpoint, delete_template_endpoint, delete_user_endpoint,
+    get_streamer_endpoint, get_streamers_endpoint, get_upload_streamer_endpoint,
+    get_upload_streamers_endpoint, get_users_endpoint, update_streamer_endpoint,
+    update_template_endpoint,
+};
 use crate::server::core::download_actor::DownloadActorHandle;
 
 use crate::server::infrastructure::service_register::ServiceRegister;
 use anyhow::Context;
 
-use axum::routing::{get, post, delete, put};
+use axum::routing::{delete, get, post, put};
 use axum::{http, Extension, Router};
 
-use crate::server::api::bilibili_endpoints::archive_pre_endpoint;
+use crate::server::api::bilibili_endpoints::{
+    archive_pre_endpoint, get_myinfo_endpoint, get_proxy_endpoint,
+};
+use crate::server::core::main_loop::spawn_main_loop;
 use axum::http::HeaderValue;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -22,8 +31,12 @@ impl ApplicationController {
     pub async fn serve(addr: &SocketAddr, service_register: ServiceRegister) -> anyhow::Result<()> {
         let client = StatelessClient::default();
         let vec = service_register.streamers_service.get_streamers().await?;
-        let actor_handle =
-            DownloadActorHandle::new(vec, client, service_register.streamers_service.clone());
+        let (main_loop, _) = spawn_main_loop();
+        let actor_handle = DownloadActorHandle::new(
+            vec,
+            client.clone(),
+            service_register.streamers_service.clone(),
+        );
         // build our application with a route
         let app = Router::new()
             // `GET /` goes to `root`
@@ -33,18 +46,23 @@ impl ApplicationController {
             .route("/v1/streamers/:id", put(update_streamer_endpoint))
             .route("/v1/streamers", post(add_streamer_endpoint))
             .route("/v1/upload/streamers", get(get_upload_streamers_endpoint))
+            // .route(
+            //     "/v1/upload/streamers/:id",
+            //     ,
+            // )
             .route(
                 "/v1/upload/streamers/:id",
-                get(get_upload_streamer_endpoint),
-            ).route(
-                "/v1/upload/streamers/:id",
-                delete(delete_template_endpoint),
-            ).route(
-                "/v1/upload/streamers/:id",
-                put(update_template_endpoint),
+                delete(delete_template_endpoint)
+                    .put(update_template_endpoint)
+                    .get(get_upload_streamer_endpoint),
             )
+            // .route("/v1/upload/streamers/:id", )
             .route("/v1/upload/streamers", post(add_upload_streamer_endpoint))
+            .route("/v1/users", get(get_users_endpoint).post(add_user_endpoint))
+            .route("/v1/users/:id", delete(delete_user_endpoint))
             .route("/bili/archive/pre", get(archive_pre_endpoint))
+            .route("/bili/space/myinfo", get(get_myinfo_endpoint))
+            .route("/bili/proxy", get(get_proxy_endpoint))
             // .route("/", get(root))
             .layer(
                 // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
@@ -64,6 +82,7 @@ impl ApplicationController {
             .layer(Extension(
                 service_register.upload_streamers_repository.clone(),
             ))
+            .layer(Extension(client.clone()))
             .with_state(service_register);
         // `POST /users` goes to `create_user`
         // .route("/users", post(create_user));
