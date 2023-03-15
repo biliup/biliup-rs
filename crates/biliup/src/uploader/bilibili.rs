@@ -40,6 +40,11 @@ pub struct Studio {
     /// 视频简介
     #[clap(long, default_value_t)]
     pub desc: String,
+    /// 视频简介v2
+    #[serde(default)]
+    #[builder(!default)]
+    #[clap(skip)]
+    pub desc_v2: Vec<Credit>,
     /// 空间动态
     #[clap(long, default_value_t)]
     pub dynamic: String,
@@ -110,6 +115,14 @@ pub struct Studio {
 pub struct Subtitle {
     open: i8,
     lan: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Credit {
+    #[serde(rename(deserialize = "type_id", serialize = "type"))]
+    pub type_id: i8,
+    pub raw_text: String,
+    pub biz_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
