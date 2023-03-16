@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
-use biliup::uploader::bilibili::{ResponseData, Studio};
+use biliup::uploader::bilibili::{Credit,ResponseData, Studio};
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
@@ -23,6 +23,16 @@ pub enum UploadLine {
     CosInternal,
 }
 
+#[derive(FromPyObject)]
+pub struct PyCredit {
+    #[pyo3(item("type"))]
+    type_id: i8,
+    #[pyo3(item("raw_text"))]
+    raw_text: String,
+    #[pyo3(item("biz_id"))]
+    biz_id: Option<String>,
+}
+
 pub async fn upload(
     video_path: Vec<PathBuf>,
     cookie_file: PathBuf,
@@ -37,6 +47,7 @@ pub async fn upload(
     dynamic: String,
     cover: String,
     dtime: Option<u32>,
+    desc_v2: Vec<PyCredit>
 ) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
@@ -88,6 +99,14 @@ pub async fn upload(
         );
         videos.push(video);
     }
+    let mut desc_v2 = Vec::new();
+    for pyCredit in desc_v2_PyCredit {
+        desc_v2.push(Credit {
+            type_id: pyCredit.type_id,
+            raw_text: pyCredit.raw_text,
+            biz_id: pyCredit.biz_id,
+        });
+    }
     let mut studio: Studio = Studio::builder()
         .desc(desc)
         .dtime(dtime)
@@ -99,6 +118,7 @@ pub async fn upload(
         .tid(tid)
         .title(title)
         .videos(videos)
+        .desc_v2(desc_v2)
         .build();
     if !studio.cover.is_empty() {
         let url = bilibili
