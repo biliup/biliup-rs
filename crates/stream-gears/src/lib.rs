@@ -2,6 +2,7 @@ mod login;
 mod uploader;
 
 use pyo3::prelude::*;
+use uploader::PyCredit;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -139,6 +140,7 @@ fn upload(
     dtime: Option<u32>,
     line: Option<UploadLine>,
     limit: usize,
+    desc_v2: Vec<PyCredit>,
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -172,6 +174,7 @@ fn upload(
                 dynamic,
                 cover,
                 dtime,
+                desc_v2,
             )) {
                 Ok(_res) => Ok(()),
                 // Ok(_) => {  },

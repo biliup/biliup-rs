@@ -66,6 +66,7 @@ impl StudioEntity {
             subtitle: Default::default(),
             tag: self.tag,
             videos: vec![],
+            desc_v2: vec![],
             dtime: self.dtime,
             open_subtitle: false,
             interactive: self.interactive,
