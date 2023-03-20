@@ -6,6 +6,7 @@ use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
 use futures::StreamExt;
+use pyo3::prelude::*;
 use pyo3::pyclass;
 
 use std::path::PathBuf;
@@ -47,7 +48,7 @@ pub async fn upload(
     dynamic: String,
     cover: String,
     dtime: Option<u32>,
-    desc_v2: Vec<PyCredit>
+    desc_v2_PyCredit: Vec<PyCredit>,
 ) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
