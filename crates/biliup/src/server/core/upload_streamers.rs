@@ -45,11 +45,11 @@ pub struct StudioEntity {
     pub mission_id: Option<u32>,
     pub dolby: u8,
     pub lossless_music: u8,
-    pub no_reprint: Option<u8>,
+    pub no_reprint: u8,
+    pub open_elec: u8,
     pub up_selection_reply: bool,
     pub up_close_reply: bool,
     pub up_close_danmu: bool,
-    pub open_elec: Option<u8>,
 }
 
 impl StudioEntity {
@@ -74,11 +74,11 @@ impl StudioEntity {
             dolby: self.dolby,
             lossless_music: self.lossless_music,
             no_reprint: self.no_reprint,
+            open_elec: self.open_elec,
             aid: None,
             up_selection_reply: self.up_selection_reply,
             up_close_reply: self.up_close_reply,
             up_close_danmu: self.up_close_danmu,
-            open_elec: self.open_elec,
         }
     }
 
@@ -118,11 +118,11 @@ impl Default for StudioEntity {
             mission_id: None,
             dolby: 0,
             lossless_music: 0,
-            no_reprint: None,
+            no_reprint: 0,
+            open_elec: 0,
             up_selection_reply: false,
             up_close_reply: false,
             up_close_danmu: false,
-            open_elec: None,
         }
     }
 }

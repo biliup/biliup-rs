@@ -48,6 +48,10 @@ pub async fn upload(
     dynamic: String,
     cover: String,
     dtime: Option<u32>,
+    dolby: u8,
+    lossless_music: u8,
+    no_reprint: u8,
+    open_elec: u8,
     desc_v2_PyCredit: Vec<PyCredit>,
 ) -> Result<ResponseData> {
     // let file = std::fs::File::options()
@@ -119,6 +123,10 @@ pub async fn upload(
         .tid(tid)
         .title(title)
         .videos(videos)
+        .dolby(dolby)
+        .lossless_music(lossless_music)
+        .no_reprint(no_reprint)
+        .open_elec(open_elec)
         .desc_v2(desc_v2)
         .build();
     if !studio.cover.is_empty() {

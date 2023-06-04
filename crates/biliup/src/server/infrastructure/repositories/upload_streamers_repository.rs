@@ -38,10 +38,10 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
             studio.dolby,
             studio.lossless_music,
             studio.no_reprint,
+            studio.open_elec,
             studio.up_selection_reply,
             studio.up_close_reply,
             studio.up_close_danmu,
-            studio.open_elec
         )
         .fetch_one(&self.pool)
         .await
