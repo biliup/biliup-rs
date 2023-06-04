@@ -88,7 +88,7 @@ pub struct Studio {
 
     /// 0-允许转载，1-禁止转载
     #[clap(long, default_value = "0")]
-    pub no_reprint: Option<u8>,
+    pub no_reprint: u8,
 
     /// aid 要追加视频的 avid
     #[clap(skip)]
@@ -108,7 +108,7 @@ pub struct Studio {
 
     /// 是否开启充电, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
-    pub open_elec: Option<u8>,
+    pub open_elec: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
