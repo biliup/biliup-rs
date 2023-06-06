@@ -87,8 +87,8 @@ pub struct Studio {
     pub lossless_music: u8,
 
     /// 0-允许转载，1-禁止转载
-    #[clap(long)]
-    pub no_reprint: Option<u8>,
+    #[clap(long, default_value = "0")]
+    pub no_reprint: u8,
 
     /// aid 要追加视频的 avid
     #[clap(skip)]
@@ -107,8 +107,8 @@ pub struct Studio {
     pub up_close_danmu: bool,
 
     /// 是否开启充电, 0-关闭 1-开启
-    #[clap(long)]
-    pub open_elec: Option<u8>,
+    #[clap(long, default_value = "0")]
+    pub open_elec: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

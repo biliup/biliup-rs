@@ -27,11 +27,11 @@ create table if not exists upload_streamers
     mission_id         INTEGER,
     dolby              INTEGER                           not null default 0,
     lossless_music     INTEGER                           not null default 0,
-    no_reprint         INTEGER,
+    no_reprint         INTEGER                           not null default 0,
     up_selection_reply INTEGER                           not null default 0,
     up_close_reply     INTEGER                           not null default 0,
     up_close_danmu     INTEGER                           not null default 0,
-    open_elec          INTEGER
+    open_elec          INTEGER                           not null default 0,
 );
 
 create table if not exists upload_records
