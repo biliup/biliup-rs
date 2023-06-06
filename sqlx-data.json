@@ -143,22 +143,22 @@
           "type_info": "Int64"
         },
         {
-          "name": "up_selection_reply!: bool",
+          "name": "open_elec: u8",
           "ordinal": 17,
           "type_info": "Int64"
         },
         {
-          "name": "up_close_reply!: bool",
+          "name": "up_selection_reply!: bool",
           "ordinal": 18,
           "type_info": "Int64"
         },
         {
-          "name": "up_close_danmu!: bool",
+          "name": "up_close_reply!: bool",
           "ordinal": 19,
           "type_info": "Int64"
         },
         {
-          "name": "open_elec: u8",
+          "name": "up_close_danmu!: bool",
           "ordinal": 20,
           "type_info": "Int64"
         }
@@ -190,7 +190,7 @@
         "Right": 20
       }
     },
-    "query": "insert into upload_streamers(\r\n        template_name,\r\n        user,\r\n        copyright,\r\n        source,\r\n        tid,\r\n        cover,\r\n        title,\r\n        'desc',\r\n        dynamic,\r\n        tag,\r\n        dtime,\r\n        interactive,\r\n        mission_id,\r\n        dolby,\r\n        lossless_music,\r\n        no_reprint,\r\n        up_selection_reply,\r\n        up_close_reply,\r\n        up_close_danmu,\r\n        open_elec\r\n    )\r\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)\r\nreturning\r\n    id,\r\n    template_name as \"template_name!\",\r\n    user as \"user!\",\r\n    copyright as \"copyright!: u8\",\r\n    source as \"source!\",\r\n    tid as \"tid!: u16\",\r\n    cover as \"cover!\",\r\n    title as \"title!\",\r\n    \"desc\" as \"desc!\",\r\n    dynamic as \"dynamic!\",\r\n    tag as \"tag!\",\r\n    dtime as \"dtime: u32\",\r\n    interactive as \"interactive!: u8\",\r\n    mission_id as \"mission_id: u32\",\r\n    dolby as \"dolby!: u8\",\r\n    lossless_music as \"lossless_music!: u8\",\r\n    no_reprint as \"no_reprint: u8\",\r\n    up_selection_reply as \"up_selection_reply!: bool\",\r\n    up_close_reply as \"up_close_reply!: bool\",\r\n    up_close_danmu as \"up_close_danmu!: bool\",\r\n    open_elec as \"open_elec: u8\"\r\n"
+    "query": "insert into upload_streamers(\r\n        template_name,\r\n        user,\r\n        copyright,\r\n        source,\r\n        tid,\r\n        cover,\r\n        title,\r\n        'desc',\r\n        dynamic,\r\n        tag,\r\n        dtime,\r\n        interactive,\r\n        mission_id,\r\n        dolby,\r\n        lossless_music,\r\n        no_reprint,\r\n        open_elec\r\n        up_selection_reply,\r\n        up_close_reply,\r\n        up_close_danmu,\r\n        )\r\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)\r\nreturning\r\n    id,\r\n    template_name as \"template_name!\",\r\n    user as \"user!\",\r\n    copyright as \"copyright!: u8\",\r\n    source as \"source!\",\r\n    tid as \"tid!: u16\",\r\n    cover as \"cover!\",\r\n    title as \"title!\",\r\n    \"desc\" as \"desc!\",\r\n    dynamic as \"dynamic!\",\r\n    tag as \"tag!\",\r\n    dtime as \"dtime: u32\",\r\n    interactive as \"interactive!: u8\",\r\n    mission_id as \"mission_id: u32\",\r\n    dolby as \"dolby!: u8\",\r\n    lossless_music as \"lossless_music!: u8\",\r\n    no_reprint as \"no_reprint: u8\",\r\n    up_selection_reply as \"up_selection_reply!: bool\",\r\n    up_close_reply as \"up_close_reply!: bool\",\r\n    up_close_danmu as \"up_close_danmu!: bool\",\r\n    open_elec as \"open_elec: u8\"\r\n"
   },
   "27b46f33e041142c7157a5a7551ae413d6555f0a6da950f9c0586c645a370e71": {
     "describe": {
