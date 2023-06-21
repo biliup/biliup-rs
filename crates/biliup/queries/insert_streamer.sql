@@ -38,8 +38,8 @@ returning
     mission_id as "mission_id: u32",
     dolby as "dolby!: u8",
     lossless_music as "lossless_music!: u8",
-    no_reprint as "no_reprint: u8",
-    open_elec as "open_elec: u8",
+    no_reprint as "no_reprint!: u8",
+    open_elec as "open_elec!: u8",
     up_selection_reply as "up_selection_reply!: bool",
     up_close_reply as "up_close_reply!: bool",
     up_close_danmu as "up_close_danmu!: bool"
