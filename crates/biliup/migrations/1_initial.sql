@@ -31,7 +31,7 @@ create table if not exists upload_streamers
     up_selection_reply INTEGER                           not null default 0,
     up_close_reply     INTEGER                           not null default 0,
     up_close_danmu     INTEGER                           not null default 0,
-    open_elec          INTEGER                           not null default 0,
+    open_elec          INTEGER                           not null default 0
 );
 
 create table if not exists upload_records
