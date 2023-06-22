@@ -11,7 +11,7 @@ use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 
-use rsa::{pkcs8::DecodePublicKey, PaddingScheme, Pkcs1v15Encrypt, PublicKey, RsaPublicKey};
+use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

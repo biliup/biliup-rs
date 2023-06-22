@@ -6,5 +6,5 @@
 *.exe
 *.png
 *.part
-data.db
+data.db*
 !sqlx-data.json

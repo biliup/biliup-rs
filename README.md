@@ -160,6 +160,8 @@ B 站在上传前会通过 probe 来返回几条线路，并发包测试从中�
 ## For Developers
 
 ```shell
+export DATABASE_URL="sqlite:data.db"
+cargo sqlx db create
 cargo sqlx migrate run --source .\crates\biliup\migrations\
 cargo sqlx prepare  --merged 
 cargo run -- server -b localhost
