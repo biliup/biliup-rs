@@ -184,6 +184,7 @@ pub async fn upload(
         Some(UploadLine::Qn) => line::qn(),
         Some(UploadLine::Cos) => line::cos(),
         Some(UploadLine::CosInternal) => line::cos_internal(),
+        Some(UploadLine::Bldsa) => line::bldsa(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();

@@ -278,3 +278,12 @@ pub fn cos_internal() -> Line {
         cost: 0,
     }
 }
+
+pub fn bldsa() -> Line {
+    Line {
+        os: Uploader::Upos,
+        query: "upcdn=bldsa&probe_version=20211012".into(),
+        probe_url: "//upos-cs-upcdnbldsa.bilivideo.com/OK".into(),
+        cost: 0,
+    }
+}
