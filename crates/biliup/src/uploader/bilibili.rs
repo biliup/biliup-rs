@@ -44,7 +44,7 @@ pub struct Studio {
     #[serde(default)]
     #[builder(!default)]
     #[clap(skip)]
-    pub desc_v2: Vec<Credit>,
+    pub desc_v2: Option<Vec<Credit>>,
     /// 空间动态
     #[clap(long, default_value_t)]
     pub dynamic: String,

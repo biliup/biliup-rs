@@ -127,7 +127,7 @@ pub async fn upload(
         .lossless_music(lossless_music)
         .no_reprint(no_reprint)
         .open_elec(open_elec)
-        .desc_v2(desc_v2)
+        .desc_v2(Some(desc_v2))
         .build();
     if !studio.cover.is_empty() {
         let url = bilibili
