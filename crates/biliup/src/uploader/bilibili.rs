@@ -108,6 +108,7 @@ pub struct Studio {
 
     /// 是否开启充电, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
+    #[serde(default)]
     pub open_elec: u8,
 }
 
