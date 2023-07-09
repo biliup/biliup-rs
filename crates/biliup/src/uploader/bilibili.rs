@@ -35,26 +35,33 @@ pub struct Studio {
     #[clap(long, default_value_t)]
     #[builder(!default, setter(into))]
     pub title: String,
+
     #[clap(skip)]
     pub desc_format_id: u32,
+
     /// 视频简介
     #[clap(long, default_value_t)]
     pub desc: String,
+
     /// 视频简介v2
     #[serde(default)]
     #[builder(!default)]
     #[clap(skip)]
     pub desc_v2: Option<Vec<Credit>>,
+
     /// 空间动态
     #[clap(long, default_value_t)]
     pub dynamic: String,
+
     #[clap(skip)]
     #[serde(default)]
     #[builder(default, setter(skip))]
     pub subtitle: Subtitle,
+
     /// 视频标签，逗号分隔多个tag
     #[clap(long, default_value_t)]
     pub tag: String,
+
     #[serde(default)]
     #[builder(!default)]
     #[clap(skip)]
@@ -63,6 +70,7 @@ pub struct Studio {
     /// 延时发布时间，距离提交大于4小时，格式为10位时间戳
     #[clap(long)]
     pub dtime: Option<u32>,
+
     #[clap(skip)]
     #[serde(default)]
     pub open_subtitle: bool,
@@ -76,19 +84,26 @@ pub struct Studio {
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
+
     /// 是否开启杜比音效, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
-    #[serde(default)]
+    #[builder(default = 0)]
     pub dolby: u8,
 
     /// 是否开启 Hi-Res, 0-关闭 1-开启
     #[clap(long = "hires", default_value = "0")]
-    #[serde(default)]
+    #[builder(default = 0)]
     pub lossless_music: u8,
 
     /// 0-允许转载，1-禁止转载
     #[clap(long, default_value = "0")]
+    #[builder(default = 0)]
     pub no_reprint: u8,
+
+    /// 是否开启充电, 0-关闭 1-开启
+    #[clap(long, default_value = "0")]
+    #[builder(default = 0)]
+    pub open_elec: u8,
 
     /// aid 要追加视频的 avid
     #[clap(skip)]
@@ -105,11 +120,6 @@ pub struct Studio {
     #[clap(long)]
     #[serde(default)]
     pub up_close_danmu: bool,
-
-    /// 是否开启充电, 0-关闭 1-开启
-    #[clap(long, default_value = "0")]
-    #[serde(default)]
-    pub open_elec: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
