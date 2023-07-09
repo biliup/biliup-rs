@@ -12,6 +12,8 @@ use crate::uploader::UploadLine;
 use biliup::downloader::construct_headers;
 use biliup::downloader::util::Segmentable;
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::fmt::time::strftime_formatter;
+use tracing_subscriber::fmt::time::ChronoLocal;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
@@ -44,7 +46,7 @@ fn download(
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         let file_layer = tracing_subscriber::fmt::layer()
             .with_ansi(false)
-            .with_writer(non_blocking);
+            .with_writer(non_blocking)
 
         let collector = formatting_layer.with(file_layer);
         let segment = match segment {
@@ -160,6 +162,7 @@ fn upload(
         let file_layer = tracing_subscriber::fmt::layer()
             .with_ansi(false)
             .with_writer(non_blocking);
+            .with_timer(strftime_formatter("%Y-%m-%d %H:%M:%S", ChronoLocal));
 
         let collector = formatting_layer.with(file_layer);
 
