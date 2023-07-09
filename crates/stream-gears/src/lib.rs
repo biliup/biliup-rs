@@ -125,7 +125,6 @@ fn login_by_qrcode(ret: String) -> PyResult<bool> {
 }
 
 #[pyfunction]
-#[pyo3(signature)]
 fn upload(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
