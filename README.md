@@ -61,8 +61,8 @@ OPTIONS:
                                        internal]
         --limit <LIMIT>                单视频文件最大并发数 [default: 3]
         --mission-id <MISSION_ID>
-        --no-reprint <NO_REPRINT>      0-允许转载，1-禁止转载
-        --open-elec <OPEN_ELEC>        是否开启充电, 0-关闭 1-开启
+        --no-reprint <NO_REPRINT>      自制声明, 0-允许转载，1-禁止转载 [default: 0]
+        --open-elec <OPEN_ELEC>        是否开启充电面板, 0-关闭 1-开启 [default: 0]
         --source <SOURCE>              转载来源 [default: ]
         --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
         --tid <TID>                    投稿分区 [default: 171]
