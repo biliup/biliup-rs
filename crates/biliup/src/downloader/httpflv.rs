@@ -239,7 +239,7 @@ impl Connection {
         loop {
             if chunk_size <= self.buffer.len() {
                 let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
-                self.buffer.advance(chunk_size as usize);
+                self.buffer.advance(chunk_size);
                 return Ok(bytes);
             }
             // BytesMut::with_capacity(0).deref_mut()

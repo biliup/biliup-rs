@@ -4,6 +4,7 @@ mod server;
 mod uploader;
 
 use anyhow::Result;
+use time::macros::format_description;
 
 use crate::cli::{Cli, Commands};
 use crate::downloader::{download, generate_json};

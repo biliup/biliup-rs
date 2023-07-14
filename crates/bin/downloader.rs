@@ -7,7 +7,7 @@ use biliup::downloader::flv_parser::{
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};
 use biliup::downloader::httpflv::map_parse_err;
-use biliup::downloader::util::{LifecycleFile, Segmentable};
+use biliup::downloader::util::Segmentable;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
@@ -171,7 +171,7 @@ impl<T: Read> Reader<T> {
         loop {
             if chunk_size <= self.buffer.len() {
                 let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
-                self.buffer.advance(chunk_size as usize);
+                self.buffer.advance(chunk_size);
                 return Ok(bytes);
             }
             // BytesMut::with_capacity(0).deref_mut()

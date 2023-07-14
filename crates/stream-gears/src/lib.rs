@@ -142,10 +142,10 @@ fn upload(
     lossless_music: u8,
     no_reprint: u8,
     open_elec: u8,
-    dtime: Option<u32>,
-    line: Option<UploadLine>,
     limit: usize,
     desc_v2: Vec<PyCredit>,
+    dtime: Option<u32>,
+    line: Option<UploadLine>,
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let rt = tokio::runtime::Builder::new_current_thread()
