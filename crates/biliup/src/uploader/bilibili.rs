@@ -321,7 +321,7 @@ impl BiliBili {
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
-                "cover":  format!("data:image/jpeg;base64,{}", base64::encode(input)),
+                "cover": format!("data:image/jpeg;base64,{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, input)),
                 "csrf": csrf["value"]
             }))
             .send()
