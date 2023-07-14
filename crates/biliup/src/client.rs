@@ -63,7 +63,8 @@ pub struct StatefulClient {
 }
 
 impl StatefulClient {
-    pub fn new(headers: HeaderMap) -> Self {
+    pub fn new(mut headers: HeaderMap) -> Self {
+        headers.insert("Connection", header::HeaderValue::from_static("keep-alive"));
         let cookie_store = cookie_store::CookieStore::default();
         let cookie_store = CookieStoreMutex::new(cookie_store);
         let cookie_store = Arc::new(cookie_store);

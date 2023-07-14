@@ -27,13 +27,9 @@ async fn main() -> Result<()> {
     // tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let cli = Cli::parse();
 
-    let timer = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
-        "[year]-[month]-[day] [hour]:[minute]:[second]"
-    ));
-
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(&cli.rust_log))
-        .with(tracing_subscriber::fmt::layer().with_timer(timer))
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
     match cli.command {

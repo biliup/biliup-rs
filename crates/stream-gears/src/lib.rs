@@ -2,7 +2,6 @@ mod login;
 mod uploader;
 
 use pyo3::prelude::*;
-use time::macros::format_description;
 use uploader::PyCredit;
 
 use std::collections::HashMap;
@@ -152,13 +151,9 @@ fn upload(
             .enable_all()
             .build()?;
         // 输出到控制台中
-        let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
-            "[year]-[month]-[day] [hour]:[minute]:[second]"
-        ));
         let formatting_layer = tracing_subscriber::FmtSubscriber::builder()
             // will be written to stdout.
             // builds the subscriber.
-            .with_timer(local_time)
             .finish();
         let file_appender = tracing_appender::rolling::never("", "upload.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
@@ -215,7 +210,7 @@ fn stream_gears(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(send_sms, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_qrcode, m)?)?;
     m.add_function(wrap_pyfunction!(get_qrcode, m)?)?;
-    m.add_function(wrap_pyfunction!(login_by_sms, m)?)?;
+    // m.add_function(wrap_pyfunction(login_by_sms, m)?)?;
     m.add_class::<UploadLine>()?;
     Ok(())
 }

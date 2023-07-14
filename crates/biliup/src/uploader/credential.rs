@@ -8,6 +8,7 @@ use crate::uploader::bilibili::{BiliBili, ResponseData};
 use base64::{engine::general_purpose, Engine as _};
 use cookie::Cookie;
 use md5::{Digest, Md5};
+use rand::rngs::OsRng;
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 
 use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPublicKey};
