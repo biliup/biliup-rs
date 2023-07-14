@@ -120,6 +120,7 @@ pub enum UploadLine {
     Kodo,
     Cos,
     CosInternal,
+    Bldsa,
 }
 
 fn human_size(s: &str) -> Result<u64, String> {
