@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
-use biliup::uploader::bilibili::{Credit,ResponseData, Studio};
+use biliup::uploader::bilibili::{Credit, ResponseData, Studio};
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
 use biliup::uploader::{line, VideoFile};
@@ -53,7 +53,7 @@ pub async fn upload(
     lossless_music: u8,
     no_reprint: u8,
     open_elec: u8,
-    desc_v2_PyCredit: Vec<PyCredit>,
+    desc_v2_credit: Vec<PyCredit>,
 ) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
@@ -107,11 +107,11 @@ pub async fn upload(
         videos.push(video);
     }
     let mut desc_v2 = Vec::new();
-    for pyCredit in desc_v2_PyCredit {
+    for credit in desc_v2_credit {
         desc_v2.push(Credit {
-            type_id: pyCredit.type_id,
-            raw_text: pyCredit.raw_text,
-            biz_id: pyCredit.biz_id,
+            type_id: credit.type_id,
+            raw_text: credit.raw_text,
+            biz_id: credit.biz_id,
         });
     }
     let mut studio: Studio = Studio::builder()

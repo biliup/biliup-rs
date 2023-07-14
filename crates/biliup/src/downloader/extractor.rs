@@ -45,7 +45,7 @@ impl Display for Site {
     }
 }
 
-enum Extension {
+pub enum Extension {
     Flv,
     Ts,
 }
@@ -64,14 +64,14 @@ impl Site {
         println!("{}", self);
         match self.extension {
             Extension::Flv => {
-                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "flv", hook);
+                let file = LifecycleFile::new(&fmt_file_name, "flv", hook);
                 let response = self.client.retryable(&self.direct_url).await?;
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
                 httpflv::parse_flv(connection, file, segment).await?
             }
             Extension::Ts => {
-                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "ts", hook);
+                let file = LifecycleFile::new(&fmt_file_name, "ts", hook);
                 hls::download(&self.direct_url, &self.client, &file.fmt_file_name, segment).await?
             }
         }
