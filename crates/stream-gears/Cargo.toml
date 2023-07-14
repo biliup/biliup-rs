@@ -19,6 +19,7 @@ tracing-appender = "0.2"
 anyhow = "1.0"
 futures = "0.3.21"
 biliup = { path = "../biliup"}
+time = "0.3"
 
 #[target.'cfg(all(target_arch="aarch64", target_os="linux"))'.dependencies]
 #downloader = { path = "../downloader", default-features = false , features = ["rustls-tls"] }
