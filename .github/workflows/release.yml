@@ -24,40 +24,40 @@ jobs:
         build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, arm-linux, x86_64-macos, x86_64-windows, aarch64-macos] #, x86_64-win-gnu, win32-msvc
         include:
         - build: x86_64-linux
-          os: ubuntu-20.04
+          os: ubuntu-18.04
           rust: stable
           target: x86_64-unknown-linux-gnu
           cross: false
         - build: x86_64-linux-musl
-          os: ubuntu-20.04
+          os: ubuntu-latest
           rust: stable
           target: x86_64-unknown-linux-musl
           cross: true
         - build: aarch64-linux
-          os: ubuntu-20.04
+          os: ubuntu-18.04
           rust: stable
           target: aarch64-unknown-linux-gnu
           cross: true
         - build:  arm-linux
-          os: ubuntu-20.04
+          os: ubuntu-18.04
           rust: stable
           target: arm-unknown-linux-gnueabi
           cross: true
         - build: x86_64-macos
-          os: ubuntu-20.04
+          os: macos-latest
           rust: stable
           target: x86_64-apple-darwin
-          cross: true
+          cross: false
         - build: x86_64-windows
-          os: ubuntu-20.04
+          os: windows-2019
           rust: stable
           target: x86_64-pc-windows-msvc
-          cross: true
+          cross: false
         - build: aarch64-macos
-          os: ubuntu-20.04
+          os: macos-latest
           rust: stable
           target: aarch64-apple-darwin
-          cross: true
+          cross: false
         # - build: x86_64-win-gnu
         #   os: windows-2019
         #   rust: stable-x86_64-gnu
