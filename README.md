@@ -58,7 +58,7 @@ OPTIONS:
     -h, --help                         Print help information
         --interactive <INTERACTIVE>    [default: 0]
     -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, kodo, cos, cos-
-                                       internal]
+                                       internal, bldsa]
         --limit <LIMIT>                单视频文件最大并发数 [default: 3]
         --mission-id <MISSION_ID>
         --no-reprint <NO_REPRINT>      自制声明, 0-允许转载，1-禁止转载 [default: 0]
