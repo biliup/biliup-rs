@@ -24,7 +24,7 @@ jobs:
         build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, arm-linux, x86_64-macos, x86_64-windows, aarch64-macos] #, x86_64-win-gnu, win32-msvc
         include:
         - build: x86_64-linux
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: stable
           target: x86_64-unknown-linux-gnu
           cross: false
@@ -34,12 +34,12 @@ jobs:
           target: x86_64-unknown-linux-musl
           cross: true
         - build: aarch64-linux
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: stable
           target: aarch64-unknown-linux-gnu
           cross: true
         - build:  arm-linux
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: stable
           target: arm-unknown-linux-gnueabi
           cross: true
