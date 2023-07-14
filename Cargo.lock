@@ -2589,6 +2589,7 @@ dependencies = [
  "pyo3",
  "serde",
  "serde_json",
+ "time 0.3.23",
  "tokio",
  "tracing",
  "tracing-appender",
