@@ -3,6 +3,7 @@ use crate::downloader::error::Error;
 use crate::downloader::extractor::{Extension, Site, SiteDefinition};
 use async_trait::async_trait;
 use md5::{Digest, Md5};
+use tracing::info;
 
 use std::any::Any;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -57,7 +58,7 @@ impl SiteDefinition for DouyuLive {
             ("did", "10000000000000000000000000001501"),
             ("rid", &room_id),
         ];
-        println!("{room_id}");
+        info!("{room_id}");
         let result: serde_json::Value = client
             .client
             .post(format!(

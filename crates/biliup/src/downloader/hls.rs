@@ -16,9 +16,9 @@ pub async fn download(
     file_name: &str,
     mut splitting: Segmentable,
 ) -> Result<()> {
-    println!("Downloading {}...", url);
+    info!("Downloading {}...", url);
     let resp = client.retryable(url).await?;
-    println!("{}", resp.status());
+    info!("{}", resp.status());
     // let mut resp = resp.bytes_stream();
     let bytes = resp.bytes().await?;
     let mut ts_file = TsFile::new(file_name);
@@ -26,9 +26,9 @@ pub async fn download(
     let mut media_url = Url::parse(url)?;
     let mut pl = match m3u8_rs::parse_playlist(&bytes) {
         Ok((_i, Playlist::MasterPlaylist(pl))) => {
-            println!("Master playlist:\n{:#?}", pl);
+            info!("Master playlist:\n{:#?}", pl);
             media_url = media_url.join(&pl.variants[0].uri)?;
-            println!("media url: {media_url}");
+            info!("media url: {media_url}");
             let resp = client.retryable(media_url.as_str()).await?;
             let bs = resp.bytes().await?;
             // println!("{:?}", bs);
@@ -41,8 +41,8 @@ pub async fn download(
             }
         }
         Ok((_i, Playlist::MediaPlaylist(pl))) => {
-            println!("Media playlist:\n{:#?}", pl);
-            println!("index {}", pl.media_sequence);
+            info!("Media playlist:\n{:#?}", pl);
+            info!("index {}", pl.media_sequence);
             pl
         }
         Err(e) => panic!("Parsing error: \n{}", e),
@@ -50,7 +50,7 @@ pub async fn download(
     let mut previous_last_segment = 0;
     loop {
         if pl.segments.is_empty() {
-            println!("Segments array is empty - stream finished");
+            info!("Segments array is empty - stream finished");
             break;
         }
         let mut seq = pl.media_sequence;
@@ -89,7 +89,7 @@ pub async fn download(
             pl = playlist;
         }
     }
-    println!("Done...");
+    info!("Done...");
     Ok(())
 }
 

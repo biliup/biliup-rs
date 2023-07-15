@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::Poll;
 use std::time::Instant;
+use tracing::{info, warn};
 
 pub async fn login(user_cookie: PathBuf) -> Result<()> {
     let client = Credential::new();
@@ -47,7 +48,7 @@ pub async fn login(user_cookie: PathBuf) -> Result<()> {
     };
     let file = std::fs::File::create(user_cookie)?;
     serde_json::to_writer_pretty(&file, &info)?;
-    println!("登录成功，数据保存在{:?}", file);
+    info!("登录成功，数据保存在{:?}", file);
     Ok(())
 }
 
@@ -59,7 +60,7 @@ pub async fn renew(user_cookie: PathBuf) -> Result<()> {
     file.rewind()?;
     file.set_len(0)?;
     serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
-    println!("{new_info:?}");
+    info!("{new_info:?}");
     Ok(())
 }
 
@@ -94,7 +95,7 @@ pub async fn upload_by_config(config: PathBuf, user_cookie: PathBuf) -> Result<(
             paths.push(entry);
         }
         if paths.is_empty() {
-            println!("未搜索到匹配的视频文件：{filename_patterns}");
+            warn!("未搜索到匹配的视频文件：{filename_patterns}");
             continue;
         }
         cover_up(&mut studio, &bilibili).await?;
@@ -144,7 +145,7 @@ async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
     } else {
         let bili = result?;
-        println!(
+        info!(
             "user: {}",
             bili.my_info().await?["data"]["name"]
                 .as_str()
@@ -162,7 +163,7 @@ pub async fn cover_up(studio: &mut Studio, bili: &BiliBili) -> Result<()> {
                     .with_context(|| format!("cover: {}", studio.cover))?,
             )
             .await?;
-        println!("{url}");
+        info!("{url}");
         studio.cover = url;
     }
     Ok(())
@@ -174,7 +175,7 @@ pub async fn upload(
     line: Option<UploadLine>,
     limit: usize,
 ) -> Result<Vec<Video>> {
-    println!("number of concurrent futures: {limit}");
+    info!("number of concurrent futures: {limit}");
     let mut videos = Vec::new();
     let client = StatelessClient::default();
     let line = match line {
@@ -189,7 +190,7 @@ pub async fn upload(
     };
     // let line = line::kodo();
     for video_path in video_path {
-        println!("{line:?}");
+        info!("{line:?}");
         let video_file = VideoFile::new(video_path)
             .with_context(|| format!("file {}", video_path.to_string_lossy()))?;
         let total_size = video_file.total_size;
@@ -216,7 +217,7 @@ pub async fn upload(
             .await?;
         pb.finish_and_clear();
         let t = instant.elapsed().as_millis();
-        println!(
+        info!(
             "Upload completed: {file_name} => cost {:.2}s, {:.2} MB/s.",
             t as f64 / 1000.,
             total_size as f64 / 1000. / t as f64

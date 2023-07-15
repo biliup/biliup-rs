@@ -3,6 +3,7 @@ use flv_parser::header;
 use nom::Err;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::collections::HashMap;
+use tracing::{debug, error, info};
 
 use crate::downloader::util::Segmentable;
 
@@ -37,15 +38,15 @@ pub async fn download(
     // io::copy(&mut resp, &mut out).expect("Unable to copy the content.");
     match header(&bytes) {
         Ok((_i, header)) => {
-            println!("header: {header:#?}");
-            println!("Downloading {}...", url);
+            debug!("header: {header:#?}");
+            info!("Downloading {}...", url);
             httpflv::download(connection, file_name, segment).await;
         }
         Err(Err::Incomplete(needed)) => {
-            println!("needed: {needed:?}")
+            error!("needed: {needed:?}")
         }
         Err(e) => {
-            println!("{e}");
+            error!("{e}");
             hls::download(url, &client, file_name, segment).await?;
         }
     }
