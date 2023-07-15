@@ -137,6 +137,32 @@ pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
     Ok(())
 }
 
+pub async fn list(
+    user_cookie: PathBuf,
+    is_pubing: bool,
+    pubed: bool,
+    not_pubed: bool,
+) -> Result<()> {
+    let status = match (is_pubing, pubed, not_pubed) {
+        (true, false, false) => "is_pubing",
+        (false, true, false) => "pubed",
+        (false, false, true) => "not_pubed",
+        (false, false, false) => "is_pubing,pubed,not_pubed",
+        _ => {
+            tracing::warn!("选项互斥，默认列出所有状态的稿件");
+            "is_pubing,pubed,not_pubed"
+        }
+    };
+
+    let bilibili = login_by_cookies(user_cookie).await?;
+    bilibili
+        .all_archives(&status)
+        .await?
+        .iter()
+        .for_each(|arc| println!("{}", arc.to_string_pretty()));
+    Ok(())
+}
+
 async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
     let result = credential::login_by_cookies(&user_cookie).await;
     Ok(if let Err(Kind::IO(_)) = result {

@@ -8,7 +8,7 @@ use time::macros::format_description;
 
 use crate::cli::{Cli, Commands};
 use crate::downloader::{download, generate_json};
-use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_config};
+use crate::uploader::{append, list, login, renew, show, upload_by_command, upload_by_config};
 
 use clap::Parser;
 
@@ -70,6 +70,11 @@ async fn main() -> Result<()> {
             split_time,
         } => download(&url, output, split_size, split_time).await?,
         Commands::Server { bind, port } => server::run((&bind, port)).await?,
+        Commands::List {
+            is_pubing,
+            pubed,
+            not_pubed,
+        } => list(cli.user_cookie, is_pubing, pubed, not_pubed).await?,
     };
     Ok(())
 }

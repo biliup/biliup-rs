@@ -110,6 +110,20 @@ pub enum Commands {
         #[arg(short, long, default_value = "19159")]
         port: u16,
     },
+    /// 列出所有已上传的视频
+    List {
+        /// 只包含进行中的视频
+        #[arg(long)]
+        is_pubing: bool,
+
+        /// 只包含已通过的视频
+        #[arg(long)]
+        pubed: bool,
+
+        /// 只包含未通过的视频
+        #[arg(long)]
+        not_pubed: bool,
+    },
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
