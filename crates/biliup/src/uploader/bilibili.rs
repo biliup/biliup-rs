@@ -123,6 +123,35 @@ pub struct Studio {
     pub up_close_danmu: bool,
 }
 
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct Archive {
+    pub aid: u64,
+    pub bvid: String,
+    pub title: String,
+    pub cover: String,
+    pub reject_reason: String,
+    pub reject_reason_url: String,
+    pub duration: u64,
+    pub desc: String,
+    pub state: i16,
+    pub state_desc: String,
+    pub dtime: u64,
+    pub ptime: u64,
+    pub ctime: u64,
+}
+
+impl Archive {
+    pub fn to_string_pretty(&self) -> String {
+        let status_string = match self.state {
+            0 => format!("\x1b[1;92m{}\x1b[0m", self.state_desc),
+            -2 => format!("\x1b[1;91m{}\x1b[0m", self.state_desc),
+            -30 => format!("\x1b[1;93m{}\x1b[0m", self.state_desc),
+            _ => format!("{}", self.desc),
+        };
+        format!("{}\t{}\t{}", self.bvid, self.title, status_string)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Subtitle {
     open: i8,
@@ -342,6 +371,101 @@ impl BiliBili {
         } else {
             Err(Kind::Custom(format!("{res:?}")))
         }
+    }
+
+    /// 稿件管理
+    async fn archives(&self, status: &str, page_num: u32) -> Result<Value> {
+        let url_str = "https://member.bilibili.com/x/web/archives";
+        let params = [("status", status), ("pn", &page_num.to_string())];
+        let url = reqwest::Url::parse_with_params(url_str, &params).unwrap();
+
+        let cookie = self
+            .login_info
+            .cookie_info
+            .get("cookies")
+            .and_then(|c: &Value| c.as_array())
+            .ok_or("archives cookie error")?
+            .iter()
+            .filter_map(|c| match (c["name"].as_str(), c["value"].as_str()) {
+                (Some(name), Some(value)) => Some((name, value)),
+                _ => None,
+            })
+            .map(|c| format!("{}={}", c.0, c.1))
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        let jar = reqwest::cookie::Jar::default();
+        jar.add_cookie_str(&cookie, &url);
+
+        let res: ResponseData = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .cookie_provider(std::sync::Arc::new(jar))
+            .timeout(Duration::new(60, 0))
+            .build()?
+            .get(url)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        match res {
+            ResponseData {
+                code: _,
+                data: None,
+                ..
+            } => Err(Kind::Custom(format!("{:?}", res))),
+            ResponseData {
+                code: _,
+                data: Some(v),
+                ..
+            } => Ok(v),
+        }
+    }
+
+    /// 获取所有稿件原始数据
+    async fn all_archives_data(&self, status: &str) -> Result<Vec<Value>> {
+        let mut first_page = self.archives(status, 1).await?;
+
+        let (page_size, count) = {
+            let page = first_page["page"].take();
+            let page_size = page["ps"].as_u64().ok_or("all_studios ps error")?;
+            let count = page["count"].as_u64().ok_or("all_studios count error")?;
+            (page_size as u32, count as u32)
+        };
+
+        let pages = {
+            let mut pages = count / page_size;
+            if pages * page_size < count {
+                pages += 1;
+            }
+            pages
+        };
+
+        let mut all_pages = futures::future::try_join_all(
+            (2..=pages)
+                .map(|page_num| self.archives(status, page_num))
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        all_pages.insert(0, first_page);
+
+        Ok(all_pages)
+    }
+
+    /// 获取所有稿件
+    pub async fn all_archives(&self, status: &str) -> Result<Vec<Archive>> {
+        let studios = self
+            .all_archives_data(status)
+            .await?
+            .iter_mut()
+            .map(|page| page["arc_audits"].take())
+            .filter_map(|audits| serde_json::from_value::<Vec<Value>>(audits).ok())
+            .flat_map(|archives| archives.into_iter())
+            .map(|mut arc| arc["Archive"].take())
+            .filter_map(|studio| serde_json::from_value::<_>(studio).ok())
+            .collect::<Vec<_>>();
+
+        Ok(studios)
     }
 }
 
