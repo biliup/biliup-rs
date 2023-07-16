@@ -37,9 +37,13 @@ fn download(
     py.allow_threads(|| {
         let map = construct_headers(header_map);
         // 输出到控制台中
+        let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
+            "[year]-[month]-[day] [hour]:[minute]:[second]"
+        ));
         let formatting_layer = tracing_subscriber::FmtSubscriber::builder()
             // will be written to stdout.
             // builds the subscriber.
+            .with_timer(local_time)
             .finish();
         let file_appender = tracing_appender::rolling::never("", "download.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
