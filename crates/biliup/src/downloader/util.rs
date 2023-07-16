@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use std::time::Duration;
-use tracing::error;
+use tracing::{error, info};
 
 #[derive(Debug)]
 pub enum Segment {
@@ -135,7 +135,7 @@ impl LifecycleFile {
         }
         // path.set_extension(&self.extension);
         self.path.set_extension(format!("{}.part", self.extension));
-        println!("Save to {}", self.path.display());
+        info!("Save to {}", self.path.display());
         Ok(self.path.as_path())
     }
 

@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
 use std::any::Any;
 use std::fmt::{Display, Formatter};
+use tracing::info;
 
 use crate::client::StatelessClient;
 
@@ -61,7 +62,7 @@ impl Site {
         self.client
             .headers
             .append(ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate"));
-        println!("{}", self);
+        info!("{}", self);
         match self.extension {
             Extension::Flv => {
                 let file = LifecycleFile::new(&fmt_file_name, "flv", hook);

@@ -12,7 +12,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
 
-use tracing::warn;
+use tracing::{warn, error, info};
 
 pub async fn download(
     url: &str,
@@ -69,7 +69,7 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
         let tag_header = match map_parse_err(tag_header(&t_header), "tag header") {
             Ok((_, tag_header)) => tag_header,
             Err(e) => {
-                println!("{e}");
+                error!("{e}");
                 break;
             }
         };
@@ -81,7 +81,7 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
         ) {
             Ok((i, flv_tag_data)) => (i, flv_tag_data),
             Err(e) => {
-                println!("{e}");
+                error!("{e}");
                 break;
             }
         };
@@ -146,10 +146,10 @@ pub fn generate_json(mut file_name: PathBuf) -> Result<()> {
         };
         flv_writer::to_json(&mut writer, &flv_tag)?;
     }
-    println!("tag count: {tag_count}");
-    println!("script tag count: {script_tag_count}");
-    println!("audio tag count: {audio_tag_count}");
-    println!("video tag count: {video_tag_count}");
+    info!("tag count: {tag_count}");
+    info!("script tag count: {script_tag_count}");
+    info!("audio tag count: {audio_tag_count}");
+    info!("video tag count: {video_tag_count}");
     Ok(())
 }
 
