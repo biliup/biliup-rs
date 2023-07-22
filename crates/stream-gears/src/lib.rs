@@ -128,6 +128,30 @@ fn login_by_qrcode(ret: String) -> PyResult<bool> {
         ))),
     }
 }
+#[pyfunction]
+fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(async { login::login_by_web_cookies(&sess_data, &bili_jct).await });
+    match result {
+        Ok(_) => Ok(true),
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}",
+            err
+        ))),
+    }
+}
+#[pyfunction]
+fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool> {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let result = rt.block_on(async { login::login_by_web_qrcode(&sess_data, &dede_user_id).await });
+    match result {
+        Ok(_) => Ok(true),
+        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "{}",
+            err
+        ))),
+    }
+}
 
 #[pyfunction]
 fn upload(
@@ -220,6 +244,8 @@ fn stream_gears(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(login_by_qrcode, m)?)?;
     m.add_function(wrap_pyfunction!(get_qrcode, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_sms, m)?)?;
+    m.add_function(wrap_pyfunction!(login_by_web_cookies, m)?)?;
+    m.add_function(wrap_pyfunction!(login_by_web_qrcode, m)?)?;
     m.add_class::<UploadLine>()?;
     Ok(())
 }
