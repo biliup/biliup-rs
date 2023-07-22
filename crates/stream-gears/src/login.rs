@@ -29,3 +29,21 @@ pub async fn login_by_qrcode(res: serde_json::Value) -> Result<bool> {
     serde_json::to_writer_pretty(&file, &info)?;
     Ok(true)
 }
+
+pub async fn login_by_web_cookies(sess_data: &str, bili_jct: &str) -> Result<bool> {
+    let info = Credential::new()
+        .login_by_web_cookies(sess_data, bili_jct)
+        .await?;
+    let file = std::fs::File::create("cookies.json")?;
+    serde_json::to_writer_pretty(&file, &info)?;
+    Ok(true)
+}
+
+pub async fn login_by_web_qrcode(sess_data: &str, dede_user_id: &str) -> Result<bool> {
+    let info = Credential::new()
+        .login_by_web_qrcode(sess_data, dede_user_id)
+        .await?;
+    let file = std::fs::File::create("cookies.json")?;
+    serde_json::to_writer_pretty(&file, &info)?;
+    Ok(true)
+}
