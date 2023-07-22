@@ -43,12 +43,13 @@ fn download(
         let formatting_layer = tracing_subscriber::FmtSubscriber::builder()
             // will be written to stdout.
             // builds the subscriber.
-            .with_timer(local_time)
+            .with_timer(local_time.clone())
             .finish();
         let file_appender = tracing_appender::rolling::never("", "download.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         let file_layer = tracing_subscriber::fmt::layer()
             .with_ansi(false)
+            .with_timer(local_time)
             .with_writer(non_blocking);
 
         let collector = formatting_layer.with(file_layer);
@@ -186,12 +187,13 @@ fn upload(
         let formatting_layer = tracing_subscriber::FmtSubscriber::builder()
             // will be written to stdout.
             // builds the subscriber.
-            .with_timer(local_time)
+            .with_timer(local_time.clone())
             .finish();
         let file_appender = tracing_appender::rolling::never("", "upload.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         let file_layer = tracing_subscriber::fmt::layer()
             .with_ansi(false)
+            .with_timer(local_time)
             .with_writer(non_blocking);
 
         let collector = formatting_layer.with(file_layer);
