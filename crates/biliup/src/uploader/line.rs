@@ -218,8 +218,8 @@ impl Default for Line {
     fn default() -> Self {
         Line {
             os: Uploader::Upos,
-            probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".to_string(),
-            query: "upcdn=bda2&probe_version=20211012".to_string(),
+            probe_url: "//upos-cs-upcdnbda2.bilivideo.com/OK".to_string(),
+            query: "probe_version=20221109&upcdn=bda2&zone=cs".to_string(),
             cost: u128::MAX,
         }
     }
@@ -237,8 +237,8 @@ pub fn kodo() -> Line {
 pub fn bda2() -> Line {
     Line {
         os: Uploader::Upos,
-        query: "upcdn=bda2&probe_version=20211012".into(),
-        probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".into(),
+        query: "probe_version=20221109&upcdn=bda2&zone=cs".into(),
+        probe_url: "//upos-cs-upcdnbda2.bilivideo.com/OK".into(),
         cost: 0,
     }
 }
@@ -246,8 +246,8 @@ pub fn bda2() -> Line {
 pub fn ws() -> Line {
     Line {
         os: Uploader::Upos,
-        query: "upcdn=ws&probe_version=20211012".into(),
-        probe_url: "//upos-sz-upcdnws.bilivideo.com/OK".into(),
+        query: "probe_version=20221109&upcdn=ws&zone=cs".into(),
+        probe_url: "//upos-cs-upcdnws.bilivideo.com/OK".into(),
         cost: 0,
     }
 }
@@ -255,8 +255,8 @@ pub fn ws() -> Line {
 pub fn qn() -> Line {
     Line {
         os: Uploader::Upos,
-        query: "upcdn=qn&probe_version=20211012".into(),
-        probe_url: "//upos-sz-upcdnqn.bilivideo.com/OK".into(),
+        query: "probe_version=20221109&upcdn=qn&zone=cs".into(),
+        probe_url: "//upos-cs-upcdnqn.bilivideo.com/OK".into(),
         cost: 0,
     }
 }
@@ -282,7 +282,7 @@ pub fn cos_internal() -> Line {
 pub fn bldsa() -> Line {
     Line {
         os: Uploader::Upos,
-        query: "upcdn=bldsa&probe_version=20211012".into(),
+        query: "zone=cs&upcdn=bldsa&probe_version=20221109".into(),
         probe_url: "//upos-cs-upcdnbldsa.bilivideo.com/OK".into(),
         cost: 0,
     }
