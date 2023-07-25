@@ -6,7 +6,7 @@ on:
 
 jobs:
 #  linux:
-#    runs-on: ubuntu-latest
+#    runs-on: ubuntu-20.04
 #    steps:
 #    - uses: actions/checkout@v2
 #    - uses: messense/maturin-action@v1
@@ -27,7 +27,7 @@ jobs:
 #        name: wheels
 #        path: dist
 #  linux-cross:
-#    runs-on: ubuntu-latest
+#    runs-on: ubuntu-20.04
 #    strategy:
 #      matrix:
 #        python:
@@ -159,7 +159,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: "startsWith(github.ref, 'refs/tags/py-')"
 #    needs: [ macos, windows, linux ]
     needs: build
