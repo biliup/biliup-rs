@@ -73,17 +73,15 @@ tower-http = { version = "0.3.0", features = ["cors"] }
 
 
 
-[target.'cfg(any(target_arch="aarch64", target_arch="arm", target_env="musl"))'.dependencies]
+# Rustls / ring supported platforms
+# ref: https://github.com/briansmith/ring/blob/c58b615f7087b13f2412b1f2b0f3bd9c6a632b60/build.rs#L216
+[target.'cfg(any(target_arch="x86_64", target_arch="aarch64", target_arch="x86", target_arch="arm"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offline" ] }
 
-[target.'cfg(not(any(target_arch="aarch64", target_arch="arm", target_env="musl")))'.dependencies]
+[target.'cfg(not(any(target_arch="x86_64", target_arch="aarch64", target_arch="x86", target_arch="arm")))'.dependencies]
 reqwest = { version = "0.11", features = ["json", "stream", "blocking", "deflate", "gzip"] }
 sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "sqlite", "offline" ] }
-
-[dev-dependencies]
-native-tls = { version = "0.2.11", features = ["vendored"] }
-openssl = { version = "0.10.42", features = ["vendored"] }
 
 [build-dependencies]
 native-tls = { version = "0.2.11", features = ["vendored"] }
