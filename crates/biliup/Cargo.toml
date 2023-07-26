@@ -74,7 +74,7 @@ tower-http = { version = "0.3.0", features = ["cors"] }
 
 
 [target.'cfg(any(target_arch="aarch64", target_arch="arm", target_env="musl"))'.dependencies]
-reqwest = { version = "0.11", features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offline" ] }
 
 [target.'cfg(not(any(target_arch="aarch64", target_arch="arm", target_env="musl")))'.dependencies]
