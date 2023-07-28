@@ -37,6 +37,9 @@ fn download(
     py.allow_threads(|| {
         let map = construct_headers(header_map);
         // 输出到控制台中
+        unsafe {
+            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        }
         let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
             "[year]-[month]-[day] [hour]:[minute]:[second]"
         ));
@@ -181,6 +184,9 @@ fn upload(
             .enable_all()
             .build()?;
         // 输出到控制台中
+        unsafe {
+            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        }
         let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
             "[year]-[month]-[day] [hour]:[minute]:[second]"
         ));
