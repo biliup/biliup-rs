@@ -1,6 +1,5 @@
 mod login;
 mod uploader;
-
 use pyo3::prelude::*;
 use time::macros::format_description;
 use uploader::PyCredit;
@@ -13,6 +12,12 @@ use crate::uploader::UploadLine;
 use biliup::downloader::construct_headers;
 use biliup::downloader::util::Segmentable;
 use tracing_subscriber::layer::SubscriberExt;
+
+//引入jemallocator解决内存异常占用
+#[cfg(target_os = "linux")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+//static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[derive(FromPyObject)]
 pub enum PySegment {

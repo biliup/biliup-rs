@@ -9,7 +9,7 @@ name = "stream_gears"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-pyo3 = { version = "0.18.0", features = ["extension-module"] }
+pyo3 = { version = "0.18.0", features = ["extension-module", "abi3-py38"] }
 serde = "1"
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
@@ -20,6 +20,12 @@ anyhow = "1.0"
 futures = "0.3.21"
 biliup = { path = "../biliup"}
 time = "0.3"
+
+#引入jemallocator解决内存异常占用
+[target.'cfg(target_os = "linux")'.dependencies]
+mimalloc = "0.1.39"
+#jemallocator = { version = "0.5.4", features = ["disable_initial_exec_tls"]  }
+
 
 #[target.'cfg(all(target_arch="aarch64", target_os="linux"))'.dependencies]
 #downloader = { path = "../downloader", default-features = false , features = ["rustls-tls"] }
