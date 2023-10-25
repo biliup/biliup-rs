@@ -16,8 +16,8 @@ use tracing_subscriber::layer::SubscriberExt;
 //引入jemallocator解决内存异常占用
 #[cfg(target_os = "linux")]
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-//static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
