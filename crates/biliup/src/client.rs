@@ -63,7 +63,7 @@ pub struct StatefulClient {
 
 impl StatefulClient {
     pub fn new(headers: HeaderMap) -> Self {
-        let cookie_store = cookie_store::CookieStore::default();
+        let cookie_store = reqwest_cookie_store::CookieStore::default();
         let cookie_store = CookieStoreMutex::new(cookie_store);
         let cookie_store = Arc::new(cookie_store);
         StatefulClient {
