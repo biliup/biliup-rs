@@ -186,7 +186,7 @@ impl DownloadActorHandle {
     pub fn get_streamers(&self) -> HashMap<String, StreamStatus> {
         let read_guard = self.platform_map.read().unwrap();
         let mut map = HashMap::new();
-        for (_key, val) in read_guard.iter() {
+        for (key, val) in read_guard.iter() {
             map.extend(val.0.get_all());
         }
         map

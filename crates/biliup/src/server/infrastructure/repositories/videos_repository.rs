@@ -16,15 +16,15 @@ impl SqliteVideosRepository {
 
 #[async_trait]
 impl VideosRepository for SqliteVideosRepository {
-    async fn create(&self, _entity: Videos) -> anyhow::Result<Videos> {
+    async fn create(&self, entity: Videos) -> anyhow::Result<Videos> {
         todo!()
     }
 
-    async fn update(&self, _entity: Videos) -> anyhow::Result<Videos> {
+    async fn update(&self, entity: Videos) -> anyhow::Result<Videos> {
         todo!()
     }
 
-    async fn get_by_id(&self, _id: i64) -> anyhow::Result<Videos> {
+    async fn get_by_id(&self, id: i64) -> anyhow::Result<Videos> {
         todo!()
     }
 }

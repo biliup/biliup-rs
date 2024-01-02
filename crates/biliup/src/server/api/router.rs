@@ -31,7 +31,7 @@ impl ApplicationController {
     pub async fn serve(addr: &SocketAddr, service_register: ServiceRegister) -> anyhow::Result<()> {
         let client = StatelessClient::default();
         let vec = service_register.streamers_service.get_streamers().await?;
-        let (_main_loop, _) = spawn_main_loop();
+        let (main_loop, _) = spawn_main_loop();
         let actor_handle = DownloadActorHandle::new(
             vec,
             client.clone(),

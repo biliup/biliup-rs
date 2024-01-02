@@ -92,11 +92,11 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
         .context("an unexpected error occurred while creating the streamer")
     }
 
-    async fn delete_streamer(&self, _id: i64) -> anyhow::Result<()> {
+    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()> {
         todo!()
     }
 
-    async fn update_streamer(&self, _studio: StudioEntity) -> anyhow::Result<StudioEntity> {
+    async fn update_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity> {
         todo!()
     }
 

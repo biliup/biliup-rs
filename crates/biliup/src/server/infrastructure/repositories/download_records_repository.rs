@@ -15,7 +15,7 @@ impl SqliteDownloadRecordsRepository {
 
 #[async_trait]
 impl DownloadRecordsRepository for SqliteDownloadRecordsRepository {
-    async fn create(&self, _entity: DownloadRecords) -> anyhow::Result<DownloadRecords> {
+    async fn create(&self, entity: DownloadRecords) -> anyhow::Result<DownloadRecords> {
         todo!()
     }
 

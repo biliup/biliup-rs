@@ -24,7 +24,7 @@ pub async fn get_streamers_endpoint(
 
 pub async fn get_streamer_endpoint(
     Extension(streamers_service): Extension<DynLiveStreamersService>,
-    Extension(_download_actor_handle): Extension<DownloadActorHandle>,
+    Extension(download_actor_handle): Extension<DownloadActorHandle>,
     Path(id): Path<i64>,
 ) -> AppResult<Json<LiveStreamerDto>> {
     Ok(Json(streamers_service.get_streamer_by_id(id).await?))
