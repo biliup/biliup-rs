@@ -1,5 +1,5 @@
 use crate::server::core::upload_streamers::{UploadRecords, UploadRecordsRepository};
-use crate::server::core::users::{User, UsersRepository};
+
 use crate::server::infrastructure::connection_pool::ConnectionPool;
 use async_trait::async_trait;
 
@@ -16,11 +16,11 @@ impl SqliteUploadRecordsRepository {
 
 #[async_trait]
 impl UploadRecordsRepository for SqliteUploadRecordsRepository {
-    async fn create(&self, entity: UploadRecords) -> anyhow::Result<UploadRecords> {
+    async fn create(&self, _entity: UploadRecords) -> anyhow::Result<UploadRecords> {
         todo!()
     }
 
-    async fn delete(&self, id: i64) -> anyhow::Result<()> {
+    async fn delete(&self, _id: i64) -> anyhow::Result<()> {
         todo!()
     }
 
@@ -28,7 +28,7 @@ impl UploadRecordsRepository for SqliteUploadRecordsRepository {
         todo!()
     }
 
-    async fn get_by_id(&self, id: i64) -> anyhow::Result<UploadRecords> {
+    async fn get_by_id(&self, _id: i64) -> anyhow::Result<UploadRecords> {
         todo!()
     }
 }

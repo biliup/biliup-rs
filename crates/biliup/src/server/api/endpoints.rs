@@ -6,7 +6,7 @@ use crate::server::core::live_streamers::{
 use crate::server::core::upload_streamers::{DynUploadStreamersRepository, StudioEntity};
 use crate::server::core::users::{DynUsersRepository, User};
 use crate::server::errors::AppResult;
-use crate::uploader::bilibili::Studio;
+
 use axum::extract::{Path, State};
 use axum::{Extension, Json};
 
@@ -24,7 +24,7 @@ pub async fn get_streamers_endpoint(
 
 pub async fn get_streamer_endpoint(
     Extension(streamers_service): Extension<DynLiveStreamersService>,
-    Extension(download_actor_handle): Extension<DownloadActorHandle>,
+    Extension(_download_actor_handle): Extension<DownloadActorHandle>,
     Path(id): Path<i64>,
 ) -> AppResult<Json<LiveStreamerDto>> {
     Ok(Json(streamers_service.get_streamer_by_id(id).await?))

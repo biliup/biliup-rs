@@ -7,7 +7,7 @@ use bytes::Bytes;
 use std::collections::HashMap;
 
 pub async fn archive_pre_endpoint(
-    Query(params): Query<HashMap<String, String>>,
+    Query(_params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
     let bili = login_by_cookies("cookies.json").await?;
     Ok(Json(bili.archive_pre().await?))

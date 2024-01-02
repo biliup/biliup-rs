@@ -1,9 +1,9 @@
 use crate::server::core::upload_streamers::{StudioEntity, UploadStreamersRepository};
 use crate::server::infrastructure::connection_pool::ConnectionPool;
-use crate::uploader::bilibili::Studio;
+
 use anyhow::Context;
 use async_trait::async_trait;
-use sqlx::{query_as, query_file_as};
+use sqlx::query_as;
 
 #[derive(Clone)]
 pub struct SqliteUploadStreamersRepository {
@@ -92,16 +92,17 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
         .context("an unexpected error occurred while creating the streamer")
     }
 
-    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()> {
+    async fn delete_streamer(&self, _id: i64) -> anyhow::Result<()> {
         todo!()
     }
 
-    async fn update_streamer(&self, studio: StudioEntity) -> anyhow::Result<StudioEntity> {
+    async fn update_streamer(&self, _studio: StudioEntity) -> anyhow::Result<StudioEntity> {
         todo!()
     }
 
     async fn get_streamers(&self) -> anyhow::Result<Vec<StudioEntity>> {
-        query_as!(StudioEntity,
+        query_as!(
+            StudioEntity,
             r#"select id,
             template_name      as "template_name!",
             user,
@@ -125,9 +126,9 @@ impl UploadStreamersRepository for SqliteUploadStreamersRepository {
             up_close_danmu     as "up_close_danmu!: bool"
      from upload_streamers"#
         )
-            .fetch_all(&self.pool)
-            .await
-            .context("an unexpected error occurred retrieving streamers")
+        .fetch_all(&self.pool)
+        .await
+        .context("an unexpected error occurred retrieving streamers")
     }
 
     async fn get_streamer_by_id(&self, id: i64) -> anyhow::Result<StudioEntity> {

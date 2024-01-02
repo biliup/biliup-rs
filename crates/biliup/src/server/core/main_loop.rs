@@ -55,7 +55,7 @@ pub fn spawn_main_loop() -> (ServerHandle, JoinHandle<()>) {
 async fn main_loop(mut recv: Receiver<ToMain>) -> Result<()> {
     while let Some(msg) = recv.recv().await {
         match msg {
-            ToMain::NewRecording(site, task) => {}
+            ToMain::NewRecording(_site, _task) => {}
             ToMain::FileClosed(_) => {}
         }
     }
@@ -77,13 +77,9 @@ async fn recording(
         split_time,
         ..
     }) =
-        live_streamers_service.get_streamer_by_url(&url).await
+        live_streamers_service.get_streamer_by_url(url).await
     {
-        (
-            filename,
-            split_size,
-            split_time.map(|s| Duration::from_secs(s)),
-        )
+        (filename, split_size, split_time.map(Duration::from_secs))
     } else {
         ("./video/%Y-%m-%d/%H_%M_%S{title}".to_string(), None, None)
     };
@@ -121,5 +117,5 @@ async fn recording(
             Ok::<_, Box<dyn Error + Send + Sync>>(())
         }
     });
-    task.change(&url, StreamStatus::Working);
+    task.change(url, StreamStatus::Working);
 }

@@ -41,13 +41,13 @@ impl LiveStreamersRepository for SqliteLiveStreamersRepository {
         .context("an unexpected error occurred while creating the streamer")
     }
 
-    async fn delete_streamer(&self, id: i64) -> anyhow::Result<()> {
+    async fn delete_streamer(&self, _id: i64) -> anyhow::Result<()> {
         todo!()
     }
 
     async fn update_streamer(
         &self,
-        entity: LiveStreamerEntity,
+        _entity: LiveStreamerEntity,
     ) -> anyhow::Result<LiveStreamerEntity> {
         todo!()
     }

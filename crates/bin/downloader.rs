@@ -12,7 +12,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io::{BufReader, BufWriter, ErrorKind, Read};
 use std::path::PathBuf;
 
-use tracing::{warn, error, info};
+use tracing::{error, info, warn};
 
 pub async fn download(
     url: &str,

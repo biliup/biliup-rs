@@ -157,7 +157,7 @@ pub async fn list(
 
     let bilibili = login_by_cookies(user_cookie).await?;
     bilibili
-        .all_archives(&status)
+        .all_archives(status)
         .await?
         .iter()
         .for_each(|arc| println!("{}", arc.to_string_pretty()));

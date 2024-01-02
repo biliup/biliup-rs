@@ -21,7 +21,7 @@ use crate::server::api::bilibili_endpoints::{
 use crate::server::core::main_loop::spawn_main_loop;
 use axum::http::HeaderValue;
 use std::net::SocketAddr;
-use std::time::Duration;
+
 use tower_http::cors::{AllowMethods, CorsLayer};
 use tracing::info;
 
@@ -31,7 +31,7 @@ impl ApplicationController {
     pub async fn serve(addr: &SocketAddr, service_register: ServiceRegister) -> anyhow::Result<()> {
         let client = StatelessClient::default();
         let vec = service_register.streamers_service.get_streamers().await?;
-        let (main_loop, _) = spawn_main_loop();
+        let (_main_loop, _) = spawn_main_loop();
         let actor_handle = DownloadActorHandle::new(
             vec,
             client.clone(),

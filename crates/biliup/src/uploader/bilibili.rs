@@ -85,7 +85,6 @@ pub struct Studio {
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
-
     /// 是否开启杜比音效, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
     #[serde(default)]
@@ -146,7 +145,7 @@ impl Archive {
             0 => format!("\x1b[1;92m{}\x1b[0m", self.state_desc),
             -2 => format!("\x1b[1;91m{}\x1b[0m", self.state_desc),
             -30 => format!("\x1b[1;93m{}\x1b[0m", self.state_desc),
-            _ => format!("{}", self.desc),
+            _ => self.desc.to_string(),
         };
         format!("{}\t{}\t{}", self.bvid, self.title, status_string)
     }

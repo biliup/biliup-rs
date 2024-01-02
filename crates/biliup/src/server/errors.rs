@@ -90,7 +90,7 @@ pub struct ApiError {
 
 impl ApiError {
     pub fn new(message: String) -> Self {
-        let mut errors: Vec<HashMap<String, String>> = Vec::new();
+        let errors: Vec<HashMap<String, String>> = Vec::new();
         // errors.push(HashMap::from([
         //     (String::from("resource"), "Issue".to_string()),
         //     (String::from("field"), "title".to_string()),
