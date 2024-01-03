@@ -271,7 +271,22 @@ pub async fn login_by_sms(credential: Credential) -> Result<LoginInfo> {
     let phone: u64 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入手机号")
         .interact_text()?;
-    let res = credential.send_sms(phone, country_code).await?;
+    let res = credential
+        .send_sms_handle_recaptcha(phone, country_code, |url| async move {
+            println!("{url}");
+            println!("请复制此链接至浏览器打开并启动开发者工具，完成滑动验证后查看网络请求");
+
+            let challenge: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("请输入get.php响应中的challenge值")
+                .interact_text()?;
+
+            let valiate: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("请输入ajax.php响应中的validate值")
+                .interact_text()?;
+
+            Ok((challenge, valiate))
+        })
+        .await?;
     let input: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入验证码")
         .interact_text()?;

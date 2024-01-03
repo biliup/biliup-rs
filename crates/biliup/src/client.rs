@@ -1,4 +1,5 @@
 use crate::retry;
+use rand::Rng;
 use reqwest::header::HeaderMap;
 use reqwest::{header, Response};
 use reqwest_cookie_store::CookieStoreMutex;
@@ -59,6 +60,7 @@ impl StatelessClient {
 pub struct StatefulClient {
     pub client: reqwest::Client,
     pub cookie_store: Arc<CookieStoreMutex>,
+    pub buvid: String,
 }
 
 impl StatefulClient {
@@ -77,6 +79,7 @@ impl StatefulClient {
                 .build()
                 .unwrap(),
             cookie_store,
+            buvid: generate_buvid(),
         }
     }
 }
@@ -85,4 +88,24 @@ impl Default for StatelessClient {
     fn default() -> Self {
         Self::new(header::HeaderMap::new())
     }
+}
+
+// ref: https://github.com/SocialSisterYi/bilibili-API-collect
+fn generate_buvid() -> String {
+    let mut rng = rand::thread_rng();
+
+    let dummy_md5 = (0..32).map(|_| rng.gen_range(0..0xf)).collect::<Vec<u8>>();
+    let prefix = [2, 12, 22].map(|i| dummy_md5[i]);
+
+    let hash_string = [prefix.as_slice(), dummy_md5.as_slice()]
+        .map(|array| {
+            array
+                .iter()
+                .map(|n| format!("{n:X}"))
+                .collect::<Vec<_>>()
+                .join("")
+        })
+        .join("");
+
+    format!("Y{hash_string}")
 }

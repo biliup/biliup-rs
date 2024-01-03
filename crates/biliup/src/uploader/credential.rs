@@ -1,4 +1,5 @@
 use crate::client::StatefulClient;
+use futures::Future;
 use reqwest::header;
 use std::io::Seek;
 use std::path::Path;
@@ -290,10 +291,64 @@ impl Credential {
         phone_number: u64,
         country_code: u32,
     ) -> Result<serde_json::Value> {
+        self.send_sms_with_recaptcha(phone_number, country_code, None, None, None)
+            .await
+    }
+
+    pub async fn send_sms_handle_recaptcha<'a, F, Fut>(
+        &self,
+        phone_number: u64,
+        country_code: u32,
+        recaptcha_handler: F,
+    ) -> Result<serde_json::Value>
+    where
+        F: FnOnce(String) -> Fut,
+        Fut: Future<Output = Result<(String, String)>>,
+    {
+        let url_string = match self
+            .send_sms_with_recaptcha(phone_number, country_code, None, None, None)
+            .await
+        {
+            Ok(res) => return Ok(res),
+            Err(Kind::NeedRecaptcha(url)) => url,
+            Err(e) => return Err(e),
+        };
+
+        let recaptcha = {
+            Url::parse(&url_string)
+                .map_err(|_| Kind::from("url parse error"))?
+                .query_pairs()
+                .find(|(k, _)| k == "recaptcha_token")
+                .map(|(_, v)| v.to_string())
+                .ok_or(Kind::from("cannot find recaptcha_token"))
+        }?;
+
+        info!("需要滑动验证码");
+        let (challenge, validate) = recaptcha_handler(url_string).await?;
+
+        self.send_sms_with_recaptcha(
+            phone_number,
+            country_code,
+            Some(challenge.as_str()),
+            Some(validate.as_str()),
+            Some(recaptcha.as_ref()),
+        )
+        .await
+    }
+
+    pub async fn send_sms_with_recaptcha(
+        &self,
+        phone_number: u64,
+        country_code: u32,
+        challenge: Option<&str>,
+        validate: Option<&str>,
+        recaptcha: Option<&str>,
+    ) -> Result<serde_json::Value> {
         let mut payload = json!({
             "actionKey": "appkey",
             "appkey": AppKeyStore::Android.app_key(),
             "build": 6510400,
+            "buvid": &self.0.buvid,
             "channel": "bili",
             "cid": country_code,
             "device": "phone",
@@ -303,6 +358,13 @@ impl Credential {
             "tel": phone_number,
             "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
         });
+
+        if let (Some(c), Some(v), Some(r)) = (challenge, validate, recaptcha) {
+            payload["gee_challenge"] = Value::from(c);
+            payload["gee_seccode"] = Value::from(format!("{v}|jordan"));
+            payload["gee_validate"] = Value::from(v);
+            payload["recaptcha_token"] = Value::from(r);
+        }
 
         let urlencoded = serde_urlencoded::to_string(&payload)?;
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
@@ -329,6 +391,12 @@ impl Credential {
             {
                 payload["captcha_key"] = data["captcha_key"].take();
                 Ok(payload)
+            }
+            Some(ResponseValue::Value(data))
+                if !data["recaptcha_url"].as_str().unwrap_or("").is_empty() =>
+            {
+                let url = data["recaptcha_url"].as_str().unwrap().to_string();
+                Err(Kind::NeedRecaptcha(url))
             }
             _ => Err(Kind::Custom(res.to_string())),
         }
