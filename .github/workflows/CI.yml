@@ -108,6 +108,7 @@ jobs:
             container: ghcr.io/biliup/manylinux2014-cross:i686
           - os: ubuntu
             target: aarch64
+            manylinux: 2_28 # FIXME: look https://github.com/briansmith/ring/issues/1728
           - os: ubuntu
             target: armv7
             interpreter: 3.7 3.8 3.9 3.10 3.11
@@ -120,16 +121,18 @@ jobs:
             manylinux: musllinux_1_1
           - os: ubuntu
             target: ppc64le
-            container: ghcr.io/biliup/manylinux2014-cross:ppc64le
             interpreter: 3.7 3.8 3.9 3.10 3.11
           - os: ubuntu
             target: s390x
-            container: ghcr.io/biliup/manylinux2014-cross:s390x
             interpreter: 3.7 3.8 3.9 3.10 3.11
         exclude:
           # Windows on arm64 only supports Python 3.11+
           - os: windows
             target: aarch64
+          # FIXME: look https://github.com/briansmith/ring/issues/1728
+          - os: ubuntu
+            target: aarch64
+            manylinux: auto
 
     runs-on: ${{ matrix.os }}-latest
     steps:
