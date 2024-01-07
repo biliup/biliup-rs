@@ -10,8 +10,8 @@ use crate::server::api::endpoints::{
 use crate::server::core::download_actor::DownloadActorHandle;
 
 use crate::server::infrastructure::service_register::ServiceRegister;
-use anyhow::Context;
 
+use anyhow::Context;
 use axum::routing::{delete, get, post, put};
 use axum::{http, Extension, Router};
 
@@ -21,7 +21,7 @@ use crate::server::api::bilibili_endpoints::{
 use crate::server::core::main_loop::spawn_main_loop;
 use axum::http::HeaderValue;
 use std::net::SocketAddr;
-use std::time::Duration;
+
 use tower_http::cors::{AllowMethods, CorsLayer};
 use tracing::info;
 
@@ -118,8 +118,9 @@ impl ApplicationController {
         // run our app with hyper
         // `axum::Server` is a re-export of `hyper::Server`
         info!("routes initialized, listening on {}", addr);
-        axum::Server::bind(addr)
-            .serve(app.into_make_service())
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+
+        axum::serve(listener, app)
             .await
             .context("error while starting API server")?;
 

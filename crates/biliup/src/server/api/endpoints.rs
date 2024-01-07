@@ -6,7 +6,7 @@ use crate::server::core::live_streamers::{
 use crate::server::core::upload_streamers::{DynUploadStreamersRepository, StudioEntity};
 use crate::server::core::users::{DynUsersRepository, User};
 use crate::server::errors::AppResult;
-use crate::uploader::bilibili::Studio;
+
 use axum::extract::{Path, State};
 use axum::{Extension, Json};
 

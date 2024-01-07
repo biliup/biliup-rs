@@ -587,6 +587,7 @@ impl Credential {
             )
             .domain("bilibili.com")
             .finish();
+
             store
                 .insert_raw(&cookie, &Url::parse("https://bilibili.com/").unwrap())
                 .unwrap();

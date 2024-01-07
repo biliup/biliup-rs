@@ -61,11 +61,11 @@ impl UsersRepository for SqliteUsersStreamersRepository {
         Ok(())
     }
 
-    async fn update_user(&self, user: User) -> anyhow::Result<User> {
+    async fn update_user(&self, _user: User) -> anyhow::Result<User> {
         todo!()
     }
 
-    async fn get_user_by_id(&self, id: i64) -> anyhow::Result<User> {
+    async fn get_user_by_id(&self, _id: i64) -> anyhow::Result<User> {
         todo!()
     }
 }

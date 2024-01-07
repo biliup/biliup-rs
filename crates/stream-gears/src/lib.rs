@@ -3,7 +3,7 @@ mod uploader;
 
 use pyo3::prelude::*;
 use time::macros::format_description;
-use uploader::PyCredit;
+use uploader::{PyCredit, StudioPre};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -157,6 +157,7 @@ fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 fn upload(
     py: Python<'_>,
@@ -205,27 +206,29 @@ fn upload(
         let collector = formatting_layer.with(file_layer);
 
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
-            match rt.block_on(uploader::upload(
-                video_path,
-                cookie_file,
-                line,
-                limit,
-                title,
-                tid,
-                tag,
-                copyright,
-                source,
-                desc,
-                dynamic,
-                cover,
-                dtime,
-                dolby,
-                lossless_music,
-                no_reprint,
-                open_elec,
-                desc_v2,
-            )) {
-                Ok(_res) => Ok(()),
+            let studio_pre = StudioPre::builder()
+                .video_path(video_path)
+                .cookie_file(cookie_file)
+                .line(line)
+                .limit(limit)
+                .title(title)
+                .tid(tid)
+                .tag(tag)
+                .copyright(copyright)
+                .source(source)
+                .desc(desc)
+                .dynamic(dynamic)
+                .cover(cover)
+                .dtime(dtime)
+                .dolby(dolby)
+                .lossless_music(lossless_music)
+                .no_reprint(no_reprint)
+                .open_elec(open_elec)
+                .desc_v2_credit(desc_v2)
+                .build();
+
+            match rt.block_on(uploader::upload(studio_pre)) {
+                Ok(res) => Ok(()),
                 // Ok(_) => {  },
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "{}, {}",
@@ -239,7 +242,7 @@ fn upload(
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn stream_gears(_py: Python, m: &PyModule) -> PyResult<()> {
+fn stream_gears(py: Python, m: &PyModule) -> PyResult<()> {
     // let file_appender = tracing_appender::rolling::daily("", "upload.log");
     // let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     // tracing_subscriber::fmt()

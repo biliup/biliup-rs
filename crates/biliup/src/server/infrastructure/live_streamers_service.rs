@@ -1,6 +1,6 @@
 use crate::server::core::live_streamers::{
-    AddLiveStreamerDto, DynDownloadRecordsRepository, DynLiveStreamersRepository, LiveStreamerDto,
-    LiveStreamerEntity, LiveStreamersService,
+    AddLiveStreamerDto, DynLiveStreamersRepository, LiveStreamerDto, LiveStreamerEntity,
+    LiveStreamersService,
 };
 use crate::server::core::upload_streamers::DynUploadStreamersRepository;
 use crate::uploader::bilibili::Studio;
@@ -49,7 +49,11 @@ impl LiveStreamersService for ConduitLiveStreamersService {
     }
 
     async fn get_studio_by_url(&self, url: &str) -> anyhow::Result<Option<Studio>> {
-        let LiveStreamerEntity{ upload_id: Some(upload_id), .. } = self.repository.get_streamer_by_url(url).await? else {
+        let LiveStreamerEntity {
+            upload_id: Some(upload_id),
+            ..
+        } = self.repository.get_streamer_by_url(url).await?
+        else {
             return Ok(None);
         };
         Ok(Some(

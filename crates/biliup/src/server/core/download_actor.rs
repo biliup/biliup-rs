@@ -1,7 +1,7 @@
 use crate::client::StatelessClient;
 
 use crate::downloader::extractor::{find_extractor, SiteDefinition};
-use crate::downloader::util::{LifecycleFile, Segmentable};
+use crate::downloader::util::Segmentable;
 use crate::server::core::live_streamers::{DynLiveStreamersService, LiveStreamerDto};
 use crate::server::core::upload_actor::UploadActorHandle;
 use crate::server::core::util::{logging_spawn, AnyMap, Cycle};
@@ -9,7 +9,6 @@ use crate::server::core::StreamStatus;
 
 use indexmap::indexmap;
 
-use crate::server::core::upload_streamers::DynUploadStreamersRepository;
 use std::collections::HashMap;
 use std::error::Error;
 use std::ops::DerefMut;
@@ -42,11 +41,7 @@ async fn start_monitor(
                 }) =
                     live_streamers_service.get_streamer_by_url(&url).await
                 {
-                    (
-                        filename,
-                        split_size,
-                        split_time.map(|s| Duration::from_secs(s)),
-                    )
+                    (filename, split_size, split_time.map(Duration::from_secs))
                 } else {
                     ("./video/%Y-%m-%d/%H_%M_%S{title}".to_string(), None, None)
                 };
@@ -135,7 +130,9 @@ impl DownloadActor {
         url: String,
         // client: StatelessClient,
     ) {
-        let Some(extractor) = find_extractor(&url) else { return; };
+        let Some(extractor) = find_extractor(&url) else {
+            return;
+        };
         let _entry = map
             .entry(extractor.as_any().type_id())
             .and_modify(|(cy, _)| cy.insert(url.clone(), StreamStatus::Idle))

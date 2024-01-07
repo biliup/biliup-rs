@@ -17,9 +17,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9.17"
 serde_urlencoded = "0.7"
-reqwest_cookie_store = "0.5.0"
-cookie_store = "0.19.0"
-tokio = { version = "1", features = ["full"] }
+reqwest_cookie_store = "0.6.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
 rsa = "0.9.2"
@@ -28,60 +27,35 @@ md-5 = "0.10.5"
 rand = "0.8.4"
 url = "2.2.2"
 thiserror = "1.0"
-cookie = "0.16.1"
+
+# FIXME: cookie 0.18.0 与 reqest_cookie_store 0.6.0 不兼容
+cookie = "0.17.0"
+
 bytes = "1.1.0"
 futures = "0.3.17"
-typed-builder = "0.11.0"
+typed-builder = "0.18.0"
 reqwest-middleware = "0.2.0"
-reqwest-retry = "0.2.1"
+reqwest-retry = "0.3.0"
 clap = { version = "4", features = ["derive"] }
 time = "0.3"
-
 anyhow = "1.0"
-#clap = { version = "3.0.0", features = ["derive"] }
-#tracing = "0.1"
-#tracing-subscriber = "0.3"
-#serde = { version = "1.0", features = ["derive"] }
-#serde_json = "1.0"
 glob = "0.3.0"
-#tokio = { version = "1", features = ["full"] }
-#stream-gears = {path="../stream-gears"}
-#bytes = "1.1.0"
-qrcode = "0.12.0"
+qrcode = "0.13.0"
 indicatif =  "0.17.0"
-image = "0.23"
-#futures = "0.3.17"
-dialoguer = "0.10.3"
-
-
+image = "0.24"
+dialoguer = "0.11.0"
 m3u8-rs = "5.0.3"
 nom = "7"
-
-
 chrono = "0.4"
 byteorder = "1.4.3"
-indexmap = "1.9.2"
+indexmap = "2.1.0"
 regex = "1.6.0"
 async-trait = "0.1.57"
 humantime = "2.1.0"
-axum = "0.6.1"
-tower-http = { version = "0.3.0", features = ["cors"] }
-#[features]
-#default = ["default-tls"]
-#rustls-tls = ["reqwest/rustls-tls"]
-#default-tls = ["reqwest/default-tls"]
-
-
-
-# Rustls / ring supported platforms
-# ref: https://github.com/briansmith/ring/blob/c58b615f7087b13f2412b1f2b0f3bd9c6a632b60/build.rs#L216
-[target.'cfg(any(target_arch="x86_64", target_arch="aarch64", target_arch="x86", target_arch="arm"))'.dependencies]
+axum = "0.7.3"
+tower-http = { version = "0.5.0", features = ["cors"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "offline" ] }
-
-[target.'cfg(not(any(target_arch="x86_64", target_arch="aarch64", target_arch="x86", target_arch="arm")))'.dependencies]
-reqwest = { version = "0.11", features = ["json", "stream", "blocking", "deflate", "gzip"] }
-sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "sqlite", "offline" ] }
+sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "sqlite" ] }
 
 [build-dependencies]
 native-tls = { version = "0.2.11", features = ["vendored"] }

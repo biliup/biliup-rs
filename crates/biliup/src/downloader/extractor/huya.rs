@@ -33,7 +33,7 @@ impl SiteDefinition for HuyaLive {
         let game = stream["data"][0].take();
         let game_stream_info = game["gameStreamInfoList"]
             .as_array()
-            .and_then(|game_stream_info_list| game_stream_info_list.get(0))
+            .and_then(|game_stream_info_list| game_stream_info_list.first())
             .ok_or_else(|| {
                 crate::downloader::error::Error::Custom(format!("Not online: {game}"))
             })?;
