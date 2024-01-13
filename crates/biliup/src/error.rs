@@ -10,6 +10,9 @@ pub enum Kind {
     Custom(String),
 
     #[error(transparent)]
+    Dialoguer(#[from] dialoguer::Error),
+
+    #[error(transparent)]
     IO(#[from] std::io::Error),
 
     #[error(transparent)]
