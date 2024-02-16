@@ -100,6 +100,7 @@ pub enum Commands {
         #[arg(long)]
         split_time: Option<humantime::Duration>,
     },
+    #[cfg(feature = "server")]
     /// 启动web服务，默认端口19159
     Server {
         /// Specify bind address

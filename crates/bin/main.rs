@@ -1,5 +1,6 @@
 mod cli;
 mod downloader;
+#[cfg(feature = "server")]
 mod server;
 mod uploader;
 
@@ -73,6 +74,7 @@ async fn main() -> Result<()> {
             split_size,
             split_time,
         } => download(&url, output, split_size, split_time).await?,
+        #[cfg(feature = "server")]
         Commands::Server { bind, port } => server::run((&bind, port)).await?,
         Commands::List {
             is_pubing,
