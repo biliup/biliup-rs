@@ -13,6 +13,9 @@ pub mod error;
 pub mod server;
 pub mod uploader;
 
+pub use uploader::bilibili;
+pub use uploader::credential;
+
 pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F) -> Result<O, E>
 where
     F: FnMut() -> Fut,
