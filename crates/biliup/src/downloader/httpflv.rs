@@ -9,6 +9,7 @@ use nom::{Err, IResult};
 use reqwest::Response;
 
 use std::time::Duration;
+use tokio::time::timeout;
 use tracing::{info, warn};
 
 pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
@@ -234,7 +235,7 @@ impl Connection {
         }
     }
 
-    pub async fn read_frame(&mut self, chunk_size: usize) -> reqwest::Result<Bytes> {
+    pub async fn read_frame(&mut self, chunk_size: usize) -> crate::downloader::error::Result<Bytes> {
         // let mut buf = [0u8; 8 * 1024];
         loop {
             if chunk_size <= self.buffer.len() {
@@ -245,7 +246,7 @@ impl Connection {
             // BytesMut::with_capacity(0).deref_mut()
             // tokio::fs::File::open("").read()
             // self.resp.chunk()
-            if let Some(chunk) = self.resp.chunk().await? {
+            if let Ok(Some(chunk)) = timeout(Duration::from_millis(30), self.resp.chunk()).await? {
                 // let n = chunk.len();
                 // println!("Chunk: {:?}", chunk);
                 self.buffer.put(chunk);

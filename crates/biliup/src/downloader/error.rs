@@ -1,11 +1,15 @@
 use nom::Needed;
 use std::io;
 use thiserror::Error;
+use tokio::time::error::Elapsed;
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
     Custom(String),
+
+    #[error(transparent)]
+    ElapsedError(#[from] Elapsed),
 
     #[error(transparent)]
     IOError(#[from] io::Error),
