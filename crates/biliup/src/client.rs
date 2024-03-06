@@ -7,6 +7,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct StatelessClient {
@@ -20,9 +21,8 @@ impl StatelessClient {
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
             .default_headers(headers)
-            // .connect_timeout(std::time::Duration::from_secs(60))
             // .timeout(Duration::new(60, 0))
-            // .connect_timeout()
+            .connect_timeout(Duration::from_secs(60))
             .build()
             .unwrap();
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
@@ -75,6 +75,7 @@ impl StatefulClient {
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108",
                 )
                 .default_headers(headers)
+                .connect_timeout(Duration::from_secs(60))
                 // .timeout(Duration::new(60, 0))
                 .build()
                 .unwrap(),

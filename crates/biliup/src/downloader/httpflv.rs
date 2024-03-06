@@ -246,7 +246,7 @@ impl Connection {
             // BytesMut::with_capacity(0).deref_mut()
             // tokio::fs::File::open("").read()
             // self.resp.chunk()
-            if let Ok(Some(chunk)) = timeout(Duration::from_millis(30), self.resp.chunk()).await? {
+            if let Ok(Some(chunk)) = timeout(Duration::from_secs(30), self.resp.chunk()).await? {
                 // let n = chunk.len();
                 // println!("Chunk: {:?}", chunk);
                 self.buffer.put(chunk);
