@@ -405,8 +405,8 @@ impl Credential {
     pub async fn login_by_qrcode(&self, value: Value) -> Result<LoginInfo> {
         let mut form = json!({
             "appkey": AppKeyStore::BiliTV.app_key(),
-            "local_id": "0",
             "auth_code": value["data"]["auth_code"],
+            "local_id": "0",
             "ts": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
         });
         let urlencoded = serde_urlencoded::to_string(&form)?;
