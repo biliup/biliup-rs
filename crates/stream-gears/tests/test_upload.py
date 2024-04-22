@@ -12,7 +12,12 @@ if __name__ == '__main__':
         "desc",
         "dynamic",
         "",
+        0,
+        0,
+        0,
+        0,
+        3,
+        [],
         None,
         stream_gears.UploadLine.Bda2,
-        3,
     )

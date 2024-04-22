@@ -414,15 +414,17 @@ impl Credential {
         form["sign"] = Value::from(sign);
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let res: ResponseData<ResponseValue> = self
+            let raw = self
                 .0
                 .client
                 .post("http://passport.bilibili.com/x/passport-tv-login/qrcode/poll")
                 .form(&form)
                 .send()
                 .await?
-                .json()
-                .await?;
+                .error_for_status()?;
+            let full = raw.bytes().await?;
+
+            let res: ResponseData<ResponseValue> = serde_json::from_slice(&full).map_err(|e| Kind::Custom(format!("error decoding response body, content: {:#?}", String::from_utf8_lossy(&full))))?;
             match res {
                 ResponseData {
                     code: 0,

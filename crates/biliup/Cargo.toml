@@ -17,7 +17,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9.17"
 serde_urlencoded = "0.7"
-reqwest_cookie_store = "0.6.0"
+reqwest_cookie_store = "0.7.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
@@ -34,8 +34,8 @@ cookie = "0.17.0"
 bytes = "1.1.0"
 futures = "0.3.17"
 typed-builder = "0.18.0"
-reqwest-middleware = "0.2.0"
-reqwest-retry = "0.3.0"
+reqwest-middleware = { version = "0.3.0", features = ["json"] }
+reqwest-retry = "0.5.0"
 clap = { version = "4", features = ["derive"] }
 time = "0.3"
 anyhow = "1.0"
@@ -54,12 +54,15 @@ async-trait = "0.1.57"
 humantime = "2.1.0"
 axum = { version = "0.7.3", optional = true }
 tower-http = { version = "0.5.0", features = ["cors"], optional = true }
-reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
 sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "sqlite" ], optional = true }
 
 [build-dependencies]
 native-tls = { version = "0.2.11", features = ["vendored"] }
 openssl = { version = "0.10.42", features = ["vendored"] }
+
+[target.'cfg(target_family = "unix")'.dependencies]
+jemallocator = { version = "0.5", features = ["disable_initial_exec_tls"] }
 
 [features]
 server = ["indexmap", "axum", "tower-http", "sqlx"]

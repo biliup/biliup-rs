@@ -13,6 +13,7 @@ use crate::uploader::UploadLine;
 use biliup::downloader::construct_headers;
 use biliup::downloader::util::Segmentable;
 use tracing_subscriber::layer::SubscriberExt;
+use biliup::credential::Credential;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
@@ -73,9 +74,9 @@ fn download(
     })
 }
 #[pyfunction]
-fn login_by_cookies() -> PyResult<bool> {
+fn login_by_cookies(file: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::login_by_cookies().await });
+    let result = rt.block_on(async { login::login_by_cookies(&file).await });
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -120,17 +121,16 @@ fn get_qrcode() -> PyResult<String> {
     }
 }
 #[pyfunction]
-fn login_by_qrcode(ret: String) -> PyResult<bool> {
+fn login_by_qrcode(ret: String) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result =
-        rt.block_on(async { login::login_by_qrcode(serde_json::from_str(&ret).unwrap()).await });
-    match result {
-        Ok(_) => Ok(true),
-        Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "{}",
-            err
-        ))),
-    }
+    rt.block_on(async {
+        let info = Credential::new().login_by_qrcode(serde_json::from_str(&ret).unwrap()).await?;
+        let res = serde_json::to_string_pretty(&info)?;
+        Ok::<_, anyhow::Error>(res)
+    }).map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(format!(
+        "{:#?}",
+        err
+    )))
 }
 #[pyfunction]
 fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
@@ -242,7 +242,7 @@ fn upload(
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn stream_gears(py: Python, m: &PyModule) -> PyResult<()> {
+fn stream_gears(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // let file_appender = tracing_appender::rolling::daily("", "upload.log");
     // let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     // tracing_subscriber::fmt()
