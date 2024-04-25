@@ -12,11 +12,11 @@ use std::time::Duration;
 use tokio::time::timeout;
 use tracing::{info, warn};
 
-pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
-    let file: LifecycleFile = LifecycleFile::new(file_name, "flv", None);
+pub async fn download(connection: Connection, file: LifecycleFile, segment: Segmentable) {
+    let file_name = file.file_name.clone();
     match parse_flv(connection, file, segment).await {
         Ok(_) => {
-            info!("Done... {file_name}");
+            info!("Done... {}", file_name);
         }
         Err(e) => {
             warn!("{e}")
@@ -139,10 +139,10 @@ pub(crate) async fn parse_flv(
         match &flv_tag {
             FlvTag {
                 data:
-                    TagDataHeader::Video {
-                        frame_type: FrameType::Key,
-                        ..
-                    },
+                TagDataHeader::Video {
+                    frame_type: FrameType::Key,
+                    ..
+                },
                 ..
             } => {
                 let timestamp = flv_tag.header.timestamp as u64;
@@ -235,7 +235,10 @@ impl Connection {
         }
     }
 
-    pub async fn read_frame(&mut self, chunk_size: usize) -> crate::downloader::error::Result<Bytes> {
+    pub async fn read_frame(
+        &mut self,
+        chunk_size: usize,
+    ) -> crate::downloader::error::Result<Bytes> {
         // let mut buf = [0u8; 8 * 1024];
         loop {
             if chunk_size <= self.buffer.len() {
@@ -270,7 +273,6 @@ impl Connection {
 
 #[cfg(test)]
 mod tests {
-
     use anyhow::Result;
     use bytes::{Buf, BufMut, BytesMut};
 

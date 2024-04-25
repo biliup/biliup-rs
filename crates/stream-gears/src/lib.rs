@@ -14,6 +14,7 @@ use biliup::downloader::construct_headers;
 use biliup::downloader::util::Segmentable;
 use tracing_subscriber::layer::SubscriberExt;
 use biliup::credential::Credential;
+use biliup::downloader::extractor::CallbackFn;
 
 #[derive(FromPyObject)]
 pub enum PySegment {
@@ -34,6 +35,18 @@ fn download(
     header_map: HashMap<String, String>,
     file_name: &str,
     segment: PySegment,
+) -> PyResult<()> {
+    download_2(py, url, header_map, file_name, segment, None)
+}
+
+#[pyfunction]
+fn download_2(
+    py: Python<'_>,
+    url: &str,
+    header_map: HashMap<String, String>,
+    file_name: &str,
+    segment: PySegment,
+    file_name_callback_fn: Option<PyObject>,
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let map = construct_headers(header_map);
@@ -56,13 +69,26 @@ fn download(
             .with_timer(local_time)
             .with_writer(non_blocking);
 
-        let collector = formatting_layer.with(file_layer);
         let segment = match segment {
             PySegment::Time { time } => Segmentable::new(Some(Duration::from_secs(time)), None),
             PySegment::Size { size } => Segmentable::new(None, Some(size)),
         };
+
+        let file_name_hook = file_name_callback_fn.map(|callback_fn| -> CallbackFn {
+            Box::new(move |fmt_file_name| {
+                Python::with_gil(|py| {
+                    match callback_fn.call1(py, (fmt_file_name, )) {
+                        Ok(_) => {}
+                        Err(_) => { tracing::error!("Unable to invoke the callback function.") }
+                    }
+                })
+            })
+        });
+
+
+        let collector = formatting_layer.with(file_layer);
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
-            match biliup::downloader::download(url, map, file_name, segment) {
+            match biliup::downloader::download(url, map, file_name, segment, file_name_hook) {
                 Ok(res) => Ok(res),
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "{}, {}",
@@ -73,6 +99,7 @@ fn download(
         })
     })
 }
+
 #[pyfunction]
 fn login_by_cookies(file: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -86,6 +113,7 @@ fn login_by_cookies(file: String) -> PyResult<bool> {
         ))),
     }
 }
+
 #[pyfunction]
 fn send_sms(country_code: u32, phone: u64) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -98,6 +126,7 @@ fn send_sms(country_code: u32, phone: u64) -> PyResult<String> {
         ))),
     }
 }
+
 #[pyfunction]
 fn login_by_sms(code: u32, ret: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -108,6 +137,7 @@ fn login_by_sms(code: u32, ret: String) -> PyResult<bool> {
         Err(_) => Ok(false),
     }
 }
+
 #[pyfunction]
 fn get_qrcode() -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -120,6 +150,7 @@ fn get_qrcode() -> PyResult<String> {
         ))),
     }
 }
+
 #[pyfunction]
 fn login_by_qrcode(ret: String) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -132,6 +163,7 @@ fn login_by_qrcode(ret: String) -> PyResult<String> {
         err
     )))
 }
+
 #[pyfunction]
 fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -144,6 +176,7 @@ fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
         ))),
     }
 }
+
 #[pyfunction]
 fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -228,7 +261,7 @@ fn upload(
                 .build();
 
             match rt.block_on(uploader::upload(studio_pre)) {
-                Ok(res) => Ok(()),
+                Ok(_) => Ok(()),
                 // Ok(_) => {  },
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "{}, {}",
@@ -250,6 +283,7 @@ fn stream_gears(m: &Bound<'_, PyModule>) -> PyResult<()> {
     //     .init();
     m.add_function(wrap_pyfunction!(upload, m)?)?;
     m.add_function(wrap_pyfunction!(download, m)?)?;
+    m.add_function(wrap_pyfunction!(download_2, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_cookies, m)?)?;
     m.add_function(wrap_pyfunction!(send_sms, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_qrcode, m)?)?;

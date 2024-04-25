@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 from enum import Enum
 
 from .pyobject import Segment, Credit
@@ -15,6 +15,22 @@ def download(url: str,
     :param Dict[str, str] header_map: HTTP请求头
     :param str file_name: 文件名格式
     :param Segment segment: 视频分段设置
+    """
+
+
+def download_2(url: str,
+               header_map: Dict[str, str],
+               file_name: str,
+               segment: Segment,
+               file_name_callback_fn: Callable[[str], None]) -> None:
+    """
+    下载视频
+    
+    :param str url: 视频地址
+    :param Dict[str, str] header_map: HTTP请求头
+    :param str file_name: 文件名格式
+    :param Segment segment: 视频分段设置
+    :param Callable[[str], None] file_name_callback_fn: 回调已下载完成文件名
     """
 
 
