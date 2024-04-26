@@ -36,11 +36,11 @@ fn download(
     file_name: &str,
     segment: PySegment,
 ) -> PyResult<()> {
-    download_2(py, url, header_map, file_name, segment, None)
+    download_with_callback(py, url, header_map, file_name, segment, None)
 }
 
 #[pyfunction]
-fn download_2(
+fn download_with_callback(
     py: Python<'_>,
     url: &str,
     header_map: HashMap<String, String>,
@@ -283,7 +283,7 @@ fn stream_gears(m: &Bound<'_, PyModule>) -> PyResult<()> {
     //     .init();
     m.add_function(wrap_pyfunction!(upload, m)?)?;
     m.add_function(wrap_pyfunction!(download, m)?)?;
-    m.add_function(wrap_pyfunction!(download_2, m)?)?;
+    m.add_function(wrap_pyfunction!(download_with_callback, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_cookies, m)?)?;
     m.add_function(wrap_pyfunction!(send_sms, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_qrcode, m)?)?;

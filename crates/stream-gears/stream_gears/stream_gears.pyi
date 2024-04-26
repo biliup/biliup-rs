@@ -18,7 +18,7 @@ def download(url: str,
     """
 
 
-def download_2(url: str,
+def download_with_callback(url: str,
                header_map: Dict[str, str],
                file_name: str,
                segment: Segment,
