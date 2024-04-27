@@ -75,7 +75,7 @@ impl Site {
             }
             Extension::Ts => {
                 let file = LifecycleFile::new(&fmt_file_name, "ts", hook);
-                hls::download(&self.direct_url, &self.client, &file.fmt_file_name, segment).await?
+                hls::download(&self.direct_url, &self.client, file, segment).await?
             }
         }
         Ok(())

@@ -424,7 +424,7 @@ impl Credential {
                 .error_for_status()?;
             let full = raw.bytes().await?;
 
-            let res: ResponseData<ResponseValue> = serde_json::from_slice(&full).map_err(|e| Kind::Custom(format!("error decoding response body, content: {:#?}", String::from_utf8_lossy(&full))))?;
+            let res: ResponseData<ResponseValue> = serde_json::from_slice(&full).map_err(|_| Kind::Custom(format!("error decoding response body, content: {:#?}", String::from_utf8_lossy(&full))))?;
             match res {
                 ResponseData {
                     code: 0,

@@ -1,11 +1,11 @@
 use crate::downloader::error::Result;
-use crate::downloader::util::{format_filename, Segmentable};
+use crate::downloader::util::{LifecycleFile, Segmentable};
 use m3u8_rs::Playlist;
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time::Duration;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::client::StatelessClient;
@@ -13,7 +13,7 @@ use crate::client::StatelessClient;
 pub async fn download(
     url: &str,
     client: &StatelessClient,
-    file_name: &str,
+    file: LifecycleFile,
     mut splitting: Segmentable,
 ) -> Result<()> {
     info!("Downloading {}...", url);
@@ -21,7 +21,7 @@ pub async fn download(
     info!("{}", resp.status());
     // let mut resp = resp.bytes_stream();
     let bytes = resp.bytes().await?;
-    let mut ts_file = TsFile::new(file_name);
+    let mut ts_file = TsFile::new(file)?;
 
     let mut media_url = Url::parse(url)?;
     let mut pl = match m3u8_rs::parse_playlist(&bytes) {
@@ -62,7 +62,7 @@ pub async fn download(
                 debug!("Yield segment");
                 if segment.discontinuity {
                     warn!("#EXT-X-DISCONTINUITY");
-                    ts_file = TsFile::new(file_name);
+                    ts_file.create_new()?;
                     // splitting = Segment::from_seg(splitting);
                     splitting.reset();
                 }
@@ -71,12 +71,11 @@ pub async fn download(
                     client,
                     &mut ts_file.buf_writer,
                 )
-                .await?;
+                    .await?;
                 splitting.increase_size(length);
                 splitting.increase_time(Duration::from_secs(segment.duration as u64));
                 if splitting.needed() {
-                    ts_file = TsFile::new(file_name);
-                    info!("{} splitting.{splitting:?}", ts_file.name);
+                    ts_file.create_new()?;
                     splitting.reset();
                 }
                 previous_last_segment = seq;
@@ -110,34 +109,49 @@ async fn download_to_file(url: Url, client: &StatelessClient, out: &mut impl Wri
 
 pub struct TsFile {
     pub buf_writer: BufWriter<File>,
-    pub name: String,
+    pub file: LifecycleFile,
 }
 
 impl TsFile {
-    pub fn new(file_name: &str) -> Self {
-        let file_name = format_filename(file_name);
-        let out = File::create(format!("{file_name}.ts.part")).expect("Unable to create ts file.");
-        let buf_writer = BufWriter::new(out);
-        Self {
-            buf_writer,
-            name: file_name,
-        }
+    pub fn new(mut file: LifecycleFile) -> std::io::Result<Self> {
+        let path = file.create()?;
+        Ok(Self {
+            buf_writer: Self::create(path)?,
+            file,
+        })
+    }
+
+    pub fn create_new(&mut self) -> std::io::Result<()> {
+        self.file.rename();
+        let path = self.file.create()?;
+        self.buf_writer = Self::create(path)?;
+        Ok(())
+    }
+
+    fn create<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<BufWriter<File>> {
+        let path = path.as_ref();
+        let out = match File::create(path) {
+            Ok(o) => o,
+            Err(e) => {
+                return Err(std::io::Error::new(
+                    e.kind(),
+                    format!("Unable to create file {}", path.display()),
+                ));
+            }
+        };
+        info!("create file {}", path.display());
+        Ok(BufWriter::new(out))
     }
 }
 
 impl Drop for TsFile {
     fn drop(&mut self) {
-        std::fs::rename(
-            format!("{}.ts.part", self.name),
-            format!("{}.ts", self.name),
-        )
-        .unwrap_or_else(|e| error!("{e}"))
+        self.file.rename()
     }
 }
 
 #[cfg(test)]
 mod tests {
-
     use anyhow::Result;
     use reqwest::Url;
 
