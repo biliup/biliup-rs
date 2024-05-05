@@ -1,14 +1,9 @@
 use futures::Stream;
-#[cfg(target_family = "unix")]
-use jemallocator::Jemalloc;
 use rand::distributions::uniform::{UniformFloat, UniformSampler};
 use std::future::Future;
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::info;
-#[global_allocator]
-#[cfg(target_family = "unix")]
-static ALLOC: Jemalloc = Jemalloc;
 pub mod client;
 pub mod downloader;
 pub mod error;

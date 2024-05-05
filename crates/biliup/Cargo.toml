@@ -61,8 +61,5 @@ sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "sqlite" ], optio
 native-tls = { version = "0.2.11", features = ["vendored"] }
 openssl = { version = "0.10.42", features = ["vendored"] }
 
-[target.'cfg(target_family = "unix")'.dependencies]
-jemallocator = { version = "0.5", features = ["disable_initial_exec_tls"] }
-
 [features]
 server = ["indexmap", "axum", "tower-http", "sqlx"]
