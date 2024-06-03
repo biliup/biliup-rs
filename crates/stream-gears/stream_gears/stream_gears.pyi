@@ -138,6 +138,7 @@ def upload(video_path: List[str],
            lossless_music: int,
            no_reprint: int,
            open_elec: int,
+           up_close_reply: bool,
            limit: int,
            desc_v2: List[Credit],
            dtime: Optional[int],
@@ -159,6 +160,7 @@ def upload(video_path: List[str],
     :param int lossless_music: 是否开启Hi-Res, 0-关闭 1-开启
     :param int no_reprint: 是否禁止转载, 0-允许 1-禁止
     :param int open_elec: 是否开启充电, 0-关闭 1-开启
+    :param bool up_close_reply: 是否禁止评论, false-关闭 true-开启
     :param int limit: 单视频文件最大并发数
     :param List[Credit] desc_v2: 视频简介v2
     :param Optional[dtime] int dtime: 定时发布时间, 距离提交大于2小时小于15天, 格式为10位时间戳

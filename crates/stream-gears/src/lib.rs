@@ -208,6 +208,7 @@ fn upload(
     lossless_music: u8,
     no_reprint: u8,
     open_elec: u8,
+    up_close_reply: bool,
     limit: usize,
     desc_v2: Vec<PyCredit>,
     dtime: Option<u32>,
@@ -257,6 +258,7 @@ fn upload(
                 .lossless_music(lossless_music)
                 .no_reprint(no_reprint)
                 .open_elec(open_elec)
+                .up_close_reply(up_close_reply)
                 .desc_v2_credit(desc_v2)
                 .build();
 

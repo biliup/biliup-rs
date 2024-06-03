@@ -68,7 +68,7 @@ OPTIONS:
         --tid <TID>                    投稿分区 [default: 171]
         --title <TITLE>                视频标题 [default: ]
         --up-close-danmu
-        --up-close-reply
+        --up-close-reply <UP_CLOSE_REPLY> 是否禁止评论, false-关闭 true-开启 [default: false]
         --up-selection-reply
 ```
 
