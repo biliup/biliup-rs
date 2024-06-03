@@ -193,6 +193,11 @@ impl FromStr for Vid {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let s = s.trim();
+        if s.len() < 3 {
+            if s.parse::<i32>().is_err() {
+                panic!("Invalid input")
+            }
+        }
         match &s[..2] {
             "BV" => Ok(Vid::Bvid(s.to_string())),
             "av" => Ok(Vid::Aid(s[2..].parse()?)),
