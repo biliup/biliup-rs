@@ -192,7 +192,7 @@ fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="", copyright=2, source="", desc="", dynamic="", cover="", dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, limit=3, desc_v2, dtime, line))]
+#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="", copyright=2, source="", desc="", dynamic="", cover="", dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, limit=3, desc_v2=vec![], dtime=None, line=None))]
 fn upload(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
