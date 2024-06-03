@@ -113,7 +113,7 @@ pub struct Studio {
     #[serde(default)]
     pub up_selection_reply: bool,
 
-    #[clap(long, default_value = false)]
+    #[clap(long)]
     #[serde(default)]
     pub up_close_reply: bool,
 
