@@ -53,6 +53,7 @@ mod tests {
 
     #[test]
     fn it_works() {
+        assert_eq!(Ok(Vid::Aid(10)), Vid::from_str("10"));
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("971158452"));
         assert_eq!(Ok(Vid::Aid(971158452)), Vid::from_str("av971158452"));
         assert_eq!(

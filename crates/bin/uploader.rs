@@ -205,13 +205,16 @@ pub async fn upload(
     let mut videos = Vec::new();
     let client = StatelessClient::default();
     let line = match line {
-        Some(UploadLine::Kodo) => line::kodo(),
         Some(UploadLine::Bda2) => line::bda2(),
         Some(UploadLine::Ws) => line::ws(),
         Some(UploadLine::Qn) => line::qn(),
-        Some(UploadLine::Cos) => line::cos(),
-        Some(UploadLine::CosInternal) => line::cos_internal(),
+        // Some(UploadLine::Kodo) => line::kodo(),
+        // Some(UploadLine::Cos) => line::cos(),
+        // Some(UploadLine::CosInternal) => line::cos_internal(),
         Some(UploadLine::Bldsa) => line::bldsa(),
+        Some(UploadLine::Tx) => line::tx(),
+        Some(UploadLine::Txa) => line::txa(),
+        Some(UploadLine::Bda) => line::bda(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();

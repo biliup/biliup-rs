@@ -18,10 +18,10 @@ pub mod line;
 #[serde(rename_all = "lowercase")]
 pub enum Uploader {
     Upos,
-    Kodo,
-    Bos,
-    Gcs,
-    Cos,
+    // Kodo,
+    // Bos,
+    // Gcs,
+    // Cos,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -6,3 +6,4 @@
 *.png
 *.part
 data.db*
+*.whl
