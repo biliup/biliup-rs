@@ -56,6 +56,7 @@ pub struct StudioPre {
     lossless_music: u8,
     no_reprint: u8,
     open_elec: u8,
+    up_close_reply: bool,
     desc_v2_credit: Vec<PyCredit>,
 }
 
@@ -82,6 +83,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         lossless_music,
         no_reprint,
         open_elec,
+        up_close_reply,
         desc_v2_credit,
     } = studio_pre;
 
@@ -158,6 +160,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         .lossless_music(lossless_music)
         .no_reprint(no_reprint)
         .open_elec(open_elec)
+        .up_close_reply(up_close_reply)
         .desc_v2(Some(desc_v2))
         .build();
 
