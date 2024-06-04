@@ -105,10 +105,10 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         // Some(UploadLine::Kodo) => line::kodo(),
         // Some(UploadLine::Cos) => line::cos(),
         // Some(UploadLine::CosInternal) => line::cos_internal(),
-        Some(UploadLine::Bldsa) => line::bldsa(),
+        Some(UploadLine::Bda) => line::bda(),
         Some(UploadLine::Tx) => line::tx(),
         Some(UploadLine::Txa) => line::txa(),
-        Some(UploadLine::Bda) => line::bda(),
+        Some(UploadLine::Bldsa) => line::bldsa(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     for video_path in video_path {

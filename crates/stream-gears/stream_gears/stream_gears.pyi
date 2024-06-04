@@ -25,7 +25,7 @@ def download_with_callback(url: str,
                file_name_callback_fn: Callable[[str], None]) -> None:
     """
     下载视频
-    
+
     :param str url: 视频地址
     :param Dict[str, str] header_map: HTTP请求头
     :param str file_name: 文件名格式
@@ -111,14 +111,23 @@ class UploadLine(Enum):
     Qn = 3
     """七牛upos"""
 
-    Kodo = 4
-    """七牛bupfetch"""
+    # Kodo = 4
+    # """七牛bupfetch"""
 
-    Cos = 5
-    """腾讯bupfetch"""
+    # Cos = 5
+    # """腾讯bupfetch"""
 
-    CosInternal = 6
-    """上海腾讯云内网"""
+    # CosInternal = 6
+    # """上海腾讯云内网"""
+
+    Bda = 4
+    """百度云海外"""
+
+    Tx = 5
+    """腾讯云EO"""
+
+    Txa = 6
+    """腾讯云EO海外"""
 
     Bldsa = 7
     """Bldsa"""
