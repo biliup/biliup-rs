@@ -36,14 +36,14 @@ pub(crate) enum AppKeyStore {
 }
 
 impl AppKeyStore {
-    fn app_key(&self) -> &'static str {
+    pub fn app_key(&self) -> &'static str {
         match self {
             AppKeyStore::BiliTV => "4409e2ce8ffd12b8",
             AppKeyStore::Android => "783bbb7264451d82",
         }
     }
 
-    fn appsec(&self) -> &'static str {
+    pub fn appsec(&self) -> &'static str {
         match self {
             AppKeyStore::BiliTV => "59b43e04ad6965f34319062b478f83dd",
             AppKeyStore::Android => "2653583c8873dea268ab9386918b1d65",
@@ -571,7 +571,7 @@ impl Credential {
         Ok(())
     }
 
-    fn sign(param: &str, app_sec: &str) -> String {
+    pub fn sign(param: &str, app_sec: &str) -> String {
         let mut hasher = Md5::new();
         // process input message
         hasher.update(format!("{}{}", param, app_sec));

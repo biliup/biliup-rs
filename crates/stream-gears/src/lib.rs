@@ -192,7 +192,7 @@ fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, limit=3, desc_v2=vec![], dtime=None, line=None))]
+//#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, limit=3, desc_v2=vec![], dtime=None, line=None))]
 fn upload(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
@@ -210,6 +210,8 @@ fn upload(
     no_reprint: u8,
     open_elec: u8,
     up_close_reply: bool,
+    up_selection_reply: bool,
+    up_close_danmu: bool,
     limit: usize,
     desc_v2: Vec<PyCredit>,
     dtime: Option<u32>,
@@ -260,6 +262,8 @@ fn upload(
                 .no_reprint(no_reprint)
                 .open_elec(open_elec)
                 .up_close_reply(up_close_reply)
+                .up_selection_reply(up_selection_reply)
+                .up_close_danmu(up_close_danmu)
                 .desc_v2_credit(desc_v2)
                 .build();
 

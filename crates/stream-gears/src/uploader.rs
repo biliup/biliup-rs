@@ -57,6 +57,8 @@ pub struct StudioPre {
     no_reprint: u8,
     open_elec: u8,
     up_close_reply: bool,
+    up_selection_reply: bool,
+    up_close_danmu: bool,
     desc_v2_credit: Vec<PyCredit>,
 }
 
@@ -84,6 +86,8 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         no_reprint,
         open_elec,
         up_close_reply,
+        up_selection_reply,
+        up_close_danmu,
         desc_v2_credit,
     } = studio_pre;
 
@@ -161,6 +165,8 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         .no_reprint(no_reprint)
         .open_elec(open_elec)
         .up_close_reply(up_close_reply)
+        .up_selection_reply(up_selection_reply)
+        .up_close_danmu(up_close_danmu)
         .desc_v2(Some(desc_v2))
         .build();
 
