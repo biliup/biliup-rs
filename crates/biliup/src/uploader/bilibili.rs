@@ -221,6 +221,29 @@ pub struct BiliBili {
 
 impl BiliBili {
     pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
+            let ret: ResponseData = reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                .timeout(Duration::new(60, 0))
+                .build()?
+                .post(format!(
+                    "http://member.bilibili.com/x/vu/client/add?access_key={}",
+                    self.login_info.token_info.access_token
+                ))
+                .json(studio)
+                .send()
+                .await?
+                .json()
+                .await?;
+            info!("{:?}", ret);
+            if ret.code == 0 {
+                info!("投稿成功");
+                Ok(ret)
+            } else {
+                Err(Kind::Custom(format!("{:?}", ret)))
+            }
+        }
+
+    pub async fn submit_by_app(&self, studio: &Studio) -> Result<ResponseData> {
         let payload = {
             let mut payload = json!({
                 "access_key": self.login_info.token_info.access_token,

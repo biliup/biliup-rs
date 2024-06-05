@@ -2648,7 +2648,7 @@ dependencies = [
 
 [[package]]
 name = "stream-gears"
-version = "0.1.25"
+version = "0.1.24"
 dependencies = [
  "anyhow",
  "biliup",
