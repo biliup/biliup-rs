@@ -39,37 +39,37 @@ B 站命令行投稿工具，支持**短信登录**、**账号密码登录**、*
 
 ```shell
 $ biliup help upload
+上传视频
 
-USAGE:
-    biliup.exe upload [OPTIONS] [VIDEO_PATH]...
+Usage: biliup upload [OPTIONS] [VIDEO_PATH]...
 
-ARGS:
-    <VIDEO_PATH>...    需要上传的视频路径,若指定配置文件投稿不需要此参数
+Arguments:
+  [VIDEO_PATH]...  需要上传的视频路径,若指定配置文件投稿不需要此参数
 
-OPTIONS:
-    -c, --config <FILE>                Sets a custom config file
-        --copyright <COPYRIGHT>        是否转载, 1-自制 2-转载 [default: 1]
-        --cover <COVER>                视频封面 [default: ]
-        --desc <DESC>                  视频简介 [default: ]
-        --dolby <DOLBY>                是否开启杜比音效, 0-关闭 1-开启 [default: 0]
-        --hires <LOSSLESS_MUSIC>       是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
-        --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
-        --dynamic <DYNAMIC>            空间动态 [default: ]
-    -h, --help                         Print help information
-        --interactive <INTERACTIVE>    [default: 0]
-    -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, kodo, cos, cos-
-                                       internal, bldsa]
-        --limit <LIMIT>                单视频文件最大并发数 [default: 3]
-        --mission-id <MISSION_ID>
-        --no-reprint <NO_REPRINT>      自制声明, 0-允许转载，1-禁止转载 [default: 0]
-        --open-elec <OPEN_ELEC>        是否开启充电面板, 0-关闭 1-开启 [default: 0]
-        --source <SOURCE>              转载来源 [default: ]
-        --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
-        --tid <TID>                    投稿分区 [default: 171]
-        --title <TITLE>                视频标题 [default: ]
-        --up-close-danmu
-        --up-close-reply
-        --up-selection-reply
+Options:
+		--submit <SUBMIT>			提交接口 [default: client] [possible values: client, app, web]
+	-c, --config <FILE>				Sets a custom config file
+	-l, --line <LINE>				选择上传线路 [possible values: bda2, ws, qn, bldsa, tx, txa, bda]
+		--limit <LIMIT>				单视频文件最大并发数 [default: 3]
+		--copyright <COPYRIGHT>		是否转载, 1-自制 2-转载 [default: 1]
+		--source <SOURCE>			转载来源 [default: ]
+		--tid <TID>					投稿分区 [default: 171]
+		--cover <COVER>				视频封面 [default: ]
+		--title <TITLE>				视频标题 [default: ]
+		--desc <DESC>				视频简介 [default: ]
+		--dynamic <DYNAMIC>			空间动态 [default: ]
+		--tag <TAG>					视频标签，逗号分隔多个tag [default: ]
+		--dtime <DTIME>				延时发布时间，距离提交大于4小时，格式为10位时间戳
+		--interactive <INTERACTIVE>	[default: 0]
+		--mission-id <MISSION_ID>
+		--dolby <DOLBY>				是否开启杜比音效, 0-关闭 1-开启 [default: 0]
+		--hires <LOSSLESS_MUSIC>	是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
+		--no-reprint <NO_REPRINT>	0-允许转载，1-禁止转载 [default: 0]
+		--open-elec <OPEN_ELEC>		是否开启充电, 0-关闭 1-开启 [default: 0]
+		--up-selection-reply		是否开启精选评论，仅提交接口为app时可用
+		--up-close-reply			是否关闭评论，仅提交接口为app时可用
+		--up-close-danmu			是否关闭弹幕，仅提交接口为app时可用
+  	-h, --help						Print help
 ```
 
 - 下载视频：`./biliup download https://xxxx`
