@@ -202,7 +202,7 @@ impl FromStr for Vid {
         let s = s.trim();
         if s.len() < 3 {
             return s.parse::<u64>()
-                    .map(|val| Vid::Aid(val));
+                    .map(Vid::Aid);
         }
         match &s[..2] {
             "BV" => Ok(Vid::Bvid(s.to_string())),
