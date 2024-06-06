@@ -53,6 +53,7 @@ async fn main() -> Result<()> {
             line,
             limit,
             studio,
+            // submit,
         } => upload_by_command(studio, cli.user_cookie, video_path, line, limit).await?,
         Commands::Upload {
             video_path: _,

@@ -120,6 +120,10 @@ pub struct Studio {
     #[clap(long)]
     #[serde(default)]
     pub up_close_danmu: bool,
+
+    #[clap(long)]
+    #[serde(default)]
+    pub submit_by_app: bool,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -278,6 +282,7 @@ impl BiliBili {
             .await?;
         info!("{:?}", ret);
         if ret.code == 0 {
+            info!("APP接口投稿成功");
             Ok(ret)
         } else {
             Err(Kind::Custom(format!("{:?}", ret)))

@@ -50,6 +50,9 @@ pub enum Commands {
 
         #[command(flatten)]
         studio: Studio,
+
+        // #[arg(required = false, last = true, default_value = "client")]
+        // submit: Option<String>,
     },
     /// 是否要对某稿件追加视频
     Append {
