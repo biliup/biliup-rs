@@ -70,7 +70,7 @@ pub async fn upload_by_command(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
-    // submit: Option<String>,
+    submit: Option<String>,
 ) -> Result<()> {
     let bili = login_by_cookies(user_cookie).await?;
     if studio.title.is_empty() {
@@ -83,16 +83,17 @@ pub async fn upload_by_command(
     cover_up(&mut studio, &bili).await?;
     studio.videos = upload(&video_path, &bili, line, limit).await?;
 
-    if studio.submit_by_app {
-        bili.submit_by_app(&studio).await?;
-    }
-    else {
-        bili.submit(&studio).await?;
-    }
-    // match submit.as_deref() {
-    //     Some("app") => bili.submit_by_app(&studio).await?,
-    //     _ => bili.submit(&studio).await?,
-    // };
+    // if studio.submit_by_app {
+    //     bili.submit_by_app(&studio).await?;
+    // }
+    // else {
+    //     bili.submit(&studio).await?;
+    // }
+    // 说不定会适配 web 呢...?
+    match submit.as_deref() {
+        Some("app") => bili.submit_by_app(&studio).await?,
+        _ => bili.submit(&studio).await?,
+    };
 
     Ok(())
 }

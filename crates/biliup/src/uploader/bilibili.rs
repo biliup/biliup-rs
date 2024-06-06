@@ -109,21 +109,24 @@ pub struct Studio {
     #[clap(skip)]
     pub aid: Option<u64>,
 
+    /// 是否开启精选评论，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_selection_reply: bool,
 
+    /// 是否关闭评论，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_close_reply: bool,
 
+    /// 是否关闭弹幕，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_close_danmu: bool,
 
-    #[clap(long)]
-    #[serde(default)]
-    pub submit_by_app: bool,
+    // #[clap(long)]
+    // #[serde(default)]
+    // pub submit_by_app: bool,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
