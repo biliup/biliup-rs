@@ -192,6 +192,7 @@ fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
+//#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, limit=3, desc_v2=vec![], dtime=None, line=None))]
 fn upload(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
@@ -273,6 +274,95 @@ fn upload(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
+#[pyfunction]
+fn upload_by_app(
+    py: Python<'_>,
+    video_path: Vec<PathBuf>,
+    cookie_file: PathBuf,
+    title: String,
+    tid: u16,
+    tag: String,
+    copyright: u8,
+    source: String,
+    desc: String,
+    dynamic: String,
+    cover: String,
+    dolby: u8,
+    lossless_music: u8,
+    no_reprint: u8,
+    open_elec: u8,
+    up_close_reply: bool,
+    up_selection_reply: bool,
+    up_close_danmu: bool,
+    limit: usize,
+    desc_v2: Vec<PyCredit>,
+    dtime: Option<u32>,
+    line: Option<UploadLine>,
+) -> PyResult<()> {
+    py.allow_threads(|| {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        // 输出到控制台中
+        unsafe {
+            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        }
+        let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
+            "[year]-[month]-[day] [hour]:[minute]:[second]"
+        ));
+        let formatting_layer = tracing_subscriber::FmtSubscriber::builder()
+            // will be written to stdout.
+            // builds the subscriber.
+            .with_timer(local_time.clone())
+            .finish();
+        let file_appender = tracing_appender::rolling::never("", "upload.log");
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(false)
+            .with_timer(local_time)
+            .with_writer(non_blocking);
+
+        let collector = formatting_layer.with(file_layer);
+
+        tracing::subscriber::with_default(collector, || -> PyResult<()> {
+            let studio_pre = StudioPre::builder()
+                .video_path(video_path)
+                .cookie_file(cookie_file)
+                .line(line)
+                .limit(limit)
+                .title(title)
+                .tid(tid)
+                .tag(tag)
+                .copyright(copyright)
+                .source(source)
+                .desc(desc)
+                .dynamic(dynamic)
+                .cover(cover)
+                .dtime(dtime)
+                .dolby(dolby)
+                .lossless_music(lossless_music)
+                .no_reprint(no_reprint)
+                .open_elec(open_elec)
+                .up_close_reply(up_close_reply)
+                .up_selection_reply(up_selection_reply)
+                .up_close_danmu(up_close_danmu)
+                .desc_v2_credit(desc_v2)
+                .build();
+
+            match rt.block_on(uploader::upload_by_app(studio_pre)) {
+                Ok(_) => Ok(()),
+                // Ok(_) => {  },
+                Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "{}, {}",
+                    err.root_cause(),
+                    err
+                ))),
+            }
+        })
+    })
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn stream_gears(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -282,6 +372,7 @@ fn stream_gears(m: &Bound<'_, PyModule>) -> PyResult<()> {
     //     .with_writer(non_blocking)
     //     .init();
     m.add_function(wrap_pyfunction!(upload, m)?)?;
+    m.add_function(wrap_pyfunction!(upload_by_app, m)?)?;
     m.add_function(wrap_pyfunction!(download, m)?)?;
     m.add_function(wrap_pyfunction!(download_with_callback, m)?)?;
     m.add_function(wrap_pyfunction!(login_by_cookies, m)?)?;

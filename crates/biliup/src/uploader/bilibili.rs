@@ -221,14 +221,56 @@ pub struct BiliBili {
 
 impl BiliBili {
     pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
+            let ret: ResponseData = reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                .timeout(Duration::new(60, 0))
+                .build()?
+                .post(format!(
+                    "http://member.bilibili.com/x/vu/client/add?access_key={}",
+                    self.login_info.token_info.access_token
+                ))
+                .json(studio)
+                .send()
+                .await?
+                .json()
+                .await?;
+            info!("{:?}", ret);
+            if ret.code == 0 {
+                info!("投稿成功");
+                Ok(ret)
+            } else {
+                Err(Kind::Custom(format!("{:?}", ret)))
+            }
+        }
+
+    pub async fn submit_by_app(&self, studio: &Studio) -> Result<ResponseData> {
+        let payload = {
+            let mut payload = json!({
+                "access_key": self.login_info.token_info.access_token,
+                "appkey": crate::credential::AppKeyStore::BiliTV.app_key(),
+                "build": 7800300,
+                "c_locale": "zh-Hans_CN",
+                "channel": "bili",
+                "disable_rcmd": 0,
+                "mobi_app": "android",
+                "platform": "android",
+                "s_locale": "zh-Hans_CN",
+                "statistics": "\"appId\":1,\"platform\":3,\"version\":\"7.80.0\",\"abtest\":\"\"",
+                "ts": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = crate::credential::Credential::sign(&urlencoded, crate::credential::AppKeyStore::BiliTV.appsec());
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+
         let ret: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
             .timeout(Duration::new(60, 0))
             .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/add?access_key={}",
-                self.login_info.token_info.access_token
-            ))
+            .post("https://member.bilibili.com/x/vu/app/add")
+            .query(&payload)
             .json(studio)
             .send()
             .await?
@@ -236,7 +278,6 @@ impl BiliBili {
             .await?;
         info!("{:?}", ret);
         if ret.code == 0 {
-            info!("投稿成功");
             Ok(ret)
         } else {
             Err(Kind::Custom(format!("{:?}", ret)))
