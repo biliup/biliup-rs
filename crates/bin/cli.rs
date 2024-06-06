@@ -1,7 +1,7 @@
 use biliup::uploader::bilibili::{Studio, Vid};
 use clap::{Parser, Subcommand, ValueEnum};
 
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf, str::FromStr};
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -32,7 +32,7 @@ pub enum Commands {
     Upload {
         /// 提交接口
         #[arg(long, default_value = "client")]
-        submit: Option<String>,
+        submit: SubmitOption,
 
         // Optional name to operate on
         // name: Option<String>,
@@ -145,6 +145,36 @@ pub enum UploadLine {
     Txa,
     Bda
 }
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum SubmitOption {
+    Client,
+    App,
+    Web,
+}
+
+impl FromStr for SubmitOption {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<SubmitOption, Self::Err> {
+        match input {
+            "app" => Ok(SubmitOption::App),
+            _ => Ok(SubmitOption::Client),
+        }
+    }
+}
+
+impl fmt::Display for SubmitOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SubmitOption::Client => write!(f, "client"),
+            SubmitOption::App => write!(f, "app"),
+            SubmitOption::Web => todo!(),
+            // SubmitOption::Web => panic!("unsupported!"),
+        }
+    }
+}
+
 
 fn human_size(s: &str) -> Result<u64, String> {
     let ret = match s.as_bytes() {

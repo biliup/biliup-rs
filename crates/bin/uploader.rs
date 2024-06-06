@@ -1,4 +1,4 @@
-use crate::cli::UploadLine;
+use crate::cli::{SubmitOption, UploadLine};
 use anyhow::{anyhow, Context, Result};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
@@ -70,7 +70,7 @@ pub async fn upload_by_command(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
-    submit: Option<String>,
+    submit: SubmitOption,
 ) -> Result<()> {
     let bili = login_by_cookies(user_cookie).await?;
     if studio.title.is_empty() {
@@ -90,8 +90,8 @@ pub async fn upload_by_command(
     //     bili.submit(&studio).await?;
     // }
     // 说不定会适配 web 呢...?
-    match submit.as_deref() {
-        Some("app") => bili.submit_by_app(&studio).await?,
+    match submit {
+        SubmitOption::App => bili.submit_by_app(&studio).await?,
         _ => bili.submit(&studio).await?,
     };
 
