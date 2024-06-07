@@ -30,8 +30,13 @@ pub enum Commands {
     Renew,
     /// 上传视频
     Upload {
+        /// 提交接口
+        #[arg(long, default_value = "client")]
+        submit: SubmitOption,
+
         // Optional name to operate on
         // name: Option<String>,
+
         /// 需要上传的视频路径,若指定配置文件投稿不需要此参数
         #[arg()]
         video_path: Vec<PathBuf>,
@@ -50,6 +55,9 @@ pub enum Commands {
 
         #[command(flatten)]
         studio: Studio,
+
+        // #[arg(required = false, last = true, default_value = "client")]
+        // submit: Option<String>,
     },
     /// 是否要对某稿件追加视频
     Append {
@@ -140,6 +148,14 @@ pub enum UploadLine {
     Txa,
     Bda
 }
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum SubmitOption {
+    Client,
+    App,
+    Web,
+}
+
 
 fn human_size(s: &str) -> Result<u64, String> {
     let ret = match s.as_bytes() {

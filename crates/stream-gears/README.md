@@ -13,7 +13,3 @@ $python -m venv .env
 $source .env/bin/activate
 $maturin develop
 ```
-
-## Credits
-
-感谢 [Genteure](https://github.com/Genteure) 提供帮助。
