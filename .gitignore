@@ -7,3 +7,6 @@
 *.part
 data.db*
 *.whl
+.vscode
+*.json
+*.yaml
