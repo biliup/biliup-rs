@@ -146,7 +146,8 @@ pub enum UploadLine {
     Bldsa,
     Tx,
     Txa,
-    Bda
+    Bda,
+    Alia
 }
 
 #[derive(Debug, Clone, ValueEnum)]

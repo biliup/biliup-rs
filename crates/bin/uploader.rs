@@ -228,6 +228,7 @@ pub async fn upload(
         Some(UploadLine::Tx) => line::tx(),
         Some(UploadLine::Txa) => line::txa(),
         Some(UploadLine::Bda) => line::bda(),
+        Some(UploadLine::Alia) => line::alia(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();
