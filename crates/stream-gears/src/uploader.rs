@@ -27,7 +27,8 @@ pub enum UploadLine {
     Bldsa,
     Tx,
     Txa,
-    Bda
+    Bda,
+    Alia
 }
 
 #[derive(FromPyObject)]
@@ -116,6 +117,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         Some(UploadLine::Tx) => line::tx(),
         Some(UploadLine::Txa) => line::txa(),
         Some(UploadLine::Bldsa) => line::bldsa(),
+        Some(UploadLine::Alia) => line::alia(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     for video_path in video_path {
@@ -237,6 +239,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         Some(UploadLine::Tx) => line::tx(),
         Some(UploadLine::Txa) => line::txa(),
         Some(UploadLine::Bldsa) => line::bldsa(),
+        Some(UploadLine::Alia) => line::alia(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     for video_path in video_path {
