@@ -129,7 +129,7 @@ pub struct Studio {
     // #[serde(default)]
     // pub submit_by_app: bool,
     /// 自定义提交参数
-    #[clap(long = "extra_fields", value_parser = parse_extra_fields)]
+    #[clap(long, value_parser = parse_extra_fields)]
     #[serde(flatten)]
     pub extra_fields: Option<HashMap<String, Value>>,
 }
