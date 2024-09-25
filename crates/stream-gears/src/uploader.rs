@@ -9,6 +9,7 @@ use futures::StreamExt;
 use pyo3::prelude::*;
 use pyo3::pyclass;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Instant;
 use tracing::info;
@@ -28,7 +29,7 @@ pub enum UploadLine {
     Tx,
     Txa,
     Bda,
-    Alia
+    Alia,
 }
 
 #[derive(FromPyObject)]
@@ -60,13 +61,15 @@ pub struct StudioPre {
     lossless_music: u8,
     no_reprint: u8,
     open_elec: u8,
-    #[builder(default=false)]
+    #[builder(default = false)]
     up_close_reply: bool,
-    #[builder(default=false)]
+    #[builder(default = false)]
     up_selection_reply: bool,
-    #[builder(default=false)]
+    #[builder(default = false)]
     up_close_danmu: bool,
     desc_v2_credit: Vec<PyCredit>,
+    #[builder(default)]
+    extra_fields: Option<HashMap<String, serde_json::Value>>,
 }
 
 pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
@@ -93,6 +96,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         no_reprint,
         open_elec,
         desc_v2_credit,
+        extra_fields,
         ..
     } = studio_pre;
 
@@ -173,6 +177,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         .no_reprint(no_reprint)
         .open_elec(open_elec)
         .desc_v2(Some(desc_v2))
+        .extra_fields(extra_fields)
         .build();
 
     if !studio.cover.is_empty() {
@@ -216,6 +221,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         up_selection_reply,
         up_close_danmu,
         desc_v2_credit,
+        extra_fields,
     } = studio_pre;
 
     let bilibili = login_by_cookies(&cookie_file).await;
@@ -298,6 +304,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         .up_selection_reply(up_selection_reply)
         .up_close_danmu(up_close_danmu)
         .desc_v2(Some(desc_v2))
+        .extra_fields(extra_fields)
         .build();
 
     if !studio.cover.is_empty() {
