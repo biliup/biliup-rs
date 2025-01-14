@@ -153,7 +153,9 @@ def upload(video_path: List[str],
            limit: int,
            desc_v2: List[Credit],
            dtime: Optional[int],
-           line: Optional[UploadLine]) -> None:
+           line: Optional[UploadLine],
+           extra_fields: Optional[str])    -> None:
+    
     """
     上传视频稿件
 
@@ -175,6 +177,7 @@ def upload(video_path: List[str],
     :param List[Credit] desc_v2: 视频简介v2
     :param Optional[dtime] int dtime: 定时发布时间, 距离提交大于2小时小于15天, 格式为10位时间戳
     :param Optional[UploadLine] line: 上传线路
+    :param Optional[ExtraFields] line: 上传额外参数
     """
 
 def upload_by_app(video_path: List[str],
@@ -197,7 +200,8 @@ def upload_by_app(video_path: List[str],
            limit: int,
            desc_v2: List[Credit],
            dtime: Optional[int],
-           line: Optional[UploadLine]) -> None:
+           line: Optional[UploadLine],
+           extra_fields: Optional[str])    -> None:
     """
     上传视频稿件
 
@@ -222,4 +226,5 @@ def upload_by_app(video_path: List[str],
     :param List[Credit] desc_v2: 视频简介v2
     :param Optional[dtime] int dtime: 定时发布时间, 距离提交大于2小时小于15天, 格式为10位时间戳
     :param Optional[UploadLine] line: 上传线路
+    :param Optional[ExtraFields] line: 上传额外参数
     """
