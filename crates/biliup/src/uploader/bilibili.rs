@@ -235,20 +235,43 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
-    pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
-        let ret: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/add?access_key={}",
-                self.login_info.token_info.access_token
-            ))
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
+    pub async fn submit(&self, studio: &Studio,proxy : Option<String>) -> Result<ResponseData> {
+        // 判断是否有代理 创建ret
+        let ret = match proxy {
+            Some(proxy) => {
+                let ret: ResponseData = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                    .timeout(Duration::new(60, 0))
+                    .proxy(reqwest::Proxy::all(proxy).unwrap())
+                    .build()?
+                    .post(format!(
+                        "http://member.bilibili.com/x/vu/client/add?access_key={}",
+                        self.login_info.token_info.access_token
+                    ))
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+            None => {
+                let ret: ResponseData = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                    .timeout(Duration::new(60, 0))
+                    .build()?
+                    .post(format!(
+                        "http://member.bilibili.com/x/vu/client/add?access_key={}",
+                        self.login_info.token_info.access_token
+                    ))
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+        };
         info!("{:?}", ret);
         if ret.code == 0 {
             info!("投稿成功");
@@ -258,7 +281,7 @@ impl BiliBili {
         }
     }
 
-    pub async fn submit_by_app(&self, studio: &Studio) -> Result<ResponseData> {
+    pub async fn submit_by_app(&self, studio: &Studio,proxy : Option<String>) -> Result<ResponseData> {
         let payload = {
             let mut payload = json!({
                 "access_key": self.login_info.token_info.access_token,
@@ -282,18 +305,38 @@ impl BiliBili {
             payload["sign"] = Value::from(sign);
             payload
         };
-
-        let ret: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post("https://member.bilibili.com/x/vu/app/add")
-            .query(&payload)
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
+        // 判断是否有代理
+        let ret = match proxy {
+            Some(proxy) => {
+                let ret: ResponseData = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
+                    .timeout(Duration::new(60, 0))
+                    .proxy(reqwest::Proxy::all(proxy).unwrap())
+                    .build()?
+                    .post("https://member.bilibili.com/x/vu/app/add")
+                    .query(&payload)
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+            None => {
+                let ret: ResponseData = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
+                    .timeout(Duration::new(60, 0))
+                    .build()?
+                    .post("https://member.bilibili.com/x/vu/app/add")
+                    .query(&payload)
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+        };
         info!("{:?}", ret);
         if ret.code == 0 {
             info!("APP接口投稿成功");
@@ -303,20 +346,43 @@ impl BiliBili {
         }
     }
 
-    pub async fn edit(&self, studio: &Studio) -> Result<serde_json::Value> {
-        let ret: serde_json::Value = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/edit?access_key={}",
-                self.login_info.token_info.access_token
-            ))
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
+    pub async fn edit(&self, studio: &Studio,proxy : Option<String>) -> Result<serde_json::Value> {
+        // 判断是否有代理
+        let ret:serde_json::Value = match proxy {
+            Some(proxy) => {
+                let ret:serde_json::Value = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                    .timeout(Duration::new(60, 0))
+                    .proxy(reqwest::Proxy::all(proxy).unwrap())
+                    .build()?
+                    .post(format!(
+                    "http://member.bilibili.com/x/vu/client/edit?access_key={}",
+                    self.login_info.token_info.access_token
+                    ))
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+            None => {
+                let ret:serde_json::Value = reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                    .timeout(Duration::new(60, 0))
+                    .build()?
+                    .post(format!(
+                    "http://member.bilibili.com/x/vu/client/edit?access_key={}",
+                    self.login_info.token_info.access_token
+                    ))
+                    .json(studio)
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                ret
+            }
+        };
         info!("{}", ret);
         if ret["code"] == 0 {
             info!("稿件修改成功");
@@ -327,19 +393,38 @@ impl BiliBili {
     }
 
     /// 查询视频的 json 信息
-    pub async fn video_data(&self, vid: &Vid) -> Result<Value> {
-        let res: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .get(format!(
+    pub async fn video_data(&self, vid: &Vid,proxy : Option<String>) -> Result<Value> {
+        let res: ResponseData = match proxy {
+            Some(proxy) => {
+            reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                .timeout(Duration::new(60, 0))
+                .proxy(reqwest::Proxy::all(proxy).unwrap())
+                .build()?
+                .get(format!(
                 "http://member.bilibili.com/x/client/archive/view?access_key={}&{vid}",
                 self.login_info.token_info.access_token
-            ))
-            .send()
-            .await?
-            .json()
-            .await?;
+                ))
+                .send()
+                .await?
+                .json()
+                .await?
+            }
+            None => {
+            reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                .timeout(Duration::new(60, 0))
+                .build()?
+                .get(format!(
+                "http://member.bilibili.com/x/client/archive/view?access_key={}&{vid}",
+                self.login_info.token_info.access_token
+                ))
+                .send()
+                .await?
+                .json()
+                .await?
+            }
+        };
         match res {
             res @ ResponseData {
                 code: _,
@@ -354,8 +439,8 @@ impl BiliBili {
         }
     }
 
-    pub async fn studio_data(&self, vid: &Vid) -> Result<Studio> {
-        let mut video_info = self.video_data(vid).await?;
+    pub async fn studio_data(&self, vid: &Vid,proxy : Option<String>) -> Result<Studio> {
+        let mut video_info = self.video_data(vid,proxy).await?;
 
         let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
         let videos: Vec<Video> = serde_json::from_value(video_info["videos"].take())?;

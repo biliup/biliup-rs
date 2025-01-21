@@ -17,14 +17,27 @@ pub struct StatelessClient {
 }
 
 impl StatelessClient {
-    pub fn new(headers: HeaderMap) -> Self {
-        let client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
-            .default_headers(headers)
-            // .timeout(Duration::new(60, 0))
-            .connect_timeout(Duration::from_secs(60))
-            .build()
-            .unwrap();
+    pub fn new(headers: HeaderMap,proxy: Option<String>) -> Self {
+        // 判断是否有代理
+        let client = match proxy {
+            Some(proxy) => {
+                reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
+                    .default_headers(headers)
+                    .proxy(reqwest::Proxy::all(proxy).unwrap())
+                    .connect_timeout(Duration::from_secs(60))
+                    .build()
+                    .unwrap()
+            }
+            None => {
+                reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
+                    .default_headers(headers)
+                    .connect_timeout(Duration::from_secs(60))
+                    .build()
+                    .unwrap()
+            }
+        };
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(5);
         let client_with_middleware = ClientBuilder::new(client.clone())
             // Retry failed requests.
@@ -64,21 +77,34 @@ pub struct StatefulClient {
 }
 
 impl StatefulClient {
-    pub fn new(headers: HeaderMap) -> Self {
+    pub fn new(headers: HeaderMap,proxy: Option<String>) -> Self {
         let cookie_store = reqwest_cookie_store::CookieStore::default();
         let cookie_store = CookieStoreMutex::new(cookie_store);
         let cookie_store = Arc::new(cookie_store);
+        // 判断是否有代理
+        let client = match proxy {
+            Some(proxy) => {
+                reqwest::Client::builder()
+                    .cookie_provider(std::sync::Arc::clone(&cookie_store))
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
+                    .default_headers(headers)
+                    .proxy(reqwest::Proxy::all(proxy).unwrap())
+                    .connect_timeout(Duration::from_secs(60))
+                    .build()
+                    .unwrap()
+            }
+            None => {
+                reqwest::Client::builder()
+                    .cookie_provider(std::sync::Arc::clone(&cookie_store))
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
+                    .default_headers(headers)
+                    .connect_timeout(Duration::from_secs(60))
+                    .build()
+                    .unwrap()
+            }
+        };
         StatefulClient {
-            client: reqwest::Client::builder()
-                .cookie_provider(std::sync::Arc::clone(&cookie_store))
-                .user_agent(
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108",
-                )
-                .default_headers(headers)
-                .connect_timeout(Duration::from_secs(60))
-                // .timeout(Duration::new(60, 0))
-                .build()
-                .unwrap(),
+            client,
             cookie_store,
             buvid: generate_buvid(),
         }
@@ -87,7 +113,7 @@ impl StatefulClient {
 
 impl Default for StatelessClient {
     fn default() -> Self {
-        Self::new(header::HeaderMap::new())
+        Self::new(header::HeaderMap::new(),None)
     }
 }
 

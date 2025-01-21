@@ -13,6 +13,10 @@ pub struct Cli {
     #[clap(subcommand)]
     pub command: Commands,
 
+    /// 配置代理
+    #[arg(short, long, default_value = None)]
+    pub proxy: Option<String>,
+
     /// 登录信息文件
     #[arg(short, long, default_value = "cookies.json")]
     pub user_cookie: PathBuf,

@@ -35,8 +35,9 @@ fn download(
     header_map: HashMap<String, String>,
     file_name: &str,
     segment: PySegment,
+    proxy: Option<String>
 ) -> PyResult<()> {
-    download_with_callback(py, url, header_map, file_name, segment, None)
+    download_with_callback(py, url, header_map, file_name, segment, None,proxy)
 }
 
 #[pyfunction]
@@ -47,6 +48,7 @@ fn download_with_callback(
     file_name: &str,
     segment: PySegment,
     file_name_callback_fn: Option<PyObject>,
+    proxy: Option<String>
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let map = construct_headers(header_map);
@@ -87,7 +89,7 @@ fn download_with_callback(
 
         let collector = formatting_layer.with(file_layer);
         tracing::subscriber::with_default(collector, || -> PyResult<()> {
-            match biliup::downloader::download(url, map, file_name, segment, file_name_hook) {
+            match biliup::downloader::download(url, map, file_name, segment, file_name_hook,proxy) {
                 Ok(res) => Ok(res),
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "{}, {}",
@@ -100,9 +102,9 @@ fn download_with_callback(
 }
 
 #[pyfunction]
-fn login_by_cookies(file: String) -> PyResult<bool> {
+fn login_by_cookies(file: String,proxy: Option<String>) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::login_by_cookies(&file).await });
+    let result = rt.block_on(async { login::login_by_cookies(&file,proxy).await });
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -114,9 +116,9 @@ fn login_by_cookies(file: String) -> PyResult<bool> {
 }
 
 #[pyfunction]
-fn send_sms(country_code: u32, phone: u64) -> PyResult<String> {
+fn send_sms(country_code: u32, phone: u64,proxy: Option<String>) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::send_sms(country_code, phone).await });
+    let result = rt.block_on(async { login::send_sms(country_code, phone,proxy).await });
     match result {
         Ok(res) => Ok(res.to_string()),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -127,10 +129,10 @@ fn send_sms(country_code: u32, phone: u64) -> PyResult<String> {
 }
 
 #[pyfunction]
-fn login_by_sms(code: u32, ret: String) -> PyResult<bool> {
+fn login_by_sms(code: u32, ret: String,proxy: Option<String>) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let result =
-        rt.block_on(async { login::login_by_sms(code, serde_json::from_str(&ret).unwrap()).await });
+        rt.block_on(async { login::login_by_sms(code, serde_json::from_str(&ret).unwrap(),proxy).await });
     match result {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
@@ -138,9 +140,9 @@ fn login_by_sms(code: u32, ret: String) -> PyResult<bool> {
 }
 
 #[pyfunction]
-fn get_qrcode() -> PyResult<String> {
+fn get_qrcode(proxy: Option<String>) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::get_qrcode().await });
+    let result = rt.block_on(async { login::get_qrcode(proxy).await });
     match result {
         Ok(res) => Ok(res.to_string()),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -151,10 +153,10 @@ fn get_qrcode() -> PyResult<String> {
 }
 
 #[pyfunction]
-fn login_by_qrcode(ret: String) -> PyResult<String> {
+fn login_by_qrcode(ret: String, proxy: Option<String>) -> PyResult<String> {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let info = Credential::new()
+        let info = Credential::new(proxy)
             .login_by_qrcode(serde_json::from_str(&ret).unwrap())
             .await?;
         let res = serde_json::to_string_pretty(&info)?;
@@ -164,9 +166,9 @@ fn login_by_qrcode(ret: String) -> PyResult<String> {
 }
 
 #[pyfunction]
-fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
+fn login_by_web_cookies(sess_data: String, bili_jct: String,proxy: Option<String>) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::login_by_web_cookies(&sess_data, &bili_jct).await });
+    let result = rt.block_on(async { login::login_by_web_cookies(&sess_data, &bili_jct,proxy).await });
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -177,9 +179,9 @@ fn login_by_web_cookies(sess_data: String, bili_jct: String) -> PyResult<bool> {
 }
 
 #[pyfunction]
-fn login_by_web_qrcode(sess_data: String, dede_user_id: String) -> PyResult<bool> {
+fn login_by_web_qrcode(sess_data: String, dede_user_id: String,proxy: Option<String>) -> PyResult<bool> {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let result = rt.block_on(async { login::login_by_web_qrcode(&sess_data, &dede_user_id).await });
+    let result = rt.block_on(async { login::login_by_web_qrcode(&sess_data, &dede_user_id,proxy).await });
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -212,6 +214,7 @@ fn upload(
     dtime: Option<u32>,
     line: Option<UploadLine>,
     extra_fields: Option<String>,
+    proxy: Option<String>
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -261,7 +264,7 @@ fn upload(
                 .extra_fields(Some(parse_extra_fields(extra_fields)))
                 .build();
 
-            match rt.block_on(uploader::upload(studio_pre)) {
+            match rt.block_on(uploader::upload(studio_pre,proxy)) {
                 Ok(_) => Ok(()),
                 // Ok(_) => {  },
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -276,7 +279,7 @@ fn upload(
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, up_close_danmu=false, limit=3, desc_v2=vec![], dtime=None, line=None, extra_fields="".to_string()))]
+#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, up_close_danmu=false, limit=3, desc_v2=vec![], dtime=None, line=None, extra_fields="".to_string(), proxy=None))]
 fn upload_by_app(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
@@ -301,6 +304,7 @@ fn upload_by_app(
     dtime: Option<u32>,
     line: Option<UploadLine>,
     extra_fields: Option<String>,
+    proxy: Option<String>
 ) -> PyResult<()> {
     py.allow_threads(|| {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -353,7 +357,7 @@ fn upload_by_app(
                 .extra_fields(Some(parse_extra_fields(extra_fields)))
                 .build();
 
-            match rt.block_on(uploader::upload_by_app(studio_pre)) {
+            match rt.block_on(uploader::upload_by_app(studio_pre,proxy.clone())) {
                 Ok(_) => Ok(()),
                 // Ok(_) => {  },
                 Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(

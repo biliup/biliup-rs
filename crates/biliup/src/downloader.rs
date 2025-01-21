@@ -26,8 +26,9 @@ pub async fn download(
     file_name: &str,
     segment: Segmentable,
     file_name_hook: Option<CallbackFn>,
+    proxy : Option<String>
 ) -> anyhow::Result<()> {
-    let client = StatelessClient::new(headers);
+    let client = StatelessClient::new(headers,proxy);
     let response = client.retryable(url).await?;
     let mut connection = Connection::new(response);
     // let buf = &mut [0u8; 9];
@@ -90,7 +91,7 @@ pub fn construct_headers(hash_map: HashMap<String, String>) -> HeaderMap {
 #[cfg(test)]
 mod tests {
     use crate::downloader::download;
-    use crate::downloader::util::{Segmentable};
+    use crate::downloader::util::Segmentable;
     use anyhow::Result;
     use reqwest::header::{HeaderMap, HeaderValue, REFERER};
 
@@ -111,6 +112,7 @@ mod tests {
             // Segment::Size(20 * 1024 * 1024, 0),
             Segmentable::new(Some(std::time::Duration::from_secs(6000)), None),
             None,
+            None
         )?;
         Ok(())
     }
