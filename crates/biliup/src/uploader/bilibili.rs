@@ -64,6 +64,11 @@ pub struct Studio {
     #[clap(long, default_value_t)]
     pub tag: String,
 
+    /// 视频参与话题(需要自己获取topic_id配合填写mission_id)
+    #[clap(long)]
+    #[serde(default)]
+    pub topic_id: Option<u32>,
+
     #[serde(default)]
     #[builder(!default)]
     #[clap(skip)]
