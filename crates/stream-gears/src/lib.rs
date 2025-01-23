@@ -193,6 +193,7 @@ fn login_by_web_qrcode(sess_data: String, dede_user_id: String,proxy: Option<Str
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
+#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), topic_id=None,copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, up_close_danmu=false, limit=3, desc_v2=vec![], dtime=None, line=None, extra_fields="".to_string(), proxy=None))]
 fn upload(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
@@ -200,6 +201,7 @@ fn upload(
     title: String,
     tid: u16,
     tag: String,
+    topic_id: Option<u32>,
     copyright: u8,
     source: String,
     desc: String,
@@ -250,6 +252,7 @@ fn upload(
                 .title(title)
                 .tid(tid)
                 .tag(tag)
+                .topic_id(topic_id)
                 .copyright(copyright)
                 .source(source)
                 .desc(desc)
@@ -279,7 +282,7 @@ fn upload(
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, up_close_danmu=false, limit=3, desc_v2=vec![], dtime=None, line=None, extra_fields="".to_string(), proxy=None))]
+#[pyo3(signature = (video_path, cookie_file, title, tid=171, tag="".to_string(), topic_id=None, copyright=2, source="".to_string(), desc="".to_string(), dynamic="".to_string(), cover="".to_string(), dolby=0, lossless_music=0, no_reprint=0, open_elec=0, up_close_reply=false, up_selection_reply=false, up_close_danmu=false, limit=3, desc_v2=vec![], dtime=None, line=None, extra_fields="".to_string(), proxy=None))]
 fn upload_by_app(
     py: Python<'_>,
     video_path: Vec<PathBuf>,
@@ -287,6 +290,7 @@ fn upload_by_app(
     title: String,
     tid: u16,
     tag: String,
+    topic_id: Option<u32>,
     copyright: u8,
     source: String,
     desc: String,
@@ -340,6 +344,7 @@ fn upload_by_app(
                 .title(title)
                 .tid(tid)
                 .tag(tag)
+                .topic_id(topic_id)
                 .copyright(copyright)
                 .source(source)
                 .desc(desc)
