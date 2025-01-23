@@ -41,35 +41,37 @@ B 站命令行投稿工具，支持**短信登录**、**账号密码登录**、*
 $ biliup help upload
 上传视频
 
-Usage: biliup upload [OPTIONS] [VIDEO_PATH]...
+Usage: biliup.exe upload [OPTIONS] [VIDEO_PATH]...
 
 Arguments:
   [VIDEO_PATH]...  需要上传的视频路径,若指定配置文件投稿不需要此参数
 
 Options:
-      --submit <SUBMIT>            提交接口 [default: client] [possible values: client, app, web]
-  -c, --config <FILE>              Sets a custom config file
-  -l, --line <LINE>                选择上传线路 [possible values: bda2, ws, qn, bldsa, tx, txa, bda]
-      --limit <LIMIT>              单视频文件最大并发数 [default: 3]
-      --copyright <COPYRIGHT>      是否转载, 1-自制 2-转载 [default: 1]
-      --source <SOURCE>            转载来源 [default: ]
-      --tid <TID>                  投稿分区 [default: 171]
-      --cover <COVER>              视频封面 [default: ]
-      --title <TITLE>              视频标题 [default: ]
-      --desc <DESC>                视频简介 [default: ]
-      --dynamic <DYNAMIC>          空间动态 [default: ]
-      --tag <TAG>                  视频标签，逗号分隔多个tag [default: ]
-      --dtime <DTIME>              延时发布时间，距离提交大于4小时，格式为10位时间戳
-      --interactive <INTERACTIVE>  [default: 0]
+      --submit <SUBMIT>              提交接口 [default: client] [possible values: client, app, web]
+  -c, --config <FILE>                Sets a custom config file
+  -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, bldsa, tx, txa, bda, alia]
+      --limit <LIMIT>                单视频文件最大并发数 [default: 3]
+      --copyright <COPYRIGHT>        是否转载, 1-自制 2-转载 [default: 1]
+      --source <SOURCE>              转载来源 [default: ]
+      --tid <TID>                    投稿分区 [default: 171]
+      --cover <COVER>                视频封面 [default: ]
+      --title <TITLE>                视频标题 [default: ]
+      --desc <DESC>                  视频简介 [default: ]
+      --dynamic <DYNAMIC>            空间动态 [default: ]
+      --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
+      --topic-id <TOPIC_ID>          视频参与话题(需要自己获取topic_id配合填写mission_id)
+      --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
+      --interactive <INTERACTIVE>    [default: 0]
       --mission-id <MISSION_ID>
-      --dolby <DOLBY>              是否开启杜比音效, 0-关闭 1-开启 [default: 0]
-      --hires <LOSSLESS_MUSIC>     是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
-      --no-reprint <NO_REPRINT>    0-允许转载，1-禁止转载 [default: 0]
-      --open-elec <OPEN_ELEC>      是否开启充电, 0-关闭 1-开启 [default: 0]
-      --up-selection-reply         是否开启精选评论，仅提交接口为app时可用
-      --up-close-reply             是否关闭评论，仅提交接口为app时可用
-      --up-close-danmu             是否关闭弹幕，仅提交接口为app时可用
-  -h, --help                       Print help
+      --dolby <DOLBY>                是否开启杜比音效, 0-关闭 1-开启 [default: 0]
+      --hires <LOSSLESS_MUSIC>       是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
+      --no-reprint <NO_REPRINT>      0-允许转载，1-禁止转载 [default: 0]
+      --open-elec <OPEN_ELEC>        是否开启充电, 0-关闭 1-开启 [default: 0]
+      --up-selection-reply           是否开启精选评论，仅提交接口为app时可用
+      --up-close-reply               是否关闭评论，仅提交接口为app时可用
+      --up-close-danmu               是否关闭弹幕，仅提交接口为app时可用
+      --extra-fields <EXTRA_FIELDS>  自定义提交参数
+  -h, --help                         Print help
 ```
 
 - 下载视频：`./biliup download https://xxxx`
@@ -80,23 +82,25 @@ Options:
 biliup 0.1.14
 Upload video to bilibili.
 
-USAGE:
-    biliup.exe [OPTIONS] <SUBCOMMAND>
+Usage: biliup.exe [OPTIONS] <COMMAND>
 
-OPTIONS:
-    -h, --help                         Print help information
-    -u, --user-cookie <USER_COOKIE>    登录信息文件 [default: cookies.json]
-    -V, --version                      Print version information
+Commands:
+  login     登录B站并保存登录信息
+  renew     手动验证并刷新登录信息
+  upload    上传视频
+  append    是否要对某稿件追加视频
+  show      打印视频详情
+  dump-flv  输出flv元数据
+  download  下载视频
+  list      列出所有已上传的视频
+  help      Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    append      是否要对某稿件追加视频
-    download    下载视频
-    dump-flv    输出flv元数据
-    help        Print this message or the help of the given subcommand(s)
-    login       登录B站并保存登录信息
-    renew       手动验证并刷新登录信息
-    show        打印视频详情
-    upload      上传视频
+Options:
+  -p, --proxy <PROXY>              配置代理
+  -u, --user-cookie <USER_COOKIE>  登录信息文件 [default: cookies.json]
+      --rust-log <RUST_LOG>        [default: tower_http=debug,info]
+  -h, --help                       Print help
+  -V, --version                    Print version
 ```
 
 ### 多账号支持
@@ -108,6 +112,12 @@ $biliup -u user1.json login
 $biliup --user-cookie user2.json upload ...
 $biliup renew  # ./cookies.json
 ```
+### 代理支持
+请在子命令**之前**通过 `-p` 或者 `--proxy` 参数传入 代理 的地址。例如：
+```powershell
+.\biliup.exe -p http://username:password@proxy.example.com:8080 upload
+```
+
 
 ### Windows 演示
 
