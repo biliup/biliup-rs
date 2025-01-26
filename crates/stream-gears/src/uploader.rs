@@ -73,7 +73,7 @@ pub struct StudioPre {
     extra_fields: Option<HashMap<String, serde_json::Value>>,
 }
 
-pub async fn upload(studio_pre: StudioPre, proxy: Option<String>) -> Result<ResponseData> {
+pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
     //     .write(true)
@@ -102,7 +102,7 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<String>) -> Result<Resp
         ..
     } = studio_pre;
 
-    let bilibili = login_by_cookies(&cookie_file, proxy.clone()).await;
+    let bilibili = login_by_cookies(&cookie_file, proxy).await;
     let bilibili = if let Err(Kind::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
@@ -194,10 +194,10 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<String>) -> Result<Resp
         studio.cover = url;
     }
 
-    Ok(bilibili.submit(&studio, proxy.clone()).await?)
+    Ok(bilibili.submit(&studio, proxy).await?)
 }
 
-pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<String>) -> Result<ResponseData> {
+pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
     //     .write(true)
@@ -228,7 +228,7 @@ pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<String>) -> Resu
         extra_fields,
     } = studio_pre;
 
-    let bilibili = login_by_cookies(&cookie_file, proxy.clone()).await;
+    let bilibili = login_by_cookies(&cookie_file, proxy).await;
     let bilibili = if let Err(Kind::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
@@ -323,5 +323,5 @@ pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<String>) -> Resu
         studio.cover = url;
     }
 
-    Ok(bilibili.submit_by_app(&studio, proxy.clone()).await?)
+    Ok(bilibili.submit_by_app(&studio, proxy).await?)
 }

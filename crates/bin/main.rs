@@ -43,9 +43,9 @@ async fn main() -> Result<()> {
         .init();
 
     match cli.command {
-        Commands::Login => login(cli.user_cookie, cli.proxy).await?,
+        Commands::Login => login(cli.user_cookie, cli.proxy.as_deref()).await?,
         Commands::Renew => {
-            renew(cli.user_cookie, cli.proxy).await?;
+            renew(cli.user_cookie, cli.proxy.as_deref()).await?;
         }
         Commands::Upload {
             video_path,
@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
                 line,
                 limit,
                 submit,
-                cli.proxy,
+                cli.proxy.as_deref(),
             )
             .await?
         }
@@ -70,15 +70,25 @@ async fn main() -> Result<()> {
             video_path: _,
             config: Some(config),
             ..
-        } => upload_by_config(config, cli.user_cookie, cli.proxy).await?,
+        } => upload_by_config(config, cli.user_cookie, cli.proxy.as_deref()).await?,
         Commands::Append {
             video_path,
             vid,
             line,
             limit,
             studio: _,
-        } => append(cli.user_cookie, vid, video_path, line, limit, cli.proxy).await?,
-        Commands::Show { vid } => show(cli.user_cookie, vid, cli.proxy).await?,
+        } => {
+            append(
+                cli.user_cookie,
+                vid,
+                video_path,
+                line,
+                limit,
+                cli.proxy.as_deref(),
+            )
+            .await?
+        }
+        Commands::Show { vid } => show(cli.user_cookie, vid, cli.proxy.as_deref()).await?,
         Commands::DumpFlv { file_name } => generate_json(file_name)?,
         Commands::Download {
             url,
@@ -92,7 +102,16 @@ async fn main() -> Result<()> {
             is_pubing,
             pubed,
             not_pubed,
-        } => list(cli.user_cookie, is_pubing, pubed, not_pubed, cli.proxy).await?,
+        } => {
+            list(
+                cli.user_cookie,
+                is_pubing,
+                pubed,
+                not_pubed,
+                cli.proxy.as_deref(),
+            )
+            .await?
+        }
     };
     Ok(())
 }

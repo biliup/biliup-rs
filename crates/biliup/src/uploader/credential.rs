@@ -51,7 +51,7 @@ impl AppKeyStore {
     }
 }
 
-pub async fn login_by_cookies(file: impl AsRef<Path>, proxy: Option<String>) -> Result<BiliBili> {
+pub async fn login_by_cookies(file: impl AsRef<Path>, proxy: Option<&str>) -> Result<BiliBili> {
     let client = Credential::new(proxy);
     // let path = file.as_ref();
     let mut file = std::fs::File::options().read(true).write(true).open(file)?;
@@ -127,7 +127,7 @@ pub struct OAuthInfo {
 pub struct Credential(StatefulClient);
 
 impl Credential {
-    pub fn new(proxy: Option<String>) -> Self {
+    pub fn new(proxy: Option<&str>) -> Self {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "Referer",

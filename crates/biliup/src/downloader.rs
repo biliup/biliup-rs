@@ -26,7 +26,7 @@ pub async fn download(
     file_name: &str,
     segment: Segmentable,
     file_name_hook: Option<CallbackFn>,
-    proxy: Option<String>,
+    proxy: Option<&str>,
 ) -> anyhow::Result<()> {
     let client = StatelessClient::new(headers, proxy);
     let response = client.retryable(url).await?;
