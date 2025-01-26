@@ -1,6 +1,6 @@
-use crate::client::StatelessClient;
+use biliup::client::StatelessClient;
 use crate::server::errors::AppResult;
-use crate::uploader::credential::login_by_cookies;
+use biliup::uploader::credential::login_by_cookies;
 use axum::extract::Query;
 use axum::{Extension, Json};
 use bytes::Bytes;
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub async fn archive_pre_endpoint(
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let bili = login_by_cookies("cookies.json").await?;
+    let bili = login_by_cookies("cookies.json", None).await?;
     Ok(Json(bili.archive_pre().await?))
 }
 
@@ -17,7 +17,7 @@ pub async fn get_myinfo_endpoint(
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
     println!("{}", &params["user"]);
-    let bili = login_by_cookies(&params["user"]).await?;
+    let bili = login_by_cookies(&params["user"], None).await?;
     Ok(Json(bili.my_info().await?))
 }
 

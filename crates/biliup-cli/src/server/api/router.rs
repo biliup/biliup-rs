@@ -1,4 +1,4 @@
-use crate::client::StatelessClient;
+use biliup::client::StatelessClient;
 
 use crate::server::api::endpoints::{
     add_streamer_endpoint, add_upload_streamer_endpoint, add_user_endpoint,

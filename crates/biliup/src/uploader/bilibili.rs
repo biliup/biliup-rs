@@ -13,129 +13,130 @@ use std::time::Duration;
 use tracing::info;
 use typed_builder::TypedBuilder;
 
-#[derive(clap::Args, Serialize, Deserialize, Debug, TypedBuilder)]
+#[derive(Serialize, Deserialize, Debug, TypedBuilder)]
 #[builder(field_defaults(default))]
+#[cfg_attr(feature = "cli", derive(clap::Args))]
 pub struct Studio {
     /// 是否转载, 1-自制 2-转载
-    #[clap(long, default_value = "1")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "1"))]
     #[builder(default = 1)]
     pub copyright: u8,
 
     /// 转载来源
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub source: String,
 
     /// 投稿分区
-    #[clap(long, default_value = "171")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "171"))]
     #[builder(default = 171)]
     pub tid: u16,
 
     /// 视频封面
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub cover: String,
 
     /// 视频标题
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     #[builder(!default, setter(into))]
     pub title: String,
 
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     pub desc_format_id: u32,
 
     /// 视频简介
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub desc: String,
 
     /// 视频简介v2
     #[serde(default)]
     #[builder(!default)]
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     pub desc_v2: Option<Vec<Credit>>,
 
     /// 空间动态
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub dynamic: String,
 
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     #[serde(default)]
     #[builder(default, setter(skip))]
     pub subtitle: Subtitle,
 
     /// 视频标签，逗号分隔多个tag
-    #[clap(long, default_value_t)]
+    #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub tag: String,
 
     /// 视频参与话题(需要自己获取topic_id配合填写mission_id)
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub topic_id: Option<u32>,
 
     #[serde(default)]
     #[builder(!default)]
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     pub videos: Vec<Video>,
 
     /// 延时发布时间，距离提交大于4小时，格式为10位时间戳
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     pub dtime: Option<u32>,
 
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     #[serde(default)]
     pub open_subtitle: bool,
 
-    #[clap(long, default_value = "0")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "0"))]
     #[serde(default)]
     pub interactive: u8,
 
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub mission_id: Option<u32>,
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
     /// 是否开启杜比音效, 0-关闭 1-开启
-    #[clap(long, default_value = "0")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "0"))]
     #[serde(default)]
     pub dolby: u8,
 
     /// 是否开启 Hi-Res, 0-关闭 1-开启
-    #[clap(long = "hires", default_value = "0")]
+    #[cfg_attr(feature = "cli", clap(long = "hires", default_value = "0"))]
     #[serde(default)]
     pub lossless_music: u8,
 
     /// 0-允许转载，1-禁止转载
-    #[clap(long, default_value = "0")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "0"))]
     #[serde(default)]
     pub no_reprint: u8,
 
     /// 是否开启充电, 0-关闭 1-开启
-    #[clap(long, default_value = "0")]
+    #[cfg_attr(feature = "cli", clap(long, default_value = "0"))]
     #[serde(default)]
     pub open_elec: u8,
 
     /// aid 要追加视频的 avid
-    #[clap(skip)]
+    #[cfg_attr(feature = "cli", clap(skip))]
     pub aid: Option<u64>,
 
     /// 是否开启精选评论，仅提交接口为app时可用
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub up_selection_reply: bool,
 
     /// 是否关闭评论，仅提交接口为app时可用
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub up_close_reply: bool,
 
     /// 是否关闭弹幕，仅提交接口为app时可用
-    #[clap(long)]
+    #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub up_close_danmu: bool,
     // #[clap(long)]
     // #[serde(default)]
     // pub submit_by_app: bool,
     /// 自定义提交参数
-    #[clap(long, value_parser = parse_extra_fields)]
+    #[cfg_attr(feature = "cli", clap(long, value_parser = parse_extra_fields))]
     #[serde(flatten)]
     pub extra_fields: Option<HashMap<String, Value>>,
 }

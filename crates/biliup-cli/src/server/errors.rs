@@ -39,9 +39,9 @@ pub enum AppError {
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
     #[error(transparent)]
-    DownloadError(#[from] crate::downloader::error::Error),
+    DownloadError(#[from] biliup::downloader::error::Error),
     #[error(transparent)]
-    UploadError(#[from] crate::error::Kind),
+    UploadError(#[from] biliup::error::Kind),
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
 }

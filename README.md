@@ -179,7 +179,7 @@ bilibili 投稿模式分主要为 fetch 和直传两种，线路概览：
 ```shell
 export DATABASE_URL="sqlite:data.db"
 cargo sqlx db create
-cargo sqlx migrate run --source .\crates\biliup\migrations\
+cargo sqlx migrate run --source .\crates\biliup-cli\migrations\
 cargo sqlx prepare  --merged
 cargo run -- server -b localhost
 ```

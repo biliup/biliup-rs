@@ -3,7 +3,7 @@ use crate::server::core::live_streamers::{
     LiveStreamersService,
 };
 use crate::server::core::upload_streamers::DynUploadStreamersRepository;
-use crate::uploader::bilibili::Studio;
+use biliup::uploader::bilibili::Studio;
 use async_trait::async_trait;
 
 #[derive(Clone)]

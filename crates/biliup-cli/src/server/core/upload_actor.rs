@@ -1,9 +1,9 @@
-use crate::client::StatelessClient;
-use crate::error::Kind;
-use crate::uploader::bilibili::{BiliBili, Studio, Vid, Video};
-use crate::uploader::credential::login_by_cookies;
-use crate::uploader::line::Line;
-use crate::uploader::VideoFile;
+use biliup::client::StatelessClient;
+use biliup::error::Kind;
+use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
+use biliup::uploader::credential::login_by_cookies;
+use biliup::uploader::line::Line;
+use biliup::uploader::VideoFile;
 use futures::StreamExt;
 use std::path::{Path, PathBuf};
 
@@ -41,7 +41,7 @@ impl UploadActor {
         bili: &BiliBili,
         line: Line,
         limit: usize,
-    ) -> crate::error::Result<Vec<Video>> {
+    ) -> biliup::error::Result<Vec<Video>> {
         let mut videos = Vec::new();
         for video_path in video_paths {
             println!("{:?}", video_path.canonicalize()?.to_str());
@@ -73,18 +73,18 @@ impl UploadActor {
         Ok(videos)
     }
 
-    async fn handle_message(&mut self, msg: ActorMessage) -> crate::error::Result<()> {
+    async fn handle_message(&mut self, msg: ActorMessage) -> biliup::error::Result<()> {
         match msg {
             ActorMessage::Upload { path } => {
-                let bili = login_by_cookies("cookies.json").await?;
+                let bili = login_by_cookies("cookies.json", None).await?;
                 let videos = self
                     .upload(&[path.as_path()], &bili, Default::default(), 3)
                     .await?;
 
                 if let Some(vid) = &self.vid {
-                    let mut studio = bili.studio_data(vid).await?;
+                    let mut studio = bili.studio_data(vid, None).await?;
                     studio.videos.extend(videos);
-                    bili.edit(&studio).await?;
+                    bili.edit(&studio, None).await?;
                 } else {
                     let studio = &mut self.studio;
                     studio.videos.extend(videos);
@@ -105,7 +105,7 @@ impl UploadActor {
                             .unwrap_or("录播")
                             .to_string();
                     }
-                    let result = bili.submit(studio).await?;
+                    let result = bili.submit(studio, None).await?;
                     self.vid = Some(
                         result
                             .data

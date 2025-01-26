@@ -1,5 +1,5 @@
 use crate::server::core::StreamStatus;
-use crate::uploader::bilibili::Studio;
+use biliup::uploader::bilibili::Studio;
 use async_trait::async_trait;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};

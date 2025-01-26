@@ -302,11 +302,13 @@ pub async fn login_by_sms(credential: Credential) -> Result<LoginInfo> {
 
             let challenge: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("请输入get.php响应中的challenge值")
-                .interact_text()?;
+                .interact_text()
+                .map_err(|e| e.to_string())?;
 
             let valiate: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("请输入ajax.php响应中的validate值")
-                .interact_text()?;
+                .interact_text()
+                .map_err(|e| e.to_string())?;
 
             Ok((challenge, valiate))
         })

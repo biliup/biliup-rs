@@ -7,8 +7,6 @@ use tracing::info;
 pub mod client;
 pub mod downloader;
 pub mod error;
-#[cfg(feature = "server")]
-pub mod server;
 pub mod uploader;
 
 pub use uploader::bilibili;

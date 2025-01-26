@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/biliup",
+    "crates/biliup-cli",
     "crates/stream-gears",
 ]
 resolver = "2"
