@@ -43,6 +43,22 @@ where
     }
 }
 
+trait ReqwestClientBuilderExt {
+    fn proxy_builder<U: reqwest::IntoUrl>(proxy: Option<U>) -> reqwest::ClientBuilder;
+}
+
+impl ReqwestClientBuilderExt for reqwest::Client {
+    fn proxy_builder<U: reqwest::IntoUrl>(proxy: Option<U>) -> reqwest::ClientBuilder {
+        match proxy {
+            Some(proxy) => {
+                tracing::debug!("使用代理: {}", proxy.as_str());
+                Self::builder().proxy(reqwest::Proxy::all(proxy).unwrap())
+            }
+            None => Self::builder(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::uploader::bilibili::Vid;

@@ -51,8 +51,8 @@ impl AppKeyStore {
     }
 }
 
-pub async fn login_by_cookies(file: impl AsRef<Path>) -> Result<BiliBili> {
-    let client = Credential::new();
+pub async fn login_by_cookies(file: impl AsRef<Path>, proxy: Option<&str>) -> Result<BiliBili> {
+    let client = Credential::new(proxy);
     // let path = file.as_ref();
     let mut file = std::fs::File::options().read(true).write(true).open(file)?;
     let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
@@ -127,13 +127,13 @@ pub struct OAuthInfo {
 pub struct Credential(StatefulClient);
 
 impl Credential {
-    pub fn new() -> Self {
+    pub fn new(proxy: Option<&str>) -> Self {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "Referer",
             header::HeaderValue::from_static("https://www.bilibili.com/"),
         );
-        Self(StatefulClient::new(headers))
+        Self(StatefulClient::new(headers, proxy))
     }
 
     async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData<ResponseValue>> {
@@ -424,7 +424,12 @@ impl Credential {
                 .error_for_status()?;
             let full = raw.bytes().await?;
 
-            let res: ResponseData<ResponseValue> = serde_json::from_slice(&full).map_err(|_| Kind::Custom(format!("error decoding response body, content: {:#?}", String::from_utf8_lossy(&full))))?;
+            let res: ResponseData<ResponseValue> = serde_json::from_slice(&full).map_err(|_| {
+                Kind::Custom(format!(
+                    "error decoding response body, content: {:#?}",
+                    String::from_utf8_lossy(&full)
+                ))
+            })?;
             match res {
                 ResponseData {
                     code: 0,
@@ -609,6 +614,6 @@ impl Credential {
 
 impl Default for Credential {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }

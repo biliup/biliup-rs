@@ -51,6 +51,7 @@ pub struct StudioPre {
     title: String,
     tid: u16,
     tag: String,
+    topic_id: Option<u32>,
     copyright: u8,
     source: String,
     desc: String,
@@ -72,7 +73,7 @@ pub struct StudioPre {
     extra_fields: Option<HashMap<String, serde_json::Value>>,
 }
 
-pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
+pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
     //     .write(true)
@@ -85,6 +86,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         title,
         tid,
         tag,
+        topic_id,
         copyright,
         source,
         desc,
@@ -100,7 +102,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         ..
     } = studio_pre;
 
-    let bilibili = login_by_cookies(&cookie_file).await;
+    let bilibili = login_by_cookies(&cookie_file, proxy).await;
     let bilibili = if let Err(Kind::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
@@ -169,6 +171,7 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         .dynamic(dynamic)
         .source(source)
         .tag(tag)
+        .topic_id(topic_id)
         .tid(tid)
         .title(title)
         .videos(videos)
@@ -191,10 +194,10 @@ pub async fn upload(studio_pre: StudioPre) -> Result<ResponseData> {
         studio.cover = url;
     }
 
-    Ok(bilibili.submit(&studio).await?)
+    Ok(bilibili.submit(&studio, proxy).await?)
 }
 
-pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
+pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result<ResponseData> {
     // let file = std::fs::File::options()
     //     .read(true)
     //     .write(true)
@@ -207,6 +210,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         title,
         tid,
         tag,
+        topic_id,
         copyright,
         source,
         desc,
@@ -224,7 +228,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         extra_fields,
     } = studio_pre;
 
-    let bilibili = login_by_cookies(&cookie_file).await;
+    let bilibili = login_by_cookies(&cookie_file, proxy).await;
     let bilibili = if let Err(Kind::IO(_)) = bilibili {
         bilibili
             .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
@@ -293,6 +297,7 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         .dynamic(dynamic)
         .source(source)
         .tag(tag)
+        .topic_id(topic_id)
         .tid(tid)
         .title(title)
         .videos(videos)
@@ -318,5 +323,5 @@ pub async fn upload_by_app(studio_pre: StudioPre) -> Result<ResponseData> {
         studio.cover = url;
     }
 
-    Ok(bilibili.submit_by_app(&studio).await?)
+    Ok(bilibili.submit_by_app(&studio, proxy).await?)
 }

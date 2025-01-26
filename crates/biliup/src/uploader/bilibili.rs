@@ -1,5 +1,6 @@
 use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
+use crate::ReqwestClientBuilderExt;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -63,6 +64,11 @@ pub struct Studio {
     /// 视频标签，逗号分隔多个tag
     #[clap(long, default_value_t)]
     pub tag: String,
+
+    /// 视频参与话题(需要自己获取topic_id配合填写mission_id)
+    #[clap(long)]
+    #[serde(default)]
+    pub topic_id: Option<u32>,
 
     #[serde(default)]
     #[builder(!default)]
@@ -235,8 +241,8 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
-    pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
-        let ret: ResponseData = reqwest::Client::builder()
+    pub async fn submit(&self, studio: &Studio, proxy: Option<&str>) -> Result<ResponseData> {
+        let ret: ResponseData = reqwest::Client::proxy_builder(proxy)
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -258,7 +264,11 @@ impl BiliBili {
         }
     }
 
-    pub async fn submit_by_app(&self, studio: &Studio) -> Result<ResponseData> {
+    pub async fn submit_by_app(
+        &self,
+        studio: &Studio,
+        proxy: Option<&str>,
+    ) -> Result<ResponseData> {
         let payload = {
             let mut payload = json!({
                 "access_key": self.login_info.token_info.access_token,
@@ -283,7 +293,7 @@ impl BiliBili {
             payload
         };
 
-        let ret: ResponseData = reqwest::Client::builder()
+        let ret: ResponseData = reqwest::Client::proxy_builder(proxy)
             .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -303,8 +313,8 @@ impl BiliBili {
         }
     }
 
-    pub async fn edit(&self, studio: &Studio) -> Result<serde_json::Value> {
-        let ret: serde_json::Value = reqwest::Client::builder()
+    pub async fn edit(&self, studio: &Studio, proxy: Option<&str>) -> Result<serde_json::Value> {
+        let ret: serde_json::Value = reqwest::Client::proxy_builder(proxy)
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -327,8 +337,8 @@ impl BiliBili {
     }
 
     /// 查询视频的 json 信息
-    pub async fn video_data(&self, vid: &Vid) -> Result<Value> {
-        let res: ResponseData = reqwest::Client::builder()
+    pub async fn video_data(&self, vid: &Vid, proxy: Option<&str>) -> Result<Value> {
+        let res: ResponseData = reqwest::Client::proxy_builder(proxy)
             .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
             .timeout(Duration::new(60, 0))
             .build()?
@@ -354,8 +364,8 @@ impl BiliBili {
         }
     }
 
-    pub async fn studio_data(&self, vid: &Vid) -> Result<Studio> {
-        let mut video_info = self.video_data(vid).await?;
+    pub async fn studio_data(&self, vid: &Vid, proxy: Option<&str>) -> Result<Studio> {
+        let mut video_info = self.video_data(vid, proxy).await?;
 
         let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
         let videos: Vec<Video> = serde_json::from_value(video_info["videos"].take())?;

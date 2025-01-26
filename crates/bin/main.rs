@@ -43,9 +43,9 @@ async fn main() -> Result<()> {
         .init();
 
     match cli.command {
-        Commands::Login => login(cli.user_cookie).await?,
+        Commands::Login => login(cli.user_cookie, cli.proxy.as_deref()).await?,
         Commands::Renew => {
-            renew(cli.user_cookie).await?;
+            renew(cli.user_cookie, cli.proxy.as_deref()).await?;
         }
         Commands::Upload {
             video_path,
@@ -54,20 +54,41 @@ async fn main() -> Result<()> {
             limit,
             studio,
             submit,
-        } => upload_by_command(studio, cli.user_cookie, video_path, line, limit, submit).await?,
+        } => {
+            upload_by_command(
+                studio,
+                cli.user_cookie,
+                video_path,
+                line,
+                limit,
+                submit,
+                cli.proxy.as_deref(),
+            )
+            .await?
+        }
         Commands::Upload {
             video_path: _,
             config: Some(config),
             ..
-        } => upload_by_config(config, cli.user_cookie).await?,
+        } => upload_by_config(config, cli.user_cookie, cli.proxy.as_deref()).await?,
         Commands::Append {
             video_path,
             vid,
             line,
             limit,
             studio: _,
-        } => append(cli.user_cookie, vid, video_path, line, limit).await?,
-        Commands::Show { vid } => show(cli.user_cookie, vid).await?,
+        } => {
+            append(
+                cli.user_cookie,
+                vid,
+                video_path,
+                line,
+                limit,
+                cli.proxy.as_deref(),
+            )
+            .await?
+        }
+        Commands::Show { vid } => show(cli.user_cookie, vid, cli.proxy.as_deref()).await?,
         Commands::DumpFlv { file_name } => generate_json(file_name)?,
         Commands::Download {
             url,
@@ -81,7 +102,16 @@ async fn main() -> Result<()> {
             is_pubing,
             pubed,
             not_pubed,
-        } => list(cli.user_cookie, is_pubing, pubed, not_pubed).await?,
+        } => {
+            list(
+                cli.user_cookie,
+                is_pubing,
+                pubed,
+                not_pubed,
+                cli.proxy.as_deref(),
+            )
+            .await?
+        }
     };
     Ok(())
 }
