@@ -71,7 +71,7 @@ pub async fn download(
                     client,
                     &mut ts_file.buf_writer,
                 )
-                    .await?;
+                .await?;
                 splitting.increase_size(length);
                 splitting.increase_time(Duration::from_secs(segment.duration as u64));
                 if splitting.needed() {

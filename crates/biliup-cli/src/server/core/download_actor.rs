@@ -1,11 +1,11 @@
-use crate::client::StatelessClient;
+use biliup::client::StatelessClient;
 
-use crate::downloader::extractor::{find_extractor, SiteDefinition};
-use crate::downloader::util::Segmentable;
 use crate::server::core::live_streamers::{DynLiveStreamersService, LiveStreamerDto};
 use crate::server::core::upload_actor::UploadActorHandle;
 use crate::server::core::util::{logging_spawn, AnyMap, Cycle};
 use crate::server::core::StreamStatus;
+use biliup::downloader::extractor::{find_extractor, SiteDefinition};
+use biliup::downloader::util::Segmentable;
 
 use indexmap::indexmap;
 

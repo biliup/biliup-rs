@@ -80,7 +80,7 @@ impl Upos {
         })
     }
 
-    pub async fn upload_stream<'a, F: 'a, B>(
+    pub async fn upload_stream<'a, F, B>(
         &'a self,
         // file: std::fs::File,
         stream: F,
@@ -88,7 +88,7 @@ impl Upos {
         limit: usize,
     ) -> Result<impl Stream<Item = Result<(serde_json::Value, usize)>> + 'a>
     where
-        F: Stream<Item = Result<(B, usize)>>,
+        F: Stream<Item = Result<(B, usize)>> + 'a,
         B: Into<Body> + Clone,
     {
         // let mut parts = Vec::new();
@@ -97,7 +97,8 @@ impl Upos {
         // let parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
         let chunk_size = self.bucket.chunk_size;
-        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
+        // 获取分块数量
+        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize;
         // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.client.client;
         let url = &self.url;

@@ -1,5 +1,5 @@
-use crate::uploader::bilibili::Studio;
 use async_trait::async_trait;
+use biliup::uploader::bilibili::Studio;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::sync::Arc;
@@ -65,6 +65,7 @@ impl StudioEntity {
             dynamic: self.dynamic,
             subtitle: Default::default(),
             tag: self.tag,
+            topic_id: None,
             videos: vec![],
             desc_v2: None,
             dtime: self.dtime,
@@ -79,6 +80,7 @@ impl StudioEntity {
             up_selection_reply: self.up_selection_reply,
             up_close_reply: self.up_close_reply,
             up_close_danmu: self.up_close_danmu,
+            extra_fields: None,
         }
     }
 

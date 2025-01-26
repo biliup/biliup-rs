@@ -10,9 +10,6 @@ pub enum Kind {
     Custom(String),
 
     #[error(transparent)]
-    Dialoguer(#[from] dialoguer::Error),
-
-    #[error(transparent)]
     IO(#[from] std::io::Error),
 
     #[error(transparent)]
@@ -46,5 +43,11 @@ pub enum Kind {
 impl From<&str> for Kind {
     fn from(s: &str) -> Self {
         Self::Custom(s.into())
+    }
+}
+
+impl From<String> for Kind {
+    fn from(s: String) -> Self {
+        Self::Custom(s)
     }
 }

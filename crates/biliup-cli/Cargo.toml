@@ -1,0 +1,42 @@
+[package]
+name = "biliup-cli"
+version = "0.2.2"
+edition = "2021"
+description = "Upload video to bilibili."
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "biliup"
+path = "src/main.rs"
+
+[dependencies]
+biliup = { path = "../biliup", features = ["cli"] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
+thiserror = "1.0"
+
+bytes = "1.1.0"
+futures = "0.3.17"
+clap = { version = "4", features = ["derive"] }
+time = "0.3"
+anyhow = "1.0"
+glob = "0.3.0"
+qrcode = "0.13.0"
+indicatif =  "0.17.0"
+image = "0.24"
+dialoguer = "0.11.0"
+chrono = "0.4"
+indexmap = { version = "2.1.0", optional = true }
+async-trait = "0.1.57"
+humantime = "2.1.0"
+axum = { version = "0.7.3", optional = true }
+tower-http = { version = "0.5.0", features = ["cors"], optional = true }
+reqwest = { version = "0.12", default-features = false }
+sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "sqlite" ], optional = true }
+
+[features]
+server = ["indexmap", "axum", "tower-http", "sqlx"]

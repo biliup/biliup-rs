@@ -1,8 +1,33 @@
+pub mod errors;
+
+pub mod api {
+    pub mod bilibili_endpoints;
+    pub mod endpoints;
+    pub mod router;
+}
+
+pub mod core;
+
+pub mod infrastructure {
+    pub mod repositories {
+        pub mod download_records_repository;
+        pub mod live_streamers_repository;
+        pub mod upload_records_repository;
+        pub mod upload_streamers_repository;
+        pub mod users_repository;
+        pub mod videos_repository;
+    }
+
+    pub mod connection_pool;
+    pub mod live_streamers_service;
+    pub mod service_register;
+}
+
 use anyhow::{Context, Result};
 
-use biliup::server::api::router::ApplicationController;
-use biliup::server::infrastructure::connection_pool::ConnectionManager;
-use biliup::server::infrastructure::service_register::ServiceRegister;
+use crate::server::api::router::ApplicationController;
+use crate::server::infrastructure::connection_pool::ConnectionManager;
+use crate::server::infrastructure::service_register::ServiceRegister;
 use std::net::ToSocketAddrs;
 
 pub async fn run(addr: (&str, u16)) -> Result<()> {

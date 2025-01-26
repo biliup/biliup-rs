@@ -5,15 +5,9 @@ edition = "2021"
 description = "Upload video to bilibili."
 license = "MIT OR Apache-2.0"
 
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-path = "../bin/main.rs"
-name = "biliup"
-
 [dependencies]
-typeshare = "1.0.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9.17"
@@ -21,7 +15,6 @@ serde_urlencoded = "0.7"
 reqwest_cookie_store = "0.7.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
 rsa = "0.9.2"
 base64 = "0.21.0"
 md-5 = "0.10.5"
@@ -37,30 +30,19 @@ futures = "0.3.17"
 typed-builder = "0.18.0"
 reqwest-middleware = { version = "0.3.0", features = ["json"] }
 reqwest-retry = "0.5.0"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive"], optional = true }
 time = "0.3"
 anyhow = "1.0"
-glob = "0.3.0"
-qrcode = "0.13.0"
-indicatif =  "0.17.0"
-image = "0.24"
-dialoguer = "0.11.0"
 m3u8-rs = "5.0.3"
 nom = "7"
 chrono = "0.4"
 byteorder = "1.4.3"
-indexmap = { version = "2.1.0", optional = true }
 regex = "1.6.0"
 async-trait = "0.1.57"
-humantime = "2.1.0"
-axum = { version = "0.7.3", optional = true }
-tower-http = { version = "0.5.0", features = ["cors"], optional = true }
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "blocking", "deflate", "gzip", "rustls-tls"] }
-sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "sqlite" ], optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["charset", "http2", "macos-system-configuration", "brotli", "gzip", "json", "rustls-tls", "stream"] }
 
-[build-dependencies]
-native-tls = { version = "0.2.11", features = ["vendored"] }
-openssl = { version = "0.10.42", features = ["vendored"] }
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
 
 [features]
-server = ["indexmap", "axum", "tower-http", "sqlx"]
+cli = ["clap"]
