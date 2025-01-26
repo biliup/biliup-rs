@@ -97,7 +97,8 @@ impl Upos {
         // let parts = Vec::new();
         // let parts_cell = &RefCell::new(parts);
         let chunk_size = self.bucket.chunk_size;
-        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
+        // 获取分块数量
+        let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize;
         // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.client.client;
         let url = &self.url;

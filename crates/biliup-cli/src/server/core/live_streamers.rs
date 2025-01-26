@@ -1,6 +1,6 @@
 use crate::server::core::StreamStatus;
-use biliup::uploader::bilibili::Studio;
 use async_trait::async_trait;
+use biliup::uploader::bilibili::Studio;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;

@@ -1,5 +1,5 @@
-use biliup::uploader::bilibili::Studio;
 use async_trait::async_trait;
+use biliup::uploader::bilibili::Studio;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::sync::Arc;

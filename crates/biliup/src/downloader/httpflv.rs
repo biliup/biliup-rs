@@ -138,14 +138,15 @@ pub(crate) async fn parse_flv(
         };
         match &flv_tag {
             FlvTag {
-                data: TagDataHeader::Video {
-                    frame_type: FrameType::Key,
-                    ..
-                },
+                data:
+                    TagDataHeader::Video {
+                        frame_type: FrameType::Key,
+                        ..
+                    },
                 ..
             } => {
                 let timestamp = flv_tag.header.timestamp as u64;
-                if prev_timestamp == 0 && timestamp != 0{
+                if prev_timestamp == 0 && timestamp != 0 {
                     segment.set_start_time(Duration::from_millis(timestamp));
                 }
                 segment.set_time_position(Duration::from_millis(timestamp));

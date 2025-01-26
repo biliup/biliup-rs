@@ -16,11 +16,7 @@ pub async fn send_sms(
     Ok(ret)
 }
 
-pub async fn login_by_sms(
-    code: u32,
-    res: serde_json::Value,
-    proxy: Option<&str>,
-) -> Result<bool> {
+pub async fn login_by_sms(code: u32, res: serde_json::Value, proxy: Option<&str>) -> Result<bool> {
     let info = Credential::new(proxy).login_by_sms(code, res).await?;
     let file = std::fs::File::create("cookies.json")?;
     serde_json::to_writer_pretty(&file, &info)?;
