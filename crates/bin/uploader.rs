@@ -25,7 +25,7 @@ use std::task::Poll;
 use std::time::Instant;
 use tracing::{info, warn};
 
-pub async fn login(user_cookie: PathBuf, proxy : Option<String>) -> Result<()> {
+pub async fn login(user_cookie: PathBuf, proxy: Option<String>) -> Result<()> {
     let client = Credential::new(proxy);
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("选择一种登录方式")
@@ -52,7 +52,7 @@ pub async fn login(user_cookie: PathBuf, proxy : Option<String>) -> Result<()> {
     Ok(())
 }
 
-pub async fn renew(user_cookie: PathBuf, proxy : Option<String>) -> Result<()> {
+pub async fn renew(user_cookie: PathBuf, proxy: Option<String>) -> Result<()> {
     let client = Credential::new(proxy);
     let mut file = fopen_rw(user_cookie)?;
     let login_info: LoginInfo = serde_json::from_reader(&file)?;
@@ -71,9 +71,9 @@ pub async fn upload_by_command(
     line: Option<UploadLine>,
     limit: usize,
     submit: SubmitOption,
-    proxy : Option<String>
+    proxy: Option<String>,
 ) -> Result<()> {
-    let bili = login_by_cookies(user_cookie,proxy.clone()).await?;
+    let bili = login_by_cookies(user_cookie, proxy.clone()).await?;
     if studio.title.is_empty() {
         studio.title = video_path[0]
             .file_stem()
@@ -92,16 +92,20 @@ pub async fn upload_by_command(
     // }
     // 说不定会适配 web 呢...?
     match submit {
-        SubmitOption::App => bili.submit_by_app(&studio,proxy.clone()).await?,
-        _ => bili.submit(&studio,proxy.clone()).await?,
+        SubmitOption::App => bili.submit_by_app(&studio, proxy.clone()).await?,
+        _ => bili.submit(&studio, proxy.clone()).await?,
     };
 
     Ok(())
 }
 
-pub async fn upload_by_config(config: PathBuf, user_cookie: PathBuf,proxy : Option<String>) -> Result<()> {
+pub async fn upload_by_config(
+    config: PathBuf,
+    user_cookie: PathBuf,
+    proxy: Option<String>,
+) -> Result<()> {
     // println!("number of concurrent futures: {limit}");
-    let bilibili = login_by_cookies(user_cookie,proxy.clone()).await?;
+    let bilibili = login_by_cookies(user_cookie, proxy.clone()).await?;
     let config = load_config(&config)?;
     for (filename_patterns, mut studio) in config.streamers {
         let mut paths = Vec::new();
@@ -124,7 +128,7 @@ pub async fn upload_by_config(config: PathBuf, user_cookie: PathBuf,proxy : Opti
             config.limit,
         )
         .await?;
-        bilibili.submit(&studio,proxy.clone()).await?;
+        bilibili.submit(&studio, proxy.clone()).await?;
     }
     Ok(())
 }
@@ -135,20 +139,20 @@ pub async fn append(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
-    proxy : Option<String>
+    proxy: Option<String>,
 ) -> Result<()> {
-    let bilibili = login_by_cookies(user_cookie,proxy.clone()).await?;
+    let bilibili = login_by_cookies(user_cookie, proxy.clone()).await?;
     let mut uploaded_videos = upload(&video_path, &bilibili, line, limit).await?;
-    let mut studio = bilibili.studio_data(&vid,proxy.clone()).await?;
+    let mut studio = bilibili.studio_data(&vid, proxy.clone()).await?;
     studio.videos.append(&mut uploaded_videos);
-    bilibili.edit(&studio,proxy.clone()).await?;
+    bilibili.edit(&studio, proxy.clone()).await?;
     // studio.edit(&login_info).await?;
     Ok(())
 }
 
-pub async fn show(user_cookie: PathBuf, vid: Vid,proxy : Option<String>) -> Result<()> {
-    let bilibili = login_by_cookies(user_cookie,proxy.clone()).await?;
-    let video_info = bilibili.video_data(&vid,proxy.clone()).await?;
+pub async fn show(user_cookie: PathBuf, vid: Vid, proxy: Option<String>) -> Result<()> {
+    let bilibili = login_by_cookies(user_cookie, proxy.clone()).await?;
+    let video_info = bilibili.video_data(&vid, proxy.clone()).await?;
     println!("{}", serde_json::to_string_pretty(&video_info)?);
     Ok(())
 }
@@ -158,7 +162,7 @@ pub async fn list(
     is_pubing: bool,
     pubed: bool,
     not_pubed: bool,
-    proxy : Option<String>
+    proxy: Option<String>,
 ) -> Result<()> {
     let status = match (is_pubing, pubed, not_pubed) {
         (true, false, false) => "is_pubing",
@@ -171,7 +175,7 @@ pub async fn list(
         }
     };
 
-    let bilibili = login_by_cookies(user_cookie,proxy).await?;
+    let bilibili = login_by_cookies(user_cookie, proxy).await?;
     bilibili
         .all_archives(status)
         .await?
@@ -180,8 +184,8 @@ pub async fn list(
     Ok(())
 }
 
-async fn login_by_cookies(user_cookie: PathBuf,proxy : Option<String>) -> Result<BiliBili> {
-    let result = credential::login_by_cookies(&user_cookie,proxy).await;
+async fn login_by_cookies(user_cookie: PathBuf, proxy: Option<String>) -> Result<BiliBili> {
+    let result = credential::login_by_cookies(&user_cookie, proxy).await;
     Ok(if let Err(Kind::IO(_)) = result {
         result
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
