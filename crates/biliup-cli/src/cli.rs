@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(author, version, about)]
 pub struct Cli {
-    /// Turn debugging information on
+    // /// Turn debugging information on
     // #[clap(short, long, parse(from_occurrences))]
     // debug: usize,
 

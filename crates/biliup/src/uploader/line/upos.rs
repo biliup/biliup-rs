@@ -80,7 +80,7 @@ impl Upos {
         })
     }
 
-    pub async fn upload_stream<'a, F: 'a, B>(
+    pub async fn upload_stream<'a, F, B>(
         &'a self,
         // file: std::fs::File,
         stream: F,
@@ -88,7 +88,7 @@ impl Upos {
         limit: usize,
     ) -> Result<impl Stream<Item = Result<(serde_json::Value, usize)>> + 'a>
     where
-        F: Stream<Item = Result<(B, usize)>>,
+        F: Stream<Item = Result<(B, usize)>> + 'a,
         B: Into<Body> + Clone,
     {
         // let mut parts = Vec::new();
