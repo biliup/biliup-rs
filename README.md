@@ -41,7 +41,7 @@ B 站命令行投稿工具，支持**短信登录**、**账号密码登录**、*
 $ biliup help upload
 上传视频
 
-Usage: biliup.exe upload [OPTIONS] [VIDEO_PATH]...
+Usage: biliup upload [OPTIONS] [VIDEO_PATH]...
 
 Arguments:
   [VIDEO_PATH]...  需要上传的视频路径,若指定配置文件投稿不需要此参数
@@ -79,10 +79,10 @@ Options:
 - 查看完整用法命令行输入 `biliup -h`
 
 ```shell
-biliup 0.1.14
+$ biliup help
 Upload video to bilibili.
 
-Usage: biliup.exe [OPTIONS] <COMMAND>
+Usage: biliup [OPTIONS] <COMMAND>
 
 Commands:
   login     登录B站并保存登录信息
@@ -112,12 +112,13 @@ $biliup -u user1.json login
 $biliup --user-cookie user2.json upload ...
 $biliup renew  # ./cookies.json
 ```
+
 ### 代理支持
+
 请在子命令**之前**通过 `-p` 或者 `--proxy` 参数传入 代理 的地址。例如：
 ```powershell
 .\biliup.exe -p http://username:password@proxy.example.com:8080 upload
 ```
-
 
 ### Windows 演示
 
