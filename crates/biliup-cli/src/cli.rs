@@ -134,6 +134,8 @@ pub enum Commands {
         #[arg(long)]
         not_pubed: bool,
     },
+    /// 绑定用户与代理(用户通过user_cookie参数指定)
+    Bind,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
