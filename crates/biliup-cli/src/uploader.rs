@@ -163,6 +163,8 @@ pub async fn list(
     pubed: bool,
     not_pubed: bool,
     proxy: Option<&str>,
+    from_page: u32,
+    max_pages: Option<u32>,
 ) -> Result<()> {
     let status = match (is_pubing, pubed, not_pubed) {
         (true, false, false) => "is_pubing",
@@ -177,7 +179,7 @@ pub async fn list(
 
     let bilibili = login_by_cookies(user_cookie, proxy).await?;
     bilibili
-        .all_archives(status)
+        .recent_archives(status, from_page, max_pages)
         .await?
         .iter()
         .for_each(|arc| println!("{}", arc.to_string_pretty()));
