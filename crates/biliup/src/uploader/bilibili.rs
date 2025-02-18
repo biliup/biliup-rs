@@ -515,13 +515,11 @@ impl BiliBili {
             pages
         };
 
-        let mut all_pages = futures::future::try_join_all(
-            (2..=pages)
-                .map(|page_num| self.archives(status, page_num))
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-        all_pages.insert(0, first_page);
+        let mut all_pages = vec![first_page];
+        for page_num in 2..=pages {
+            let page = self.archives(status, page_num).await?;
+            all_pages.push(page);
+        }
 
         Ok(all_pages)
     }
