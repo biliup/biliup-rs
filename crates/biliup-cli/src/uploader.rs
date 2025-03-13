@@ -1,21 +1,21 @@
 use crate::cli::{SubmitOption, UploadLine};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
 use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
 use biliup::uploader::credential::{Credential, LoginInfo};
 use biliup::uploader::line::Probe;
-use biliup::uploader::{credential, line, load_config, VideoFile};
+use biliup::uploader::{VideoFile, credential, line, load_config};
 use bytes::{Buf, Bytes};
 use clap::ValueEnum;
-use dialoguer::theme::ColorfulTheme;
 use dialoguer::Input;
 use dialoguer::Select;
+use dialoguer::theme::ColorfulTheme;
 use futures::{Stream, StreamExt};
 use image::Luma;
 use indicatif::{ProgressBar, ProgressStyle};
-use qrcode::render::unicode;
 use qrcode::QrCode;
+use qrcode::render::unicode;
 use reqwest::Body;
 use std::ffi::OsStr;
 use std::io::Seek;
@@ -186,18 +186,20 @@ pub async fn list(
 
 async fn login_by_cookies(user_cookie: PathBuf, proxy: Option<&str>) -> Result<BiliBili> {
     let result = credential::login_by_cookies(&user_cookie, proxy).await;
-    Ok(if let Err(Kind::IO(_)) = result {
-        result
-            .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
-    } else {
-        let bili = result?;
-        info!(
-            "user: {}",
-            bili.my_info().await?["data"]["name"]
-                .as_str()
-                .unwrap_or_default()
-        );
-        bili
+    Ok(match result {
+        Err(Kind::IO(_)) => result.with_context(|| {
+            String::from("open cookies file: ") + &user_cookie.to_string_lossy()
+        })?,
+        _ => {
+            let bili = result?;
+            info!(
+                "user: {}",
+                bili.my_info().await?["data"]["name"]
+                    .as_str()
+                    .unwrap_or_default()
+            );
+            bili
+        }
     })
 }
 
@@ -337,7 +339,9 @@ pub async fn login_by_qrcode(credential: Credential) -> Result<LoginInfo> {
     println!("{}", image);
     // Render the bits into an image.
     let image = code.render::<Luma<u8>>().build();
-    println!("在Windows下建议使用Windows Terminal(支持utf8，可完整显示二维码)\n否则可能无法正常显示，此时请打开./qrcode.png扫码");
+    println!(
+        "在Windows下建议使用Windows Terminal(支持utf8，可完整显示二维码)\n否则可能无法正常显示，此时请打开./qrcode.png扫码"
+    );
     // Save the image.
     image.save("qrcode.png").unwrap();
     Ok(credential.login_by_qrcode(value).await?)

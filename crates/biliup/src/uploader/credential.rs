@@ -6,14 +6,14 @@ use std::path::Path;
 
 use crate::error::{Kind, Result};
 use crate::uploader::bilibili::{BiliBili, ResponseData};
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use cookie::Cookie;
 use md5::{Digest, Md5};
 use reqwest::header::{COOKIE, ORIGIN, REFERER, USER_AGENT};
 
-use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPublicKey};
+use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::info;
 use url::Url;
@@ -295,7 +295,7 @@ impl Credential {
             .await
     }
 
-    pub async fn send_sms_handle_recaptcha<'a, F, Fut>(
+    pub async fn send_sms_handle_recaptcha<F, Fut>(
         &self,
         phone_number: u64,
         country_code: u32,
@@ -588,12 +588,12 @@ impl Credential {
     fn set_cookie(&self, cookie_info: &serde_json::Value) {
         let mut store = self.0.cookie_store.lock().unwrap();
         for cookie in cookie_info["cookies"].as_array().unwrap() {
-            let cookie = Cookie::build(
+            let cookie = Cookie::build((
                 cookie["name"].as_str().unwrap(),
                 cookie["value"].as_str().unwrap(),
-            )
+            ))
             .domain("bilibili.com")
-            .finish();
+            .into();
 
             store
                 .insert_raw(&cookie, &Url::parse("https://bilibili.com/").unwrap())

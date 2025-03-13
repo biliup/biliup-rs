@@ -1,5 +1,5 @@
 use crate::uploader::bilibili::Studio;
-use crate::{error, Stream};
+use crate::{Stream, error};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

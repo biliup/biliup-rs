@@ -3,7 +3,7 @@ use futures::Stream;
 use futures::StreamExt;
 
 use reqwest::header::CONTENT_LENGTH;
-use reqwest::{header, Body};
+use reqwest::{Body, header};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;

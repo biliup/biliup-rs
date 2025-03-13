@@ -20,15 +20,16 @@ impl SiteDefinition for HuyaLive {
         // println!("{:?}", response);
 
         let text = response.text().await?;
-        let mut stream: Value = if let Some(captures) = regex::Regex::new(r"stream: (\{.+)\n.*?\};")
+        let mut stream: Value = match regex::Regex::new(r"stream: (\{.+)\n.*?\};")
             .unwrap()
             .captures(&text)
         {
-            serde_json::from_str(&captures[1])?
-        } else {
-            return Err(crate::downloader::error::Error::Custom(format!(
-                "Not online: {text}"
-            )));
+            Some(captures) => serde_json::from_str(&captures[1])?,
+            _ => {
+                return Err(crate::downloader::error::Error::Custom(format!(
+                    "Not online: {text}"
+                )));
+            }
         };
         let game = stream["data"][0].take();
         let game_stream_info = game["gameStreamInfoList"]

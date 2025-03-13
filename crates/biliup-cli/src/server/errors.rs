@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::{collections::HashMap, fmt::Debug};
 
 use axum::response::Response;
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 
 use thiserror::Error;

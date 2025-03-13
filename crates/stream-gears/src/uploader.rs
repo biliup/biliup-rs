@@ -4,7 +4,7 @@ use biliup::error::Kind;
 use biliup::uploader::bilibili::{Credit, ResponseData, Studio};
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Probe;
-use biliup::uploader::{line, VideoFile};
+use biliup::uploader::{VideoFile, line};
 use futures::StreamExt;
 use pyo3::prelude::*;
 use pyo3::pyclass;
@@ -103,11 +103,11 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<Respon
     } = studio_pre;
 
     let bilibili = login_by_cookies(&cookie_file, proxy).await;
-    let bilibili = if let Err(Kind::IO(_)) = bilibili {
-        bilibili
-            .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
-    } else {
-        bilibili?
+    let bilibili = match bilibili {
+        Err(Kind::IO(_)) => bilibili.with_context(|| {
+            String::from("open cookies file: ") + &cookie_file.to_string_lossy()
+        })?,
+        _ => bilibili?,
     };
 
     let client = StatelessClient::default();
@@ -229,11 +229,11 @@ pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result
     } = studio_pre;
 
     let bilibili = login_by_cookies(&cookie_file, proxy).await;
-    let bilibili = if let Err(Kind::IO(_)) = bilibili {
-        bilibili
-            .with_context(|| String::from("open cookies file: ") + &cookie_file.to_string_lossy())?
-    } else {
-        bilibili?
+    let bilibili = match bilibili {
+        Err(Kind::IO(_)) => bilibili.with_context(|| {
+            String::from("open cookies file: ") + &cookie_file.to_string_lossy()
+        })?,
+        _ => bilibili?,
     };
 
     let client = StatelessClient::default();

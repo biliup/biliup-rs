@@ -1,11 +1,11 @@
-use crate::{retry, ReqwestClientBuilderExt};
+use crate::{ReqwestClientBuilderExt, retry};
 use rand::Rng;
 use reqwest::header::HeaderMap;
-use reqwest::{header, Response};
+use reqwest::{Response, header};
 use reqwest_cookie_store::CookieStoreMutex;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
+use reqwest_retry::policies::ExponentialBackoff;
 use std::sync::Arc;
 use std::time::Duration;
 
