@@ -53,9 +53,10 @@ fn download_with_callback(
     py.allow_threads(|| {
         let map = construct_headers(header_map);
         // 输出到控制台中
-        unsafe {
-            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
-        }
+        // use of deprecated function `time::util::local_offset::set_soundness`: no longer needed; TZ is refreshed manually
+        // unsafe {
+        //     time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        // }
         let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
             "[year]-[month]-[day] [hour]:[minute]:[second]"
         ));
@@ -244,9 +245,10 @@ fn upload(
             .enable_all()
             .build()?;
         // 输出到控制台中
-        unsafe {
-            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
-        }
+        // use of deprecated function `time::util::local_offset::set_soundness`: no longer needed; TZ is refreshed manually
+        // unsafe {
+        //     time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        // }
         let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
             "[year]-[month]-[day] [hour]:[minute]:[second]"
         ));
@@ -336,9 +338,10 @@ fn upload_by_app(
             .enable_all()
             .build()?;
         // 输出到控制台中
-        unsafe {
-            time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
-        }
+        // use of deprecated function `time::util::local_offset::set_soundness`: no longer needed; TZ is refreshed manually
+        // unsafe {
+        //     time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+        // }
         let local_time = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
             "[year]-[month]-[day] [hour]:[minute]:[second]"
         ));

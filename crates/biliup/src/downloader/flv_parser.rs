@@ -4,10 +4,10 @@ use nom::bits::streaming::take;
 use nom::bytes::streaming::tag;
 use nom::combinator::{flat_map, map, map_res};
 use nom::error::{Error, ErrorKind};
-use nom::multi::{length_data, many0, many_m_n};
-use nom::number::streaming::{be_f64, be_i16, be_i24, be_u16, be_u24, be_u32, be_u8};
-use nom::sequence::{pair, terminated, tuple};
-use nom::{Err, IResult, Needed};
+use nom::multi::{length_data, many_m_n, many0};
+use nom::number::streaming::{be_f64, be_i16, be_i24, be_u8, be_u16, be_u24, be_u32};
+use nom::sequence::{pair, terminated};
+use nom::{Err, IResult, Needed, Parser};
 use serde::Serialize;
 use std::str::from_utf8;
 
@@ -21,14 +21,15 @@ pub struct Header {
 
 pub fn header(input: &[u8]) -> IResult<&[u8], Header> {
     map(
-        tuple((tag("FLV"), be_u8, be_u8, be_u32)),
+        (tag("FLV"), be_u8, be_u8, be_u32),
         |(_, version, flags, offset)| Header {
             version,
             audio: flags & 4 == 4,
             video: flags & 1 == 1,
             offset,
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -65,32 +66,39 @@ fn tag_type(input: &[u8]) -> IResult<&[u8], TagType> {
             8 => TagType::Audio,
             9 => TagType::Video,
             18 => TagType::Script,
-            _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+            _ => {
+                return Err(Err::Error::<nom::error::Error<&[u8]>>(Error::new(
+                    input,
+                    ErrorKind::Alt,
+                )));
+            }
         })
-    })(input)
+    })
+    .parse(input)
 }
 
 pub fn tag_header(input: &[u8]) -> IResult<&[u8], TagHeader> {
     map(
-        tuple((tag_type, be_u24, be_u24, be_u8, be_u24)),
+        (tag_type, be_u24, be_u24, be_u8, be_u24),
         |(tag_type, data_size, timestamp, timestamp_extended, stream_id)| TagHeader {
             tag_type,
             data_size,
             timestamp: (u32::from(timestamp_extended) << 24) + timestamp,
             stream_id,
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 pub fn complete_tag(input: &[u8]) -> IResult<&[u8], Tag> {
     flat_map(pair(tag_type, be_u24), |(tag_type, data_size)| {
         map(
-            tuple((
+            (
                 be_u24,
                 be_u8,
                 be_u24,
                 tag_data(tag_type, data_size as usize),
-            )),
+            ),
             move |(timestamp, timestamp_extended, stream_id, data)| Tag {
                 header: TagHeader {
                     tag_type,
@@ -101,13 +109,14 @@ pub fn complete_tag(input: &[u8]) -> IResult<&[u8], Tag> {
                 data,
             },
         )
-    })(input)
+    })
+    .parse(input)
 }
 
 pub fn tag_data(tag_type: TagType, size: usize) -> impl Fn(&[u8]) -> IResult<&[u8], TagData> {
     move |input| match tag_type {
-        TagType::Video => map(|i| video_data(i, size), TagData::Video)(input),
-        TagType::Audio => map(|i| audio_data(i, size), TagData::Audio)(input),
+        TagType::Video => map(|i| video_data(i, size), TagData::Video).parse(input),
+        TagType::Audio => map(|i| audio_data(i, size), TagData::Audio).parse(input),
         TagType::Script => Ok((input, TagData::Script)),
     }
 }
@@ -167,10 +176,16 @@ pub fn aac_audio_packet_header(input: &[u8]) -> IResult<&[u8], AACAudioPacketHea
             packet_type: match packet_type {
                 0 => AACPacketType::SequenceHeader,
                 1 => AACPacketType::Raw,
-                _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                _ => {
+                    return Err(Err::<nom::error::Error<&[u8]>>::Error(Error::new(
+                        input,
+                        ErrorKind::Alt,
+                    )));
+                }
             },
         })
-    })(input)
+    })
+    .parse(input)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -195,7 +210,12 @@ pub fn aac_audio_packet(input: &[u8], size: usize) -> IResult<&[u8], AACAudioPac
                 packet_type: match packet_type {
                     0 => AACPacketType::SequenceHeader,
                     1 => AACPacketType::Raw,
-                    _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                    _ => {
+                        return Err(Err::Error::<nom::error::Error<&[u8]>>(Error::new(
+                            input,
+                            ErrorKind::Alt,
+                        )));
+                    }
                 },
                 aac_data: &input[1..size],
             },
@@ -221,7 +241,7 @@ pub fn audio_data(input: &[u8], size: usize) -> IResult<&[u8], AudioData> {
         return Err(Err::Incomplete(Needed::new(1)));
     }
 
-    let take_bits = tuple((take(4usize), take(2usize), take(1usize), take(1usize)));
+    let take_bits = (take(4usize), take(2usize), take(1usize), take(1usize));
     bits::<_, _, Error<_>, _, _>(take_bits)(input).and_then(
         |(_, (sformat, srate, ssize, stype))| {
             let sformat = match sformat {
@@ -238,14 +258,24 @@ pub fn audio_data(input: &[u8], size: usize) -> IResult<&[u8], AudioData> {
                 11 => SoundFormat::SPEEX,
                 14 => SoundFormat::MP3_8KHZ,
                 15 => SoundFormat::DEVICE_SPECIFIC,
-                _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                _ => {
+                    return Err(Err::Error::<nom::error::Error<&[u8]>>(Error::new(
+                        input,
+                        ErrorKind::Alt,
+                    )));
+                }
             };
             let srate = match srate {
                 0 => SoundRate::_5_5KHZ,
                 1 => SoundRate::_11KHZ,
                 2 => SoundRate::_22KHZ,
                 3 => SoundRate::_44KHZ,
-                _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                _ => {
+                    return Err(Err::<nom::error::Error<&[u8]>>::Error(Error::new(
+                        input,
+                        ErrorKind::Alt,
+                    )));
+                }
             };
             let ssize = match ssize {
                 0 => SoundSize::Snd8bit,
@@ -285,7 +315,7 @@ pub fn audio_data_header(input: &[u8]) -> IResult<&[u8], AudioDataHeader> {
         return Err(Err::Incomplete(Needed::new(1)));
     }
 
-    let take_bits = tuple((take(4usize), take(2usize), take(1usize), take(1usize)));
+    let take_bits = (take(4usize), take(2usize), take(1usize), take(1usize));
     map_res(
         bits::<_, _, Error<_>, _, _>(take_bits),
         |(sformat, srate, ssize, stype)| {
@@ -303,7 +333,12 @@ pub fn audio_data_header(input: &[u8]) -> IResult<&[u8], AudioDataHeader> {
                 11 => SoundFormat::SPEEX,
                 14 => SoundFormat::MP3_8KHZ,
                 15 => SoundFormat::DEVICE_SPECIFIC,
-                _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                _ => {
+                    return Err(Err::<nom::error::Error<&[u8]>>::Error(Error::new(
+                        input,
+                        ErrorKind::Alt,
+                    )));
+                }
             };
             let srate = match srate {
                 0 => SoundRate::_5_5KHZ,
@@ -330,7 +365,8 @@ pub fn audio_data_header(input: &[u8]) -> IResult<&[u8], AudioDataHeader> {
                 sound_type: stype,
             })
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -376,9 +412,15 @@ fn packet_type(input: &[u8]) -> IResult<&[u8], AVCPacketType> {
             0 => AVCPacketType::SequenceHeader,
             1 => AVCPacketType::NALU,
             2 => AVCPacketType::EndOfSequence,
-            _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+            _ => {
+                return Err(Err::<nom::error::Error<&[u8]>>::Error(Error::new(
+                    input,
+                    ErrorKind::Alt,
+                )));
+            }
         })
-    })(input)
+    })
+    .parse(input)
 }
 
 pub fn avc_video_packet_header(input: &[u8]) -> IResult<&[u8], AVCVideoPacketHeader> {
@@ -388,7 +430,8 @@ pub fn avc_video_packet_header(input: &[u8]) -> IResult<&[u8], AVCVideoPacketHea
             packet_type,
             composition_time,
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -406,16 +449,18 @@ pub fn avc_video_packet(input: &[u8], size: usize) -> IResult<&[u8], AVCVideoPac
     if size < 4 {
         return Err(Err::Incomplete(Needed::new(4)));
     }
-    pair(packet_type, be_i24)(input).map(|(_, (packet_type, composition_time))| {
-        (
-            &input[size..],
-            AVCVideoPacket {
-                packet_type,
-                composition_time,
-                avc_data: &input[4..size],
-            },
-        )
-    })
+    pair(packet_type, be_i24)
+        .parse(input)
+        .map(|(_, (packet_type, composition_time))| {
+            (
+                &input[size..],
+                AVCVideoPacket {
+                    packet_type,
+                    composition_time,
+                    avc_data: &input[4..size],
+                },
+            )
+        })
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -489,7 +534,12 @@ pub fn video_data_header(input: &[u8]) -> IResult<&[u8], VideoDataHeader> {
                 3 => FrameType::DisposableInter,
                 4 => FrameType::Generated,
                 5 => FrameType::Command,
-                _ => return Err(Err::Error(Error::new(input, ErrorKind::Alt))),
+                _ => {
+                    return Err(Err::<nom::error::Error<&[u8]>>::Error(Error::new(
+                        input,
+                        ErrorKind::Alt,
+                    )));
+                }
             };
             let codec_id = match codec_id {
                 1 => CodecId::JPEG,
@@ -509,7 +559,8 @@ pub fn video_data_header(input: &[u8]) -> IResult<&[u8], VideoDataHeader> {
                 codec_id,
             })
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -552,42 +603,44 @@ static script_data_name_tag: &[u8] = &[2];
 pub fn script_data(input: &[u8]) -> IResult<&[u8], ScriptData> {
     // Must start with a string, i.e. 2
     map(
-        tuple((
+        (
             tag(script_data_name_tag),
             script_data_string,
             script_data_value,
-        )),
+        ),
         |(_, name, arguments)| ScriptData { name, arguments },
-    )(input)
+    )
+    .parse(input)
 }
 
 pub fn script_data_value(input: &[u8]) -> IResult<&[u8], ScriptDataValue> {
     be_u8(input).and_then(|v| match v {
-        (i, 0) => map(be_f64, ScriptDataValue::Number)(i),
-        (i, 1) => map(be_u8, |n| ScriptDataValue::Boolean(n != 0))(i),
-        (i, 2) => map(script_data_string, ScriptDataValue::String)(i),
-        (i, 3) => map(script_data_objects, ScriptDataValue::Object)(i),
-        (i, 4) => map(script_data_string, ScriptDataValue::MovieClip)(i),
+        (i, 0) => map(be_f64, ScriptDataValue::Number).parse(i),
+        (i, 1) => map(be_u8, |n| ScriptDataValue::Boolean(n != 0)).parse(i),
+        (i, 2) => map(script_data_string, ScriptDataValue::String).parse(i),
+        (i, 3) => map(script_data_objects, ScriptDataValue::Object).parse(i),
+        (i, 4) => map(script_data_string, ScriptDataValue::MovieClip).parse(i),
         (i, 5) => Ok((i, ScriptDataValue::Null)), // to remove
         (i, 6) => Ok((i, ScriptDataValue::Undefined)), // to remove
-        (i, 7) => map(be_u16, ScriptDataValue::Reference)(i),
-        (i, 8) => map(script_data_ecma_array, ScriptDataValue::ECMAArray)(i),
-        (i, 10) => map(script_data_strict_array, ScriptDataValue::StrictArray)(i),
-        (i, 11) => map(script_data_date, ScriptDataValue::Date)(i),
-        (i, 12) => map(script_data_long_string, ScriptDataValue::LongString)(i),
+        (i, 7) => map(be_u16, ScriptDataValue::Reference).parse(i),
+        (i, 8) => map(script_data_ecma_array, ScriptDataValue::ECMAArray).parse(i),
+        (i, 10) => map(script_data_strict_array, ScriptDataValue::StrictArray).parse(i),
+        (i, 11) => map(script_data_date, ScriptDataValue::Date).parse(i),
+        (i, 12) => map(script_data_long_string, ScriptDataValue::LongString).parse(i),
         _ => Err(Err::Error(Error::new(input, ErrorKind::Alt))),
     })
 }
 
 pub fn script_data_objects(input: &[u8]) -> IResult<&[u8], Vec<ScriptDataObject>> {
-    terminated(many0(script_data_object), script_data_object_end)(input)
+    terminated(many0(script_data_object), script_data_object_end).parse(input)
 }
 
 pub fn script_data_object(input: &[u8]) -> IResult<&[u8], ScriptDataObject> {
     map(
         pair(script_data_string, script_data_value),
         |(name, data)| ScriptDataObject { name, data },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[allow(non_upper_case_globals)]
@@ -598,11 +651,11 @@ pub fn script_data_object_end(input: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 pub fn script_data_string(input: &[u8]) -> IResult<&[u8], &str> {
-    map_res(length_data(be_u16), from_utf8)(input)
+    map_res(length_data(be_u16), from_utf8).parse(input)
 }
 
 pub fn script_data_long_string(input: &[u8]) -> IResult<&[u8], &str> {
-    map_res(length_data(be_u32), from_utf8)(input)
+    map_res(length_data(be_u32), from_utf8).parse(input)
 }
 
 pub fn script_data_date(input: &[u8]) -> IResult<&[u8], ScriptDataDate> {
@@ -612,15 +665,17 @@ pub fn script_data_date(input: &[u8]) -> IResult<&[u8], ScriptDataDate> {
             date_time,
             local_date_time_offset,
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 pub fn script_data_ecma_array(input: &[u8]) -> IResult<&[u8], Vec<ScriptDataObject>> {
     map(pair(be_u32, script_data_objects), |(_, data_objects)| {
         data_objects
-    })(input)
+    })
+    .parse(input)
 }
 
 pub fn script_data_strict_array(input: &[u8]) -> IResult<&[u8], Vec<ScriptDataValue>> {
-    flat_map(be_u32, |o| many_m_n(1, o as usize, script_data_value))(input)
+    flat_map(be_u32, |o| many_m_n(1, o as usize, script_data_value)).parse(input)
 }

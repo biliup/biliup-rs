@@ -1,9 +1,9 @@
+use crate::ReqwestClientBuilderExt;
 use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
-use crate::ReqwestClientBuilderExt;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 use std::fmt::{Display, Formatter};

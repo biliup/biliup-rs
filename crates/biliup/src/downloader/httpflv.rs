@@ -1,6 +1,6 @@
 use crate::downloader::flv_parser::{
-    aac_audio_packet_header, avc_video_packet_header, script_data, tag_data, tag_header,
     AACPacketType, AVCPacketType, CodecId, FrameType, SoundFormat, TagData, TagHeader,
+    aac_audio_packet_header, avc_video_packet_header, script_data, tag_data, tag_header,
 };
 use crate::downloader::flv_writer::{FlvFile, FlvTag, TagDataHeader};
 use crate::downloader::util::{LifecycleFile, Segmentable};
@@ -152,7 +152,10 @@ pub(crate) async fn parse_flv(
                 segment.set_time_position(Duration::from_millis(timestamp));
                 for (tag_header, flv_tag_data, previous_tag_size_bytes) in &flv_tags_cache {
                     if tag_header.timestamp < prev_timestamp {
-                        warn!("Non-monotonous DTS in output stream; previous: {prev_timestamp}, current: {};", tag_header.timestamp);
+                        warn!(
+                            "Non-monotonous DTS in output stream; previous: {prev_timestamp}, current: {};",
+                            tag_header.timestamp
+                        );
                     }
                     out.write_tag(tag_header, flv_tag_data, previous_tag_size_bytes)?;
                     segment.increase_size((11 + tag_header.data_size + 4) as u64);
@@ -252,13 +255,16 @@ impl Connection {
             // BytesMut::with_capacity(0).deref_mut()
             // tokio::fs::File::open("").read()
             // self.resp.chunk()
-            if let Ok(Some(chunk)) = timeout(Duration::from_secs(30), self.resp.chunk()).await? {
-                // let n = chunk.len();
-                // println!("Chunk: {:?}", chunk);
-                self.buffer.put(chunk);
-                // self.buffer.put_slice(&buf[..n]);
-            } else {
-                return Ok(self.buffer.split().freeze());
+            match timeout(Duration::from_secs(30), self.resp.chunk()).await? {
+                Ok(Some(chunk)) => {
+                    // let n = chunk.len();
+                    // println!("Chunk: {:?}", chunk);
+                    self.buffer.put(chunk);
+                    // self.buffer.put_slice(&buf[..n]);
+                }
+                _ => {
+                    return Ok(self.buffer.split().freeze());
+                }
             }
             // let n = match self.resp.read(&mut buf).await {
             //     Ok(n) => n,

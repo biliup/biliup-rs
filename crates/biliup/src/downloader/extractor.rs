@@ -3,7 +3,7 @@ use crate::downloader::httpflv::Connection;
 use crate::downloader::util::{LifecycleFile, Segmentable};
 use crate::downloader::{hls, httpflv};
 use async_trait::async_trait;
-use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
+use reqwest::header::{ACCEPT_ENCODING, HeaderValue};
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use tracing::info;

@@ -13,7 +13,7 @@ use crate::server::infrastructure::service_register::ServiceRegister;
 
 use anyhow::Context;
 use axum::routing::{delete, get, post, put};
-use axum::{http, Extension, Router};
+use axum::{Extension, Router, http};
 
 use crate::server::api::bilibili_endpoints::{
     archive_pre_endpoint, get_myinfo_endpoint, get_proxy_endpoint,

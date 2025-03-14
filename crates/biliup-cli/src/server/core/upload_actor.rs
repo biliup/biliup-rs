@@ -1,9 +1,9 @@
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
+use biliup::uploader::VideoFile;
 use biliup::uploader::bilibili::{BiliBili, Studio, Vid, Video};
 use biliup::uploader::credential::login_by_cookies;
 use biliup::uploader::line::Line;
-use biliup::uploader::VideoFile;
 use futures::StreamExt;
 use std::path::{Path, PathBuf};
 

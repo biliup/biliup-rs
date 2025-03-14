@@ -17,10 +17,11 @@ impl SiteDefinition for BiliLive {
     }
 
     async fn get_site(&self, url: &str, mut client: StatelessClient) -> Result<Site> {
-        let rid: u32 = if let Some(captures) = regex::Regex::new(r"/(\d+)").unwrap().captures(url) {
-            captures[1].parse().unwrap()
-        } else {
-            return Err(Error::Custom(format!("Wrong url: {url}")));
+        let rid: u32 = match regex::Regex::new(r"/(\d+)").unwrap().captures(url) {
+            Some(captures) => captures[1].parse().unwrap(),
+            _ => {
+                return Err(Error::Custom(format!("Wrong url: {url}")));
+            }
         };
         let mut room_info: Value = client
             .client

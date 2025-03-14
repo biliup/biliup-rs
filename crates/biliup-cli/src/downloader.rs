@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use biliup::downloader::extractor::find_extractor;
 use biliup::downloader::flv_parser::{
-    aac_audio_packet_header, avc_video_packet_header, header, script_data, tag_data, tag_header,
-    CodecId, SoundFormat, TagData,
+    CodecId, SoundFormat, TagData, aac_audio_packet_header, avc_video_packet_header, header,
+    script_data, tag_data, tag_header,
 };
 use biliup::downloader::flv_writer;
 use biliup::downloader::flv_writer::{FlvTag, TagDataHeader};

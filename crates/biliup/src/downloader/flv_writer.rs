@@ -50,7 +50,7 @@ impl FlvFile {
                 return Err(std::io::Error::new(
                     e.kind(),
                     format!("Unable to create flv file {}", path.display()),
-                ))
+                ));
             }
         };
         info!("create flv file {}", path.display());
@@ -77,7 +77,7 @@ impl FlvFile {
             .write_u24::<BigEndian>(tag_header.data_size)?;
         self.buf_writer
             .write_u24::<BigEndian>(tag_header.timestamp & 0xffffff)?;
-        let timestamp_ext = (tag_header.timestamp >> 24 & 0xff) as u8;
+        let timestamp_ext = ((tag_header.timestamp >> 24) & 0xff) as u8;
         self.buf_writer.write_u8(timestamp_ext)?;
         self.buf_writer.write_u24::<BigEndian>(tag_header.stream_id)
     }

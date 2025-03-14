@@ -33,7 +33,9 @@ use std::net::ToSocketAddrs;
 pub async fn run(addr: (&str, u16)) -> Result<()> {
     // let config = Arc::new(AppConfig::parse());
 
-    tracing::info!("environment loaded and configuration parsed, initializing Postgres connection and running migrations...");
+    tracing::info!(
+        "environment loaded and configuration parsed, initializing Postgres connection and running migrations..."
+    );
     let conn_pool = ConnectionManager::new_pool()
         .await
         .expect("could not initialize the database connection pool");
