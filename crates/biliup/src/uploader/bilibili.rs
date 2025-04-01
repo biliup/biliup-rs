@@ -66,11 +66,6 @@ pub struct Studio {
     #[cfg_attr(feature = "cli", clap(long, default_value_t))]
     pub tag: String,
 
-    /// 视频参与话题(需要自己获取topic_id配合填写mission_id)
-    #[cfg_attr(feature = "cli", clap(long))]
-    #[serde(default)]
-    pub topic_id: Option<u32>,
-
     #[serde(default)]
     #[builder(!default)]
     #[cfg_attr(feature = "cli", clap(skip))]
@@ -132,9 +127,7 @@ pub struct Studio {
     #[cfg_attr(feature = "cli", clap(long))]
     #[serde(default)]
     pub up_close_danmu: bool,
-    // #[clap(long)]
-    // #[serde(default)]
-    // pub submit_by_app: bool,
+
     /// 自定义提交参数
     #[cfg_attr(feature = "cli", clap(long, value_parser = parse_extra_fields))]
     #[serde(flatten)]

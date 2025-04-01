@@ -22,9 +22,6 @@ pub enum UploadLine {
     Bda2,
     Ws,
     Qn,
-    // Kodo,
-    // Cos,
-    // CosInternal,
     Bldsa,
     Tx,
     Txa,
@@ -51,7 +48,6 @@ pub struct StudioPre {
     title: String,
     tid: u16,
     tag: String,
-    topic_id: Option<u32>,
     copyright: u8,
     source: String,
     desc: String,
@@ -86,7 +82,6 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<Respon
         title,
         tid,
         tag,
-        topic_id,
         copyright,
         source,
         desc,
@@ -171,7 +166,6 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<Respon
         .dynamic(dynamic)
         .source(source)
         .tag(tag)
-        .topic_id(topic_id)
         .tid(tid)
         .title(title)
         .videos(videos)
@@ -210,7 +204,6 @@ pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result
         title,
         tid,
         tag,
-        topic_id,
         copyright,
         source,
         desc,
@@ -297,7 +290,6 @@ pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result
         .dynamic(dynamic)
         .source(source)
         .tag(tag)
-        .topic_id(topic_id)
         .tid(tid)
         .title(title)
         .videos(videos)
