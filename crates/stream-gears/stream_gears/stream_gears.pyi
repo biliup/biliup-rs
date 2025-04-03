@@ -122,15 +122,6 @@ class UploadLine(Enum):
     Qn = 3
     """七牛upos"""
 
-    # Kodo = 4
-    # """七牛bupfetch"""
-
-    # Cos = 5
-    # """腾讯bupfetch"""
-
-    # CosInternal = 6
-    # """上海腾讯云内网"""
-
     Bda = 4
     """百度云海外"""
 
@@ -152,7 +143,6 @@ def upload(video_path: List[str],
            title: str,
            tid: int,
            tag: str,
-           topic_id: Optional[int],
            copyright: int,
            source: str,
            desc: str,
@@ -168,7 +158,7 @@ def upload(video_path: List[str],
            line: Optional[UploadLine],
            extra_fields: Optional[str],
            proxy: Optional[str]) -> None:
-    
+
     """
     上传视频稿件
 
@@ -177,7 +167,6 @@ def upload(video_path: List[str],
     :param str title: 视频标题
     :param int tid: 投稿分区
     :param str tag: 视频标签, 英文逗号分隔多个tag
-    :param Optional[int] topic_id: 话题ID
     :param int copyright: 是否转载, 1-自制 2-转载
     :param str source: 转载来源
     :param str desc: 视频简介
@@ -200,7 +189,6 @@ def upload_by_app(video_path: List[str],
            title: str,
            tid: int,
            tag: str,
-           topic_id: Optional[int],
            copyright: int,
            source: str,
            desc: str,
@@ -227,7 +215,6 @@ def upload_by_app(video_path: List[str],
     :param str title: 视频标题
     :param int tid: 投稿分区
     :param str tag: 视频标签, 英文逗号分隔多个tag
-    :param Optional[int] topic_id: 话题ID
     :param int copyright: 是否转载, 1-自制 2-转载
     :param str source: 转载来源
     :param str desc: 视频简介

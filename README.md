@@ -59,7 +59,6 @@ Options:
       --desc <DESC>                  视频简介 [default: ]
       --dynamic <DYNAMIC>            空间动态 [default: ]
       --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
-      --topic-id <TOPIC_ID>          视频参与话题(需要自己获取topic_id配合填写mission_id)
       --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
       --interactive <INTERACTIVE>    [default: 0]
       --mission-id <MISSION_ID>
@@ -117,7 +116,7 @@ $biliup renew  # ./cookies.json
 
 请在子命令**之前**通过 `-p` 或者 `--proxy` 参数传入 代理 的地址。例如：
 ```powershell
-.\biliup.exe -p http://username:password@proxy.example.com:8080 upload
+biliup -p http://username:password@proxy.example.com:8080 upload
 ```
 
 ### Windows 演示
@@ -125,7 +124,7 @@ $biliup renew  # ./cookies.json
 登录：
 
 ```powershell
-.\biliup.exe login
+biliup login
 ```
 
 ![login](.github/resource/login.gif)
@@ -133,7 +132,7 @@ $biliup renew  # ./cookies.json
 上传：
 
 ```powershell
-.\biliup.exe upload
+biliup upload
 ```
 
 ![upload](.github/resource/upload.gif)
@@ -153,8 +152,8 @@ bilibili 投稿模式分主要为 fetch 和直传两种，线路概览：
   - upos
     - [x] bda2（百度云）
     - [x] qn（七牛）
-    - [x] ws（网宿）
-    - [x] bldsa (百度云)
+    - [x] alia（阿里云海外）
+    - [x] bldsa (B站自建)
     - [x] tx (腾讯云EO)
     - [x] txa (腾讯云EO海外)
     - [x] bda (百度云海外)
