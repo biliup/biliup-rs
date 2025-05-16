@@ -1,9 +1,9 @@
-use crate::ReqwestClientBuilderExt;
 use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
+use crate::ReqwestClientBuilderExt;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use std::fmt::{Display, Formatter};
@@ -360,8 +360,17 @@ impl BiliBili {
 
     pub async fn studio_data(&self, vid: &Vid, proxy: Option<&str>) -> Result<Studio> {
         let mut video_info = self.video_data(vid, proxy).await?;
+        const EXTRA_FIELDS_BLACKLIST: &[&str] = &["limited_free"];
 
-        let mut studio: Studio = serde_json::from_value(video_info["archive"].take())?;
+        let mut archive_value = video_info["archive"].take();
+
+        if let Some(obj) = archive_value.as_object_mut() {
+            for key in EXTRA_FIELDS_BLACKLIST {
+                obj.remove(*key);
+            }
+        }
+
+        let mut studio: Studio = serde_json::from_value(archive_value)?;
         let videos: Vec<Video> = serde_json::from_value(video_info["videos"].take())?;
 
         studio.videos = videos;
