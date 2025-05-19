@@ -10,3 +10,4 @@ data.db*
 .vscode
 *.json
 *.yaml
+.venv/

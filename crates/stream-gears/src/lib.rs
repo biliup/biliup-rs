@@ -29,6 +29,7 @@ pub enum PySegment {
 }
 
 #[pyfunction]
+#[pyo3(signature = (url,header_map,file_name,segment,proxy = None))]
 fn download(
     py: Python<'_>,
     url: &str,
@@ -41,6 +42,7 @@ fn download(
 }
 
 #[pyfunction]
+#[pyo3(signature = (url,header_map,file_name,segment,file_name_callback_fn = None,proxy = None))]
 fn download_with_callback(
     py: Python<'_>,
     url: &str,
