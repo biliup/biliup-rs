@@ -1,71 +1,62 @@
 name: Release
-on:
-  # schedule:
-  # - cron: '0 0 * * *' # midnight UTC
 
+on:
   push:
+    branches:
+      - master
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
-    ## - release
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  # schedule:
+  # - cron: '0 0 * * *'   # midnight UTC
 
 env:
   BIN_NAME: biliup
   PROJECT_NAME: biliupR
-#  REPO_NAME: spectralops/rust-ci-release-template
-#  BREW_TAP: jondot/homebrew-tap
 
 jobs:
   dist:
     name: Dist
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # don't fail other jobs if one fails
+      fail-fast: false       # don't fail other jobs if one fails
       matrix:
-        build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, arm-linux, x86_64-macos, x86_64-windows, aarch64-macos] #, x86_64-win-gnu, win32-msvc
+        build: [x86_64-linux, x86_64-linux-musl, aarch64-linux, arm-linux, x86_64-macos, x86_64-windows, aarch64-macos]
         include:
-        - build: x86_64-linux
-          os: ubuntu-22.04
-          rust: stable
-          target: x86_64-unknown-linux-gnu
-          cross: false
-        - build: x86_64-linux-musl
-          os: ubuntu-latest
-          rust: stable
-          target: x86_64-unknown-linux-musl
-          cross: true
-        - build: aarch64-linux
-          os: ubuntu-latest
-          rust: stable
-          target: aarch64-unknown-linux-gnu
-          cross: true
-        - build:  arm-linux
-          os: ubuntu-latest
-          rust: stable
-          target: arm-unknown-linux-gnueabi
-          cross: true
-        - build: x86_64-macos
-          os: macos-latest
-          rust: stable
-          target: x86_64-apple-darwin
-          cross: false
-        - build: x86_64-windows
-          os: windows-2019
-          rust: stable
-          target: x86_64-pc-windows-msvc
-          cross: false
-        - build: aarch64-macos
-          os: macos-latest
-          rust: stable
-          target: aarch64-apple-darwin
-          cross: false
-        # - build: x86_64-win-gnu
-        #   os: windows-2019
-        #   rust: stable-x86_64-gnu
-        #   target: x86_64-pc-windows-gnu
-        # - build: win32-msvc
-        #   os: windows-2019
-        #   rust: stable
-        #   target: i686-pc-windows-msvc
+          - build: x86_64-linux
+            os: ubuntu-22.04
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            cross: false
+          - build: x86_64-linux-musl
+            os: ubuntu-latest
+            rust: stable
+            target: x86_64-unknown-linux-musl
+            cross: true
+          - build: aarch64-linux
+            os: ubuntu-latest
+            rust: stable
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - build: arm-linux
+            os: ubuntu-latest
+            rust: stable
+            target: arm-unknown-linux-gnueabi
+            cross: true
+          - build: x86_64-macos
+            os: macos-latest
+            rust: stable
+            target: x86_64-apple-darwin
+            cross: false
+          - build: x86_64-windows
+            os: windows-2019
+            rust: stable
+            target: x86_64-pc-windows-msvc
+            cross: false
+          - build: aarch64-macos
+            os: macos-latest
+            rust: stable
+            target: aarch64-apple-darwin
+            cross: false
 
     steps:
       - name: Checkout sources
@@ -109,22 +100,29 @@ jobs:
             aarch64-linux-gnu-strip \
             /target/${{ matrix.target }}/release/$BIN_NAME
 
-      - name: Build archive
+      # ---------------- 带 commit 哈希值的产物 ----------------
+      - name: Build archive (include commit hash)
         shell: bash
         run: |
           mkdir dist
+          short_sha=$(echo $GITHUB_SHA | cut -c1-7)
           if [ "${{ matrix.os }}" = "windows-2019" ]; then
-            cp "target/${{ matrix.target }}/release/$BIN_NAME.exe" "dist/"
+            cp "target/${{ matrix.target }}/release/$BIN_NAME.exe" "dist/${BIN_NAME}-${short_sha}.exe"
           else
-            cp "target/${{ matrix.target }}/release/$BIN_NAME" "dist/"
+            cp "target/${{ matrix.target }}/release/$BIN_NAME" "dist/${BIN_NAME}-${short_sha}"
           fi
+
+      - name: Set short SHA env
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bins-${{ matrix.build }}
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.build }}-${{ env.SHORT_SHA }}
           path: dist
 
+  # 只有 tag 推送时才发布 Release，普通 commit 不会跑到这里
   publish:
+    if: startsWith(github.ref, 'refs/tags/')
     name: Publish
     needs: [dist]
     runs-on: ubuntu-latest
@@ -135,12 +133,11 @@ jobs:
           submodules: false
 
       - uses: actions/download-artifact@v4
-        # with:
-        #   path: dist
-      # - run: ls -al ./dist
+
       - run: ls -al bins-*
 
-      - name: Calculate tag name
+      - name: Calculate tag name (or dev)
+        id: tagname
         run: |
           name=dev
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
@@ -148,9 +145,8 @@ jobs:
           fi
           echo ::set-output name=val::$name
           echo TAG=$name >> $GITHUB_ENV
-        id: tagname
 
-      - name: Build archive
+      - name: Build release packages
         shell: bash
         run: |
           set -ex
