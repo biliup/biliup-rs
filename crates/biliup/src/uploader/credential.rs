@@ -51,41 +51,40 @@ impl AppKeyStore {
     }
 }
 
-pub async fn login_by_cookies(file: impl AsRef<Path>, proxy: Option<&str>) -> Result<BiliBili> {
-    let client = Credential::new(proxy);
-    // let path = file.as_ref();
-    let mut file = std::fs::File::options().read(true).write(true).open(file)?;
+pub fn bilibili_from_cookies(file: impl AsRef<Path>, proxy: Option<&str>) -> Result<BiliBili> {
+    let file = std::fs::File::options().read(true).open(file)?;
     let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
+    bilibili_from_info(login_info, proxy)
+}
+
+pub fn bilibili_from_info(login_info: LoginInfo, proxy: Option<&str>) -> Result<BiliBili> {
+    let client = Credential::new(proxy);
     client.set_cookie(&login_info.cookie_info);
     info!("通过cookie登录");
-    let response = client.validate_tokens(&login_info).await?;
-    // if response.code != 0 {
-    //     return Err(CustomError::Custom(response.to_string()));
-    // }
-    let login_info = match response {
-        ResponseData {
-            data: Some(ResponseValue::OAuth(OAuthInfo { refresh: true, .. })),
-            ..
-        } => {
-            let new_info = client.renew_tokens(login_info).await?;
-            file.rewind()?;
-            file.set_len(0)?;
-            serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
-            new_info
-        }
-        ResponseData {
-            data: Some(ResponseValue::OAuth(OAuthInfo { refresh: false, .. })),
-            ..
-        } => {
-            info!("无需更新cookie");
-            login_info
-        }
-        _ => return Err(Kind::Custom(response.to_string())),
-    };
     Ok(BiliBili {
         client: client.0.client,
         login_info,
     })
+}
+
+pub async fn login_by_cookies(file: impl AsRef<Path>, proxy: Option<&str>) -> Result<BiliBili> {
+    // let path = file.as_ref();
+    let mut file = std::fs::File::options().read(true).write(true).open(file)?;
+    let login_info: LoginInfo = serde_json::from_reader(std::io::BufReader::new(&file))?;
+
+    let client: Credential = Credential::new(proxy);
+    let need_refresh = client.validate_tokens(&login_info).await?;
+
+    if need_refresh {
+        let new_info = client.renew_tokens(login_info).await?;
+        file.rewind()?;
+        file.set_len(0)?;
+        serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
+        bilibili_from_info(new_info, proxy)
+    } else {
+        info!("无需更新cookie");
+        bilibili_from_info(login_info, proxy)
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -136,7 +135,7 @@ impl Credential {
         Self(StatefulClient::new(headers, proxy))
     }
 
-    async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<ResponseData<ResponseValue>> {
+    pub async fn validate_tokens(&self, login_info: &LoginInfo) -> Result<bool> {
         let payload = {
             let mut payload = json!({
                 "access_key": login_info.token_info.access_token,
@@ -160,8 +159,20 @@ impl Credential {
             .await?
             .json()
             .await?;
+        // if response.code != 0 {
+        //     return Err(CustomError::Custom(response.to_string()));
+        // }
+
+        let refresh = match response {
+            ResponseData {
+                data: Some(ResponseValue::OAuth(OAuthInfo { refresh, .. })),
+                ..
+            } => refresh,
+            _ => return Err(Kind::Custom(response.to_string())),
+        };
+
         info!("验证cookie");
-        Ok(response)
+        Ok(refresh)
     }
 
     pub async fn renew_tokens(&self, login_info: LoginInfo) -> Result<LoginInfo> {
