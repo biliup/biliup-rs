@@ -498,9 +498,8 @@ impl BiliBili {
         }
     }
 
-    /// 获取所有稿件原始数据
-    async fn all_archives_data(&self, status: &str) -> Result<Vec<Value>> {
-        let mut first_page = self.archives(status, 1).await?;
+    async fn recent_archives_data(&self, status: &str, from_page: u32, max_pages: Option<u32>) -> Result<Vec<Value>> {
+        let mut first_page = self.archives(status, from_page).await?;
 
         let (page_size, count) = {
             let page = first_page["page"].take();
@@ -509,7 +508,7 @@ impl BiliBili {
             (page_size as u32, count as u32)
         };
 
-        let pages = {
+        let total_pages = {
             let mut pages = count / page_size;
             if pages * page_size < count {
                 pages += 1;
@@ -517,8 +516,14 @@ impl BiliBili {
             pages
         };
 
+        let fetch_pages = match max_pages {
+            Some(mp) => std::cmp::min(total_pages - from_page + 1, mp),
+            None => total_pages - from_page + 1,
+        };
+        let to_page = from_page - 1 + fetch_pages;
+
         let mut all_pages = vec![first_page];
-        for page_num in 2..=pages {
+        for page_num in from_page + 1..=to_page {
             let page = self.archives(status, page_num).await?;
             all_pages.push(page);
         }
@@ -527,9 +532,15 @@ impl BiliBili {
     }
 
     /// 获取所有稿件
+    #[deprecated(note = "use `recent_archives` instead")]
     pub async fn all_archives(&self, status: &str) -> Result<Vec<Archive>> {
+        self.recent_archives(status, 1, None).await
+    }
+
+    /// 获取页数范围内的稿件
+    pub async fn recent_archives(&self, status: &str, from_page: u32, max_pages: Option<u32>) -> Result<Vec<Archive>> {
         let studios = self
-            .all_archives_data(status)
+            .recent_archives_data(status, from_page, max_pages)
             .await?
             .iter_mut()
             .map(|page| page["arc_audits"].take())

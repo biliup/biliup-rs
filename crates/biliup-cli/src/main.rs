@@ -103,6 +103,8 @@ async fn main() -> Result<()> {
             is_pubing,
             pubed,
             not_pubed,
+            from_page,
+            max_pages,
         } => {
             list(
                 cli.user_cookie,
@@ -110,6 +112,8 @@ async fn main() -> Result<()> {
                 pubed,
                 not_pubed,
                 cli.proxy.as_deref(),
+                from_page,
+                max_pages,
             )
             .await?
         }

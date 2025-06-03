@@ -133,6 +133,14 @@ pub enum Commands {
         /// 只包含未通过的视频
         #[arg(long)]
         not_pubed: bool,
+
+        /// 从第几页开始获取
+        #[arg(short, long, default_value = "1")]
+        from_page: u32,
+
+        /// 最大获取页数
+        #[arg(short, long)]
+        max_pages: Option<u32>,
     },
 }
 
