@@ -299,7 +299,7 @@ checksum = "bb97d56060ee67d285efb8001fec9d2a4c710c32efd2e14b5cbb5ba71930fc2d"
 
 [[package]]
 name = "biliup"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -335,7 +335,7 @@ dependencies = [
 
 [[package]]
 name = "biliup-cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3058,7 +3058,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stream-gears"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "biliup",
