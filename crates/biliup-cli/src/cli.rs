@@ -142,6 +142,8 @@ pub enum Commands {
         #[arg(short, long)]
         max_pages: Option<u32>,
     },
+    /// 绑定用户与代理(用户通过user_cookie参数指定)
+    Bind,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

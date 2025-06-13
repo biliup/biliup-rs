@@ -46,9 +46,19 @@ pub async fn login(user_cookie: PathBuf, proxy: Option<&str>) -> Result<()> {
         5 => login_by_webqr_cookies(client).await?,
         _ => panic!(),
     };
-    let file = std::fs::File::create(user_cookie)?;
+    let file = std::fs::File::create(user_cookie.clone())?;
     serde_json::to_writer_pretty(&file, &info)?;
     info!("登录成功，数据保存在{:?}", file);
+    // 判断proxy是否为空
+    if let Some(proxy) = proxy {
+        let user_cookie = user_cookie.clone();
+        let file_name = user_cookie.file_name().unwrap().to_str().unwrap();
+        let file_name = file_name.split('.').collect::<Vec<&str>>()[0];
+        let file_name = format!("{}-proxy.json", file_name);
+        let file = std::fs::File::create(file_name)?;
+        serde_json::to_writer_pretty(&file, proxy)?;
+        info!("代理数据保存在{:?}", file);
+    }
     Ok(())
 }
 
