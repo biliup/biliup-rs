@@ -289,10 +289,13 @@ impl Credential {
             .json()
             .await?;
         match res.data {
-            Some(ResponseValue::Login(info)) => Ok(LoginInfo {
-                platform: Some("Android".to_string()),
-                ..info
-            }),
+            Some(ResponseValue::Login(info)) => {
+                self.set_cookie(&info.cookie_info);
+                Ok(LoginInfo {
+                    platform: Some("Android".to_string()),
+                    ..info
+                })
+            }
             _ => Err(Kind::Custom(res.to_string())),
         }
     }
@@ -447,6 +450,7 @@ impl Credential {
                     data: Some(ResponseValue::Login(info)),
                     ..
                 } => {
+                    self.set_cookie(&info.cookie_info);
                     break Ok(LoginInfo {
                         platform: Some("BiliTV".to_string()),
                         ..info
