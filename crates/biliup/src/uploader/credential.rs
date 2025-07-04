@@ -467,6 +467,26 @@ impl Credential {
         }
     }
 
+    /// 获取 Web 端 buvid3 和 buvid4
+    pub async fn get_web_buvid(&self) -> Result<(String, String)> {
+        let res: ResponseData<Value> = self
+            .0
+            .client
+            .get("https://api.bilibili.com/x/frontend/finger/spi")
+            .send()
+            .await?
+            .json()
+            .await?;
+        match res.data {
+            Some(value) => {
+                let buvid3 = value["b_3"].as_str().ok_or("cannot find b_3")?.to_owned();
+                let buvid4 = value["b_4"].as_str().ok_or("cannot find b_4")?.to_owned();
+                Ok((buvid3, buvid4))
+            }
+            None => Err(Kind::Custom(format!("cannot find buvid: {:#?}", res))),
+        }
+    }
+
     pub async fn get_qrcode(&self) -> Result<Value> {
         let mut form = json!({
             "appkey": AppKeyStore::BiliTV.app_key(),
