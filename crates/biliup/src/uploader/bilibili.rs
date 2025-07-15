@@ -330,6 +330,31 @@ impl BiliBili {
         }
     }
 
+    pub async fn edit_by_web(&self, studio: &Studio) -> Result<serde_json::Value> {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let ret: serde_json::Value = self
+            .client
+            .post(format!(
+                "http://member.bilibili.com/x/vu/web/edit?t={ts}&csrf={}",
+                self.get_csrf()?
+            ))
+            .json(studio)
+            .send()
+            .await?
+            .json()
+            .await?;
+        info!("{}", ret);
+        if ret["code"] == 0 {
+            info!("稿件修改成功");
+            Ok(ret)
+        } else {
+            Err(Kind::Custom(ret.to_string()))
+        }
+    }
+
     /// 查询视频的 json 信息
     pub async fn video_data(&self, vid: &Vid, proxy: Option<&str>) -> Result<Value> {
         let res: ResponseData = reqwest::Client::proxy_builder(proxy)
@@ -411,23 +436,30 @@ impl BiliBili {
         Err(Kind::Custom(result.message))
     }
 
-    pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
+    fn get_csrf(&self) -> Result<&str> {
         let csrf = self
             .login_info
             .cookie_info
             .get("cookies")
             .and_then(|c| c.as_array())
-            .ok_or("cover_up cookie error")?
+            .ok_or("cookie error")?
             .iter()
             .filter_map(|c| c.as_object())
             .find(|c| c["name"] == "bili_jct")
-            .ok_or("cover_up jct error")?;
+            .ok_or("jct error")?
+            .get("value")
+            .and_then(|v| v.as_str())
+            .ok_or("csrf error")?;
+        Ok(csrf)
+    }
+
+    pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
         let response = self
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
                 "cover": format!("data:image/jpeg;base64,{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, input)),
-                "csrf": csrf["value"]
+                "csrf": self.get_csrf()?
             }))
             .send()
             .await?;
