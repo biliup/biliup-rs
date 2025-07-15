@@ -10,7 +10,7 @@ use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::time::Duration;
-use tracing::info;
+use tracing::{info, warn};
 use typed_builder::TypedBuilder;
 
 #[derive(Serialize, Deserialize, Debug, TypedBuilder)]
@@ -235,27 +235,10 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
+    #[deprecated(note = "no longer working, fallback to `submit_by_app`")]
     pub async fn submit(&self, studio: &Studio, proxy: Option<&str>) -> Result<ResponseData> {
-        let ret: ResponseData = reqwest::Client::proxy_builder(proxy)
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/add?access_key={}",
-                self.login_info.token_info.access_token
-            ))
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
-        info!("{:?}", ret);
-        if ret.code == 0 {
-            info!("投稿成功");
-            Ok(ret)
-        } else {
-            Err(Kind::Custom(format!("{:?}", ret)))
-        }
+        warn!("客户端接口已失效, 将使用APP接口");
+        self.submit_by_app(studio, proxy).await
     }
 
     pub async fn submit_by_app(
@@ -307,27 +290,10 @@ impl BiliBili {
         }
     }
 
+    #[deprecated(note = "no longer working, fallback to `edit_by_web`")]
     pub async fn edit(&self, studio: &Studio, proxy: Option<&str>) -> Result<serde_json::Value> {
-        let ret: serde_json::Value = reqwest::Client::proxy_builder(proxy)
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/edit?access_key={}",
-                self.login_info.token_info.access_token
-            ))
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
-        info!("{}", ret);
-        if ret["code"] == 0 {
-            info!("稿件修改成功");
-            Ok(ret)
-        } else {
-            Err(Kind::Custom(ret.to_string()))
-        }
+        warn!("客户端接口已失效, 将使用网页接口, 忽略代理{proxy:?}");
+        self.edit_by_web(studio).await
     }
 
     pub async fn edit_by_web(&self, studio: &Studio) -> Result<serde_json::Value> {
