@@ -289,10 +289,13 @@ impl Credential {
             .json()
             .await?;
         match res.data {
-            Some(ResponseValue::Login(info)) => Ok(LoginInfo {
-                platform: Some("Android".to_string()),
-                ..info
-            }),
+            Some(ResponseValue::Login(info)) => {
+                self.set_cookie(&info.cookie_info);
+                Ok(LoginInfo {
+                    platform: Some("Android".to_string()),
+                    ..info
+                })
+            }
             _ => Err(Kind::Custom(res.to_string())),
         }
     }
@@ -447,6 +450,7 @@ impl Credential {
                     data: Some(ResponseValue::Login(info)),
                     ..
                 } => {
+                    self.set_cookie(&info.cookie_info);
                     break Ok(LoginInfo {
                         platform: Some("BiliTV".to_string()),
                         ..info
@@ -460,6 +464,26 @@ impl Credential {
                     break Err(Kind::Custom(format!("{res:#?}")));
                 }
             }
+        }
+    }
+
+    /// 获取 Web 端 buvid3 和 buvid4
+    pub async fn get_web_buvid(&self) -> Result<(String, String)> {
+        let res: ResponseData<Value> = self
+            .0
+            .client
+            .get("https://api.bilibili.com/x/frontend/finger/spi")
+            .send()
+            .await?
+            .json()
+            .await?;
+        match res.data {
+            Some(value) => {
+                let buvid3 = value["b_3"].as_str().ok_or("cannot find b_3")?.to_owned();
+                let buvid4 = value["b_4"].as_str().ok_or("cannot find b_4")?.to_owned();
+                Ok((buvid3, buvid4))
+            }
+            None => Err(Kind::Custom(format!("cannot find buvid: {:#?}", res))),
         }
     }
 

@@ -10,7 +10,7 @@ use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::time::Duration;
-use tracing::info;
+use tracing::{info, warn};
 use typed_builder::TypedBuilder;
 
 #[derive(Serialize, Deserialize, Debug, TypedBuilder)]
@@ -235,27 +235,10 @@ pub struct BiliBili {
 }
 
 impl BiliBili {
+    #[deprecated(note = "no longer working, fallback to `submit_by_app`")]
     pub async fn submit(&self, studio: &Studio, proxy: Option<&str>) -> Result<ResponseData> {
-        let ret: ResponseData = reqwest::Client::proxy_builder(proxy)
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/add?access_key={}",
-                self.login_info.token_info.access_token
-            ))
-            .json(studio)
-            .send()
-            .await?
-            .json()
-            .await?;
-        info!("{:?}", ret);
-        if ret.code == 0 {
-            info!("投稿成功");
-            Ok(ret)
-        } else {
-            Err(Kind::Custom(format!("{:?}", ret)))
-        }
+        warn!("客户端接口已失效, 将使用APP接口");
+        self.submit_by_app(studio, proxy).await
     }
 
     pub async fn submit_by_app(
@@ -307,14 +290,22 @@ impl BiliBili {
         }
     }
 
+    #[deprecated(note = "no longer working, fallback to `edit_by_web`")]
     pub async fn edit(&self, studio: &Studio, proxy: Option<&str>) -> Result<serde_json::Value> {
-        let ret: serde_json::Value = reqwest::Client::proxy_builder(proxy)
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
-            .timeout(Duration::new(60, 0))
-            .build()?
+        warn!("客户端接口已失效, 将使用网页接口, 忽略代理{proxy:?}");
+        self.edit_by_web(studio).await
+    }
+
+    pub async fn edit_by_web(&self, studio: &Studio) -> Result<serde_json::Value> {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let ret: serde_json::Value = self
+            .client
             .post(format!(
-                "http://member.bilibili.com/x/vu/client/edit?access_key={}",
-                self.login_info.token_info.access_token
+                "http://member.bilibili.com/x/vu/web/edit?t={ts}&csrf={}",
+                self.get_csrf()?
             ))
             .json(studio)
             .send()
@@ -411,23 +402,30 @@ impl BiliBili {
         Err(Kind::Custom(result.message))
     }
 
-    pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
+    fn get_csrf(&self) -> Result<&str> {
         let csrf = self
             .login_info
             .cookie_info
             .get("cookies")
             .and_then(|c| c.as_array())
-            .ok_or("cover_up cookie error")?
+            .ok_or("cookie error")?
             .iter()
             .filter_map(|c| c.as_object())
             .find(|c| c["name"] == "bili_jct")
-            .ok_or("cover_up jct error")?;
+            .ok_or("jct error")?
+            .get("value")
+            .and_then(|v| v.as_str())
+            .ok_or("csrf error")?;
+        Ok(csrf)
+    }
+
+    pub async fn cover_up(&self, input: &[u8]) -> Result<String> {
         let response = self
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
                 "cover": format!("data:image/jpeg;base64,{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, input)),
-                "csrf": csrf["value"]
+                "csrf": self.get_csrf()?
             }))
             .send()
             .await?;
