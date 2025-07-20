@@ -91,7 +91,7 @@ impl SiteDefinition for BiliLive {
                     None
                 }
             })
-            .ok_or_else(|| Error::Custom(format!("{}", room_play_info)))?;
+            .ok_or_else(|| Error::Custom(format!("{room_play_info}")))?;
         let mut header_map = HeaderMap::new();
         header_map.insert(
             REFERER,

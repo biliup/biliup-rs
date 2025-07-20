@@ -46,7 +46,7 @@ pub async fn download(
             info!("index {}", pl.media_sequence);
             pl
         }
-        Err(e) => panic!("Parsing error: \n{}", e),
+        Err(e) => panic!("Parsing error: \n{e}"),
     };
     let mut previous_last_segment = 0;
     loop {
