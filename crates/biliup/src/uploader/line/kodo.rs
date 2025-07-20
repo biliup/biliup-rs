@@ -16,15 +16,17 @@ pub struct Kodo {
     client: StatelessClient,
     bucket: Bucket,
     url: String,
+    retry: u32,
 }
 
 impl Kodo {
-    pub async fn from(client: StatelessClient, bucket: Bucket) -> Result<Self> {
+    pub async fn from(client: StatelessClient, bucket: Bucket, retry: u32) -> Result<Self> {
         let url = format!("https:{}/mkblk", bucket.endpoint); // 视频上传路径
         Ok(Kodo {
             client,
             bucket,
             url,
+            retry,
         })
     }
 
@@ -55,19 +57,22 @@ impl Kodo {
                 let (chunk, len) = chunk?;
                 // let len = chunk.len();
                 // println!("{}", len);
-                let ctx: serde_json::Value = retry(|| async {
-                    let url = format!("{url}/{len}");
-                    let response = client
-                        .post(url)
-                        .header(CONTENT_LENGTH, len)
-                        .header("Authorization", header::HeaderValue::try_from(uptoken)?)
-                        .body(chunk.clone())
-                        .send()
-                        .await?;
-                    response.error_for_status_ref()?;
-                    let res = response.json().await?;
-                    Ok::<_, Kind>(res)
-                })
+                let ctx: serde_json::Value = retry(
+                    || async {
+                        let url = format!("{url}/{len}");
+                        let response = client
+                            .post(url)
+                            .header(CONTENT_LENGTH, len)
+                            .header("Authorization", header::HeaderValue::try_from(uptoken)?)
+                            .body(chunk.clone())
+                            .send()
+                            .await?;
+                        response.error_for_status_ref()?;
+                        let res = response.json().await?;
+                        Ok::<_, Kind>(res)
+                    },
+                    self.retry,
+                )
                 .await?;
 
                 Ok::<_, Kind>((

@@ -70,6 +70,7 @@ pub async fn upload_by_command(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
+    retry: u32,
     submit: SubmitOption,
     proxy: Option<&str>,
 ) -> Result<()> {
@@ -82,7 +83,7 @@ pub async fn upload_by_command(
             .unwrap();
     }
     cover_up(&mut studio, &bili).await?;
-    studio.videos = upload(&video_path, &bili, line, limit).await?;
+    studio.videos = upload(&video_path, &bili, line, limit, retry).await?;
 
     // if studio.submit_by_app {
     //     bili.submit_by_app(&studio).await?;
@@ -126,6 +127,7 @@ pub async fn upload_by_config(
                 .as_ref()
                 .and_then(|l| UploadLine::from_str(l, true).ok()),
             config.limit,
+            3, // default retry for config-based uploads
         )
         .await?;
         bilibili.submit(&studio, proxy).await?;
@@ -139,10 +141,11 @@ pub async fn append(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
+    retry: u32,
     proxy: Option<&str>,
 ) -> Result<()> {
     let bilibili = login_by_cookies(user_cookie, proxy).await?;
-    let mut uploaded_videos = upload(&video_path, &bilibili, line, limit).await?;
+    let mut uploaded_videos = upload(&video_path, &bilibili, line, limit, retry).await?;
     let mut studio = bilibili.studio_data(&vid, proxy).await?;
     studio.videos.append(&mut uploaded_videos);
     bilibili.edit(&studio, proxy).await?;
@@ -224,6 +227,7 @@ pub async fn upload(
     bili: &BiliBili,
     line: Option<UploadLine>,
     limit: usize,
+    retry: u32,
 ) -> Result<Vec<Video>> {
     info!("number of concurrent futures: {limit}");
     let mut videos = Vec::new();
@@ -260,14 +264,19 @@ pub async fn upload(
         let instant = Instant::now();
 
         let video = uploader
-            .upload(client.clone(), limit, |vs| {
-                vs.map(|chunk| {
-                    let pb = pb.clone();
-                    let chunk = chunk?;
-                    let len = chunk.len();
-                    Ok((Progressbar::new(chunk, pb), len))
-                })
-            })
+            .upload(
+                client.clone(),
+                limit,
+                |vs| {
+                    vs.map(|chunk| {
+                        let pb = pb.clone();
+                        let chunk = chunk?;
+                        let len = chunk.len();
+                        Ok((Progressbar::new(chunk, pb), len))
+                    })
+                },
+                retry,
+            )
             .await?;
         pb.finish_and_clear();
         let t = instant.elapsed().as_millis();

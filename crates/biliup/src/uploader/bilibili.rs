@@ -1,9 +1,9 @@
+use crate::ReqwestClientBuilderExt;
 use crate::error::{Kind, Result};
 use crate::uploader::credential::LoginInfo;
-use crate::ReqwestClientBuilderExt;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 use std::fmt::{Display, Formatter};
@@ -496,7 +496,12 @@ impl BiliBili {
         }
     }
 
-    async fn recent_archives_data(&self, status: &str, from_page: u32, max_pages: Option<u32>) -> Result<Vec<Value>> {
+    async fn recent_archives_data(
+        &self,
+        status: &str,
+        from_page: u32,
+        max_pages: Option<u32>,
+    ) -> Result<Vec<Value>> {
         let mut first_page = self.archives(status, from_page).await?;
 
         let (page_size, count) = {
@@ -536,7 +541,12 @@ impl BiliBili {
     }
 
     /// 获取页数范围内的稿件
-    pub async fn recent_archives(&self, status: &str, from_page: u32, max_pages: Option<u32>) -> Result<Vec<Archive>> {
+    pub async fn recent_archives(
+        &self,
+        status: &str,
+        from_page: u32,
+        max_pages: Option<u32>,
+    ) -> Result<Vec<Archive>> {
         let studios = self
             .recent_archives_data(status, from_page, max_pages)
             .await?

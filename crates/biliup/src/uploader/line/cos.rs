@@ -18,15 +18,17 @@ pub struct Cos {
     client: StatelessClient,
     bucket: Bucket,
     upload_id: String,
+    retry: u32,
 }
 
 impl Cos {
-    pub async fn form_post(client: StatelessClient, bucket: Bucket) -> Result<Cos> {
+    pub async fn form_post(client: StatelessClient, bucket: Bucket, retry: u32) -> Result<Cos> {
         let upload_id = get_uploadid(&client.client_with_middleware, &bucket).await?;
         Ok(Cos {
             client,
             bucket,
             upload_id,
+            retry,
         })
     }
 
@@ -67,18 +69,21 @@ impl Cos {
                     upload_id,
                     part_number: (i + 1) as u32,
                 };
-                let response = retry(|| async {
-                    let response = client
-                        .put(url)
-                        .header(AUTHORIZATION, &self.bucket.put_auth)
-                        .header(CONTENT_LENGTH, len)
-                        .query(&params)
-                        .body(chunk.clone())
-                        .send()
-                        .await?;
-                    response.error_for_status_ref()?;
-                    Ok::<_, reqwest::Error>(response)
-                })
+                let response = retry(
+                    || async {
+                        let response = client
+                            .put(url)
+                            .header(AUTHORIZATION, &self.bucket.put_auth)
+                            .header(CONTENT_LENGTH, len)
+                            .query(&params)
+                            .body(chunk.clone())
+                            .send()
+                            .await?;
+                        response.error_for_status_ref()?;
+                        Ok::<_, reqwest::Error>(response)
+                    },
+                    self.retry,
+                )
                 .await?;
 
                 // json!({"partNumber": i + 1, "eTag": response.headers().get("Etag")})

@@ -32,6 +32,7 @@ impl Parcel {
         client: StatelessClient,
         limit: usize,
         progress: F,
+        retry: u32,
     ) -> Result<Video>
     where
         F: FnOnce(VideoStream) -> S,
@@ -68,7 +69,7 @@ impl Parcel {
             Bucket::Upos(bucket) => {
                 // let bucket: crate::uploader::upos::Bucket = self.pre_upload(client).await?;
                 let chunk_size = bucket.chunk_size;
-                let upos = Upos::from(client, bucket).await?;
+                let upos = Upos::from(client, bucket, retry).await?;
                 let mut parts = Vec::new();
                 let stream = upos
                     .upload_stream(
