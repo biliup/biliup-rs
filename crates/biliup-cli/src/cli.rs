@@ -55,6 +55,10 @@ pub enum Commands {
         #[arg(long, default_value = "3")]
         limit: usize,
 
+        /// 最大重试次数
+        #[arg(long, default_value = "3")]
+        retry: u32,
+
         #[command(flatten)]
         studio: Studio,
         // #[arg(required = false, last = true, default_value = "client")]
@@ -78,6 +82,10 @@ pub enum Commands {
         /// 单视频文件最大并发数
         #[arg(long, default_value = "3")]
         limit: usize,
+
+        /// 最大重试次数
+        #[arg(long, default_value = "3")]
+        retry: u32,
 
         #[command(flatten)]
         studio: Studio,

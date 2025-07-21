@@ -12,12 +12,12 @@ pub mod uploader;
 pub use uploader::bilibili;
 pub use uploader::credential;
 
-pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F) -> Result<O, E>
+pub async fn retry<F, Fut, O, E: std::fmt::Display>(mut f: F, max_retries: u32) -> Result<O, E>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<O, E>>,
 {
-    let mut retries = 3;
+    let mut retries = max_retries;
     let mut wait = 1;
     let mut jittered_wait_for;
     loop {
@@ -31,7 +31,7 @@ where
                 jittered_wait_for = f64::min(jitter_factor + (wait as f64), 64.);
                 info!(
                     "Retry attempt #{}. Sleeping {:?} before the next attempt. {e}",
-                    3 - retries,
+                    max_retries - retries,
                     jittered_wait_for
                 );
                 sleep(Duration::from_secs_f64(jittered_wait_for)).await;

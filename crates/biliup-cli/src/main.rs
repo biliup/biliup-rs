@@ -53,6 +53,7 @@ async fn main() -> Result<()> {
             config: None,
             line,
             limit,
+            retry,
             studio,
             submit,
         } => {
@@ -62,6 +63,7 @@ async fn main() -> Result<()> {
                 video_path,
                 line,
                 limit,
+                retry,
                 submit,
                 cli.proxy.as_deref(),
             )
@@ -77,6 +79,7 @@ async fn main() -> Result<()> {
             vid,
             line,
             limit,
+            retry,
             studio: _,
         } => {
             append(
@@ -85,6 +88,7 @@ async fn main() -> Result<()> {
                 video_path,
                 line,
                 limit,
+                retry,
                 cli.proxy.as_deref(),
             )
             .await?

@@ -20,6 +20,7 @@ pub struct Upos {
     bucket: Bucket,
     url: String,
     upload_id: String,
+    retry: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,7 +46,7 @@ pub struct Protocol<'a> {
 }
 
 impl Upos {
-    pub async fn from(client: StatelessClient, bucket: Bucket) -> Result<Self> {
+    pub async fn from(client: StatelessClient, bucket: Bucket, retry: u32) -> Result<Self> {
         let url = format!(
             "https:{}/{}",
             bucket.endpoint,
@@ -77,6 +78,7 @@ impl Upos {
             bucket,
             url,
             upload_id,
+            retry,
         })
     }
 
@@ -120,22 +122,25 @@ impl Upos {
                     start: i as u64 * chunk_size as u64,
                     end: i as u64 * chunk_size as u64 + len as u64,
                 };
-                retry(|| async {
-                    let response = client
-                        .put(url)
-                        .header(
-                            "X-Upos-Auth",
-                            header::HeaderValue::from_str(&self.bucket.auth)?,
-                        )
-                        .query(&params)
-                        .timeout(Duration::from_secs(240))
-                        .header(CONTENT_LENGTH, len)
-                        .body(chunk.clone())
-                        .send()
-                        .await?;
-                    response.error_for_status()?;
-                    Ok::<_, Kind>(())
-                })
+                retry(
+                    || async {
+                        let response = client
+                            .put(url)
+                            .header(
+                                "X-Upos-Auth",
+                                header::HeaderValue::from_str(&self.bucket.auth)?,
+                            )
+                            .query(&params)
+                            .timeout(Duration::from_secs(240))
+                            .header(CONTENT_LENGTH, len)
+                            .body(chunk.clone())
+                            .send()
+                            .await?;
+                        response.error_for_status()?;
+                        Ok::<_, Kind>(())
+                    },
+                    self.retry,
+                )
                 .await?;
 
                 Ok::<_, Kind>((json!({"partNumber": params.chunk + 1, "eTag": "etag"}), len))
