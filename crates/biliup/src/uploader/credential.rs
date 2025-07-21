@@ -382,7 +382,7 @@ impl Credential {
 
         let urlencoded = serde_urlencoded::to_string(&payload)?;
         let sign = Self::sign(&urlencoded, AppKeyStore::Android.appsec());
-        let urlencoded = format!("{}&sign={}", urlencoded, sign);
+        let urlencoded = format!("{urlencoded}&sign={sign}");
         // let mut form = payload.clone();
         // form["sign"] = Value::from(sign);
         let res: ResponseData<ResponseValue> = self
@@ -483,7 +483,7 @@ impl Credential {
                 let buvid4 = value["b_4"].as_str().ok_or("cannot find b_4")?.to_owned();
                 Ok((buvid3, buvid4))
             }
-            None => Err(Kind::Custom(format!("cannot find buvid: {:#?}", res))),
+            None => Err(Kind::Custom(format!("cannot find buvid: {res:#?}"))),
         }
     }
 
@@ -591,7 +591,7 @@ impl Credential {
             "csrf": bili_jct,
             "scanning_type": 3,
         });
-        let cookies = format!("SESSDATA={}; bili_jct={}", sess_data, bili_jct);
+        let cookies = format!("SESSDATA={sess_data}; bili_jct={bili_jct}");
         info!("自动确认二维码");
         let response = self.0.client
             .post("https://passport.bilibili.com/x/passport-tv-login/h5/qrcode/confirm")
@@ -614,7 +614,7 @@ impl Credential {
     pub fn sign(param: &str, app_sec: &str) -> String {
         let mut hasher = Md5::new();
         // process input message
-        hasher.update(format!("{}{}", param, app_sec));
+        hasher.update(format!("{param}{app_sec}"));
         // acquire hash digest in the form of GenericArray,
         // which in this case is equivalent to [u8; 16]
         format!("{:x}", hasher.finalize())

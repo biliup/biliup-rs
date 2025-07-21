@@ -223,8 +223,8 @@ impl FromStr for Vid {
 impl Display for Vid {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Vid::Aid(aid) => write!(f, "aid={}", aid),
-            Vid::Bvid(bvid) => write!(f, "bvid={}", bvid),
+            Vid::Aid(aid) => write!(f, "aid={aid}"),
+            Vid::Bvid(bvid) => write!(f, "bvid={bvid}"),
         }
     }
 }
@@ -286,7 +286,7 @@ impl BiliBili {
             info!("APP接口投稿成功");
             Ok(ret)
         } else {
-            Err(Kind::Custom(format!("{:?}", ret)))
+            Err(Kind::Custom(format!("{ret:?}")))
         }
     }
 
@@ -487,7 +487,7 @@ impl BiliBili {
                 code: _,
                 data: None,
                 ..
-            } => Err(Kind::Custom(format!("{:?}", res))),
+            } => Err(Kind::Custom(format!("{res:?}"))),
             ResponseData {
                 code: _,
                 data: Some(v),

@@ -94,7 +94,7 @@ pub async fn upload_by_command(
     // 说不定会适配 web 呢...?
     match submit {
         SubmitOption::App => bili.submit_by_app(&studio, proxy).await?,
-        _ => bili.submit(&studio, proxy).await?,
+        _ => bili.submit_by_app(&studio, proxy).await?,
     };
 
     Ok(())
@@ -130,7 +130,7 @@ pub async fn upload_by_config(
             3, // default retry for config-based uploads
         )
         .await?;
-        bilibili.submit(&studio, proxy).await?;
+        bilibili.submit_by_app(&studio, proxy).await?;
     }
     Ok(())
 }
@@ -148,7 +148,7 @@ pub async fn append(
     let mut uploaded_videos = upload(&video_path, &bilibili, line, limit, retry).await?;
     let mut studio = bilibili.studio_data(&vid, proxy).await?;
     studio.videos.append(&mut uploaded_videos);
-    bilibili.edit(&studio, proxy).await?;
+    bilibili.edit_by_web(&studio).await?;
     // studio.edit(&login_info).await?;
     Ok(())
 }
@@ -347,7 +347,7 @@ pub async fn login_by_qrcode(credential: Credential) -> Result<LoginInfo> {
         .dark_color(unicode::Dense1x2::Light)
         .light_color(unicode::Dense1x2::Dark)
         .build();
-    println!("{}", image);
+    println!("{image}");
     // Render the bits into an image.
     let image = code.render::<Luma<u8>>().build();
     println!(

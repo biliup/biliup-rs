@@ -193,7 +193,7 @@ pub async fn upload(studio_pre: StudioPre, proxy: Option<&str>) -> Result<Respon
         studio.cover = url;
     }
 
-    Ok(bilibili.submit(&studio, proxy).await?)
+    Ok(bilibili.submit_by_app(&studio, proxy).await?)
 }
 
 pub async fn upload_by_app(studio_pre: StudioPre, proxy: Option<&str>) -> Result<ResponseData> {

@@ -188,5 +188,5 @@ fn parse_u8(string: &[u8]) -> Result<f64, String> {
     let string = String::from_utf8_lossy(string);
     string
         .parse()
-        .map_err(|e| format!("{string} is not ascii digit. {:?}", e))
+        .map_err(|e| format!("{string} is not ascii digit. {e:?}"))
 }

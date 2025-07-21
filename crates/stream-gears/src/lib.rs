@@ -133,8 +133,7 @@ fn send_sms(country_code: u32, phone: u64, proxy: Option<String>) -> PyResult<St
     match result {
         Ok(res) => Ok(res.to_string()),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "{}",
-            err
+            "{err}"
         ))),
     }
 }
@@ -158,8 +157,7 @@ fn get_qrcode(proxy: Option<String>) -> PyResult<String> {
     match result {
         Ok(res) => Ok(res.to_string()),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "{}",
-            err
+            "{err}"
         ))),
     }
 }
@@ -174,7 +172,7 @@ fn login_by_qrcode(ret: String, proxy: Option<String>) -> PyResult<String> {
         let res = serde_json::to_string_pretty(&info)?;
         Ok::<_, anyhow::Error>(res)
     })
-    .map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(format!("{:#?}", err)))
+    .map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(format!("{err:#?}")))
 }
 
 #[pyfunction]
@@ -190,8 +188,7 @@ fn login_by_web_cookies(
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "{}",
-            err
+            "{err}"
         ))),
     }
 }
@@ -209,8 +206,7 @@ fn login_by_web_qrcode(
     match result {
         Ok(_) => Ok(true),
         Err(err) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "{}",
-            err
+            "{err}"
         ))),
     }
 }
