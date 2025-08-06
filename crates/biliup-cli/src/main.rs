@@ -81,6 +81,7 @@ async fn main() -> Result<()> {
             limit,
             retry,
             studio: _,
+            submit,
         } => {
             append(
                 cli.user_cookie,
@@ -89,6 +90,7 @@ async fn main() -> Result<()> {
                 line,
                 limit,
                 retry,
+                submit,
                 cli.proxy.as_deref(),
             )
             .await?
