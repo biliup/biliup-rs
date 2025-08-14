@@ -229,6 +229,7 @@ impl Display for Vid {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct BiliBili {
     pub client: reqwest::Client,
     pub login_info: LoginInfo,
