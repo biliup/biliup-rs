@@ -304,7 +304,7 @@ impl BiliBili {
         let ret: serde_json::Value = self
             .client
             .post(format!(
-                "http://member.bilibili.com/x/vu/web/edit?t={ts}&csrf={}",
+                "https://member.bilibili.com/x/vu/web/edit?t={ts}&csrf={}",
                 self.get_csrf()?
             ))
             .json(studio)
@@ -328,7 +328,7 @@ impl BiliBili {
             .timeout(Duration::new(60, 0))
             .build()?
             .get(format!(
-                "http://member.bilibili.com/x/client/archive/view?access_key={}&{vid}",
+                "https://member.bilibili.com/x/client/archive/view?access_key={}&{vid}",
                 self.login_info.token_info.access_token
             ))
             .send()
