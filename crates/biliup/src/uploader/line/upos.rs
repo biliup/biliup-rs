@@ -190,6 +190,7 @@ impl Upos {
                 .unwrap()
                 .into(),
             desc: "".into(),
+            cid: self.bucket.biz_id,
         })
     }
 }
