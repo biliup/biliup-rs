@@ -37,6 +37,7 @@ axum = { version = "0.8", optional = true }
 tower-http = { version = "0.6.2", features = ["cors"], optional = true }
 reqwest = { version = "0.12", default-features = false }
 sqlx = { version = "0.8", features = [ "runtime-tokio-rustls", "sqlite" ], optional = true }
+shellexpand = "3.1"
 
 [features]
 server = ["indexmap", "axum", "tower-http", "sqlx"]
