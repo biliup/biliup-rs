@@ -62,6 +62,10 @@
 
           # Additional environment variables or build phases if needed
           # cargoExtraArgs = "--features server";
+
+          meta = {
+            mainProgram = "biliup";
+          };
         });
 
         # Build with server feature
@@ -69,6 +73,10 @@
           inherit cargoArtifacts;
           cargoExtraArgs = "--features server";
           pname = "biliup-server";
+
+          meta = {
+            mainProgram = "biliup";
+          };
         });
       in
       {
