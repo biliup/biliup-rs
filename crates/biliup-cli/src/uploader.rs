@@ -74,6 +74,9 @@ pub async fn upload_by_command(
     submit: SubmitOption,
     proxy: Option<&str>,
 ) -> Result<()> {
+    if video_path.is_empty() {
+        return Err(anyhow!("No video files specified. Please provide at least one video file path."));
+    }
     let bili = login_by_cookies(user_cookie, proxy).await?;
     if studio.title.is_empty() {
         studio.title = video_path[0]
@@ -144,6 +147,9 @@ pub async fn append(
     retry: u32,
     proxy: Option<&str>,
 ) -> Result<()> {
+    if video_path.is_empty() {
+        return Err(anyhow!("No video files specified. Please provide at least one video file path."));
+    }
     let bilibili = login_by_cookies(user_cookie, proxy).await?;
     let mut uploaded_videos = upload(&video_path, &bilibili, line, limit, retry).await?;
     let mut studio = bilibili.studio_data(&vid, proxy).await?;
