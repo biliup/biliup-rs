@@ -7,6 +7,21 @@
 
 [discord-badge]: https://img.shields.io/discord/1015494098481852447.svg?logo=discord
 [discord-url]: https://discord.gg/shZmdxDFB7
+# ⚠️ 仓库已归档！请前往新仓库继续使用 ⚠️
+
+> [!IMPORTANT]
+> 
+> 🚨 **重要通知：本仓库已停止维护，所有后续开发与更新已迁移至新仓库。**  
+> 👉 请立即访问并使用新的项目地址：[biliup](https://github.com/biliup/biliup)
+
+本仓库已归档，仅供参考历史记录。请勿在此提交新的 Issue 或 Pull Request。
+
+----
+
+
+## 🗃️ 以下内容为旧版 README，仅供参考。
+
+<details>
 B 站命令行投稿工具，支持**短信登录**、**账号密码登录**、**扫码登录**、**浏览器登录**以及**网页Cookie登录**，并将登录后返回的 cookie 和 token 保存在 `cookie.json` 中，可用于其他项目。
 
 **文档地址**：<https://biliup.github.io/biliup-rs>
@@ -182,3 +197,4 @@ cargo sqlx migrate run --source .\crates\biliup-cli\migrations\
 cargo sqlx prepare  --merged
 cargo run -- server -b localhost
 ```
+</details>
